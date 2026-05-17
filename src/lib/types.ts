@@ -15,6 +15,7 @@ export type Product = {
   available: boolean;
   promoted?: boolean;
   visual: string;
+  imageUrl?: string;
 };
 
 export type Order = {
