@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Check, Copy, ExternalLink, Plus, Printer, QrCode, ReceiptText, TrendingUp, X } from "lucide-react";
 import { SectionCard } from "@/components/ui-custom/SectionCard";
 import { TableQrCard } from "@/components/ui-custom/TableQrCard";
@@ -23,6 +24,13 @@ type PrintFormat = "card" | "sheet";
 type LinkPanel = {
   title: string;
   link: string;
+  path: string;
+};
+
+type QrPanel = {
+  table: TableInfo;
+  link: string;
+  path: string;
 };
 
 const restaurantSlug = "bistrot-des-halles";
@@ -59,12 +67,16 @@ function createClientId(name: string, existingIds: string[]) {
   return `${baseId}-${index}`;
 }
 
+function buildCustomerPath(tableNumber: number) {
+  return `/r/${restaurantSlug}/table/${tableNumber}`;
+}
+
 function normalizeTable(table: TableInfo): TableInfo {
   const name = table.name || `Table ${table.number}`;
   return {
     ...table,
     name,
-    customerPath: table.customerPath || `/r/${restaurantSlug}/table/${makeSlug(name)}`,
+    customerPath: table.customerPath || buildCustomerPath(table.number),
   };
 }
 
@@ -73,7 +85,7 @@ function normalizeTables(tables: TableInfo[]) {
 }
 
 function getCustomerPath(table: TableInfo) {
-  return table.customerPath || `/r/${restaurantSlug}/table/${makeSlug(table.name || `Table ${table.number}`)}`;
+  return table.customerPath || buildCustomerPath(table.number);
 }
 
 function getFullCustomerUrl(table: TableInfo) {
@@ -86,7 +98,7 @@ function getQrOrdersCount(orders: typeof seedOrders) {
   return orders.filter((order) => order.source === "qr").length;
 }
 
-function QrVisual({ value }: { value: string }) {
+function QrVisual({ value, compact = false }: { value: string; compact?: boolean }) {
   const cells = useMemo(() => {
     let hash = 0;
     for (let index = 0; index < value.length; index += 1) {
@@ -104,7 +116,13 @@ function QrVisual({ value }: { value: string }) {
   }, [value]);
 
   return (
-    <div className="mx-auto grid size-52 grid-cols-9 gap-1 rounded-[1.5rem] border border-emerald-100 bg-white p-4 shadow-card" aria-hidden="true">
+    <div
+      className={cn(
+        "mx-auto grid grid-cols-9 gap-1 rounded-[1.5rem] border border-emerald-100 bg-white p-4 shadow-card",
+        compact ? "size-36" : "size-52",
+      )}
+      aria-hidden="true"
+    >
       {cells.map((filled, index) => (
         <span key={index} className={cn("rounded-[0.22rem]", filled ? "bg-emerald-900" : "bg-emerald-50")} />
       ))}
@@ -156,8 +174,20 @@ function Panel({ title, children, onClose }: { title: string; children: React.Re
   );
 }
 
+function CustomerMenuLink({ path, link, className }: { path: string; link: string; className?: string }) {
+  return (
+    <div className={cn("grid gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 p-4", className)}>
+      <Link href={path} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-base font-black text-emerald-800 shadow-sm transition active:bg-emerald-100">
+        <ExternalLink className="size-5" /> Ouvrir le menu client
+      </Link>
+      <Link href={path} className="break-all text-center text-sm font-semibold text-emerald-900 underline decoration-emerald-300 underline-offset-4">
+        {link}
+      </Link>
+    </div>
+  );
+}
+
 export function TableQrManager() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { value: storedTables, setValue: setTables } = useTablesStore();
   const { value: orders } = useOrdersStore();
@@ -166,8 +196,8 @@ export function TableQrManager() {
   const [errors, setErrors] = useState<AddTableErrors>({});
   const [copiedTableId, setCopiedTableId] = useState<string | null>(null);
   const [manualLink, setManualLink] = useState<LinkPanel | null>(null);
-  const [qrPanel, setQrPanel] = useState<LinkPanel | null>(null);
-  const [printPanelOpen, setPrintPanelOpen] = useState(() => searchParams.get("action") === "print");
+  const [qrPanel, setQrPanel] = useState<QrPanel | null>(null);
+  const [printPanelOpen, setPrintPanelOpen] = useState(false);
   const [selectedPrintIds, setSelectedPrintIds] = useState<string[]>(() => normalizeTables(storedTables).filter((table) => table.active).map((table) => table.id));
   const [printFormat, setPrintFormat] = useState<PrintFormat>("card");
 
@@ -177,6 +207,18 @@ export function TableQrManager() {
   const selectedActivePrintIds = selectedPrintIds.filter((tableId) => activePrintIds.has(tableId));
   const scanCount = useMemo(() => tables.reduce((total, table) => total + table.scans, 0), [tables]);
   const qrOrdersCount = useMemo(() => getQrOrdersCount(orders), [orders]);
+  const selectedPrintTables = activeTables.filter((table) => selectedPrintIds.includes(table.id));
+
+  useEffect(() => {
+    if (searchParams.get("action") !== "print") return;
+
+    const panelTimer = window.setTimeout(() => {
+      setSelectedPrintIds(activeTables.map((table) => table.id));
+      setPrintPanelOpen(true);
+    }, 0);
+
+    return () => window.clearTimeout(panelTimer);
+  }, [activeTables, searchParams]);
 
   function resetAddPanel() {
     setForm(initialForm);
@@ -201,7 +243,7 @@ export function TableQrManager() {
 
     const tableNumber = getTableNumber(trimmedName, tables);
     const id = createClientId(trimmedName, tables.map((table) => table.id));
-    const customerPath = `/r/${restaurantSlug}/table/${makeSlug(trimmedName)}`;
+    const customerPath = buildCustomerPath(tableNumber);
     const nextTable: TableInfo = {
       id,
       number: tableNumber,
@@ -229,15 +271,15 @@ export function TableQrManager() {
         window.setTimeout(() => setCopiedTableId(null), 1800);
         return;
       } catch {
-        setManualLink({ title: `Lien ${table.name}`, link });
+        setManualLink({ title: `Lien ${table.name}`, link, path: getCustomerPath(table) });
         return;
       }
     }
-    setManualLink({ title: `Lien ${table.name}`, link });
+    setManualLink({ title: `Lien ${table.name}`, link, path: getCustomerPath(table) });
   }
 
   function viewQr(table: TableInfo) {
-    setQrPanel({ title: table.name, link: getFullCustomerUrl(table) });
+    setQrPanel({ table, link: getFullCustomerUrl(table), path: getCustomerPath(table) });
   }
 
   function openPrintPanel() {
@@ -321,15 +363,15 @@ export function TableQrManager() {
               <input
                 value={form.name}
                 onChange={(event) => setForm({ ...form, name: event.target.value })}
-                className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
-                autoComplete="off"
+                placeholder="Table 8"
+                className="min-h-14 rounded-2xl border border-slate-200 px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
               />
             </Field>
             <Field label="Zone" error={errors.area}>
               <input
                 value={form.area}
                 onChange={(event) => setForm({ ...form, area: event.target.value })}
-                className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                className="min-h-14 rounded-2xl border border-slate-200 px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                 list="table-zones"
               />
               <datalist id="table-zones">
@@ -348,33 +390,35 @@ export function TableQrManager() {
 
       {manualLink ? (
         <Panel title={manualLink.title} onClose={() => setManualLink(null)}>
-          <p className="mb-3 text-base leading-relaxed text-slate-700">Copiez ce lien pour partager le menu client.</p>
-          <div className="break-all rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-base font-semibold text-emerald-900">{manualLink.link}</div>
+          <div className="grid gap-4">
+            <p className="text-base leading-relaxed text-slate-700">Copiez ce lien ou ouvrez directement le menu client.</p>
+            <CustomerMenuLink path={manualLink.path} link={manualLink.link} />
+          </div>
         </Panel>
       ) : null}
 
       {qrPanel ? (
-        <Panel title={qrPanel.title} onClose={() => setQrPanel(null)}>
+        <Panel title={qrPanel.table.name} onClose={() => setQrPanel(null)}>
           <div className="grid gap-5 text-center">
+            <div className="mx-auto">
+              <span className={cn("inline-flex min-h-9 items-center rounded-full px-4 text-sm font-black", qrPanel.table.active ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600")}>
+                {qrPanel.table.active ? "QR actif" : "Désactivé"}
+              </span>
+            </div>
+            <CustomerMenuLink path={qrPanel.path} link={qrPanel.link} />
             <QrVisual value={qrPanel.link} />
-            <div className="break-all rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">{qrPanel.link}</div>
             <button
               type="button"
-              onClick={() => {
-                const table = tables.find((currentTable) => currentTable.name === qrPanel.title);
-                if (table) void copyLink(table, qrPanel.link);
-              }}
+              onClick={() => void copyLink(qrPanel.table, qrPanel.link)}
               className="min-h-12 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-emerald-800"
             >
               <span className="inline-flex items-center gap-2">
                 <Copy className="size-5" /> Copier lien
               </span>
             </button>
-            <button type="button" onClick={() => router.push(new URL(qrPanel.link).pathname)} className="min-h-12 rounded-2xl bg-emerald-700 px-4 text-lg font-black text-white shadow-green">
-              <span className="inline-flex items-center gap-2">
-                <ExternalLink className="size-5" /> Ouvrir le menu client
-              </span>
-            </button>
+            <Link href={qrPanel.path} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 text-lg font-black text-white shadow-green">
+              <ExternalLink className="size-5" /> Ouvrir le menu client
+            </Link>
           </div>
         </Panel>
       ) : null}
@@ -382,34 +426,7 @@ export function TableQrManager() {
       {printPanelOpen ? (
         <Panel title="Préparer impression" onClose={() => setPrintPanelOpen(false)}>
           <div className="grid gap-5">
-            <div className="grid gap-3">
-              {activeTables.length > 0 ? (
-                activeTables.map((table) => {
-                  const selected = selectedPrintIds.includes(table.id);
-                  return (
-                    <button
-                      key={table.id}
-                      type="button"
-                      onClick={() => togglePrintTable(table.id)}
-                      className={cn(
-                        "flex min-h-14 items-center justify-between gap-3 rounded-2xl border px-4 text-left transition",
-                        selected ? "border-emerald-700 bg-emerald-50 text-emerald-900" : "border-slate-200 bg-white text-slate-700",
-                      )}
-                      aria-pressed={selected}
-                    >
-                      <span>
-                        <strong className="block text-lg">{table.name}</strong>
-                        <span className="text-sm">{table.area}</span>
-                      </span>
-                      {selected ? <Check className="size-6 shrink-0 text-emerald-800" /> : null}
-                    </button>
-                  );
-                })
-              ) : (
-                <p className="rounded-2xl bg-emerald-50 p-4 text-center text-base font-semibold text-emerald-900">Activez au moins une table pour préparer l’impression.</p>
-              )}
-            </div>
-
+            <p className="text-base leading-relaxed text-slate-700">Sélectionnez les tables actives, vérifiez les liens clients, puis lancez l’impression.</p>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -429,17 +446,48 @@ export function TableQrManager() {
               </button>
             </div>
 
-            <section className="grid gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-              <h3 className="text-lg font-black text-emerald-900">Aperçu impression</h3>
-              {activeTables
-                .filter((table) => selectedPrintIds.includes(table.id))
-                .map((table) => (
-                  <div key={table.id} className="rounded-2xl bg-white p-4 shadow-card">
-                    <strong className="block text-xl text-slate-950">{table.name}</strong>
-                    <span className="text-sm text-slate-600">{getCustomerPath(table)}</span>
-                  </div>
-                ))}
+            <section className="grid gap-3" aria-label="Tables actives à imprimer">
+              {activeTables.length > 0 ? (
+                activeTables.map((table) => {
+                  const selected = selectedPrintIds.includes(table.id);
+                  const path = getCustomerPath(table);
+                  const link = getFullCustomerUrl(table);
+                  return (
+                    <article
+                      key={table.id}
+                      className={cn(
+                        "grid gap-4 rounded-[1.35rem] border bg-white p-4 shadow-card transition",
+                        selected ? "border-emerald-700 ring-4 ring-emerald-50" : "border-slate-200",
+                      )}
+                    >
+                      <button type="button" onClick={() => togglePrintTable(table.id)} className="flex min-h-14 items-center justify-between gap-3 text-left" aria-pressed={selected}>
+                        <span>
+                          <strong className="block text-xl text-slate-950">{table.name}</strong>
+                          <span className="text-sm font-semibold text-slate-600">{table.area}</span>
+                        </span>
+                        <span className={cn("grid size-8 shrink-0 place-items-center rounded-full border", selected ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-300 text-transparent")}>
+                          <Check className="size-5" />
+                        </span>
+                      </button>
+                      {selected ? (
+                        <div className={cn("grid gap-4", printFormat === "sheet" ? "sm:grid-cols-[9rem_1fr] sm:items-center" : "")}>
+                          <QrVisual value={link} compact />
+                          <CustomerMenuLink path={path} link={link} />
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })
+              ) : (
+                <p className="rounded-2xl bg-emerald-50 p-4 text-center text-base font-semibold text-emerald-900">Activez au moins une table pour préparer l’impression.</p>
+              )}
             </section>
+
+            {selectedPrintTables.length > 0 ? (
+              <p className="rounded-2xl bg-emerald-50 p-4 text-center text-base font-black text-emerald-900">
+                {selectedPrintTables.length} table{selectedPrintTables.length > 1 ? "s" : ""} sélectionnée{selectedPrintTables.length > 1 ? "s" : ""}
+              </p>
+            ) : null}
 
             <button
               type="button"
