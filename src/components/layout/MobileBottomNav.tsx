@@ -10,14 +10,14 @@ const items = [
   { href: "/dashboard/orders", label: "Commandes", icon: ShoppingBag, key: "orders" },
   { href: "/dashboard/menu", label: "Menu", icon: Utensils, key: "menu" },
   { href: "/dashboard/qr", label: "QR", icon: QrCode, key: "qr" },
-  { href: "/dashboard/reviews", label: "Plus", icon: MoreHorizontal, key: "plus" },
+  { href: "/dashboard/more", label: "Plus", icon: MoreHorizontal, key: "plus" },
 ];
 
 function getActiveKey(pathname: string) {
   if (pathname.includes("/orders")) return "orders";
   if (pathname.includes("/menu")) return "menu";
   if (pathname.includes("/qr")) return "qr";
-  if (pathname.includes("/reviews") || pathname.includes("/statistics") || pathname.includes("/settings")) return "plus";
+  if (pathname.includes("/more") || pathname.includes("/reviews") || pathname.includes("/statistics") || pathname.includes("/settings")) return "plus";
   return "home";
 }
 
