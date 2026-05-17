@@ -31,8 +31,8 @@ function formatRating(value: number) {
 
 export function getDashboardMetrics({ orders, products, reviews, settings, tables }: DashboardMetricInput) {
   const serviceOrders = orders.filter((order) => order.serviceDate === settings.serviceDate);
-  const ordersToAccept = orders.filter((order) => order.status === "to_accept");
-  const ordersToCollect = orders.filter((order) => order.status !== "to_accept" && !order.paid);
+  const ordersToAccept = orders.filter((order) => order.status === "new");
+  const ordersToCollect = orders.filter((order) => order.status === "accepted" || order.status === "payment_pending");
   const reviewsToHandle = reviews.filter((review) => review.status !== "archived");
   const unavailableProducts = products.filter((product) => !product.available);
   const estimatedSales = serviceOrders.reduce((total, order) => total + order.total, 0);
