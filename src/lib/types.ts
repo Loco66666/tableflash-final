@@ -38,6 +38,9 @@ export type Review = {
   ageLabel: string;
   status: "pending" | "archived";
   suggestGoogle: boolean;
+  text?: string;
+  response?: string;
+  responseSaved?: boolean;
 };
 
 export type RestaurantSettings = {
@@ -50,6 +53,7 @@ export type RestaurantSettings = {
   address: string;
   phone: string;
   googleReviewLabel: string;
+  googleReviewUrl: string;
 };
 
 export type TableInfo = {

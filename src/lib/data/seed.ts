@@ -10,6 +10,7 @@ export const restaurantSettings: RestaurantSettings = {
   address: "12 rue des Halles, Paris",
   phone: "01 42 00 00 00",
   googleReviewLabel: "Lien Google Avis",
+  googleReviewUrl: "",
 };
 
 export const categories: Category[] = [
@@ -74,11 +75,41 @@ export const orders: Order[] = [
 ];
 
 export const reviews: Review[] = [
-  { id: "r1", customer: "Camille", rating: 5, table: 1, orderId: "2002", ageLabel: "Il y a 1 jour", status: "pending", suggestGoogle: true },
-  { id: "r2", customer: "Julien", rating: 5, table: 3, orderId: "2001", ageLabel: "Il y a 2 jours", status: "archived", suggestGoogle: false },
-  { id: "r3", customer: "Nora", rating: 5, table: 5, orderId: "2005", ageLabel: "Il y a 3 jours", status: "archived", suggestGoogle: true },
-  { id: "r4", customer: "Hugo", rating: 5, table: 8, orderId: "2008", ageLabel: "Il y a 4 jours", status: "archived", suggestGoogle: true },
-  { id: "r5", customer: "Inès", rating: 4, table: 9, orderId: "2009", ageLabel: "Il y a 5 jours", status: "archived", suggestGoogle: false },
+  {
+    id: "r1",
+    customer: "Camille",
+    rating: 5,
+    table: 1,
+    orderId: "2002",
+    ageLabel: "Il y a 1 jour",
+    status: "pending",
+    suggestGoogle: true,
+    text: "Accueil chaleureux et service très rapide. Nous reviendrons avec plaisir.",
+  },
+  {
+    id: "r2",
+    customer: "Julien",
+    rating: 4,
+    table: 3,
+    orderId: "2001",
+    ageLabel: "Il y a 2 jours",
+    status: "pending",
+    suggestGoogle: true,
+    text: "Très bon déjeuner, la terrasse est agréable et l’équipe attentive.",
+  },
+  {
+    id: "r3",
+    customer: "Nora",
+    rating: 3,
+    table: 5,
+    orderId: "2005",
+    ageLabel: "Il y a 3 jours",
+    status: "pending",
+    suggestGoogle: false,
+    text: "Le plat était bon, mais l’attente a été un peu longue.",
+  },
+  { id: "r4", customer: "Hugo", rating: 5, table: 8, orderId: "2008", ageLabel: "Il y a 4 jours", status: "archived", suggestGoogle: true, text: "Très belle adresse, merci pour le service." },
+  { id: "r5", customer: "Inès", rating: 4, table: 9, orderId: "2009", ageLabel: "Il y a 5 jours", status: "archived", suggestGoogle: true, text: "Desserts excellents et équipe souriante." },
 ];
 
 export const tables: TableInfo[] = [
