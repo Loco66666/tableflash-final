@@ -3,6 +3,10 @@ import type { TableInfo } from "@/lib/types";
 
 export const restaurantSlug = "bistrot-des-halles";
 
+export const tableZoneOptions = ["Salle", "Terrasse", "Comptoir", "Étage", "Salon privé", "À emporter"] as const;
+
+export type TableZone = (typeof tableZoneOptions)[number];
+
 type LegacyTableInfo = Partial<TableInfo> & {
   number?: number;
   active?: boolean;

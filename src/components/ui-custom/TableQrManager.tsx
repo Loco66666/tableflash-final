@@ -15,6 +15,7 @@ import {
   getCustomerPath,
   normalizeTableText,
   normalizeTables,
+  tableZoneOptions,
 } from "@/lib/tables";
 import type { TableInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -41,7 +42,7 @@ type QrPanel = {
 };
 
 const seedQrOrderCount = seedOrders.filter((order) => order.source === "qr").length;
-const initialForm: AddTableForm = { name: "", area: "Salle", isActive: true };
+const initialForm: AddTableForm = { name: "", area: "", isActive: true };
 
 function getFullCustomerUrl(table: TableInfo, origin: string) {
   return origin ? `${origin}${getCustomerPath(table)}` : getCustomerPath(table);
@@ -195,7 +196,7 @@ export function TableQrManager() {
     const nextErrors: AddTableErrors = {};
 
     if (!trimmedName) nextErrors.name = "Le nom de la table est requis.";
-    if (!trimmedArea) nextErrors.area = "La zone est requise.";
+    if (!trimmedArea) nextErrors.area = "Choisissez une zone";
     if (tables.some((table) => normalizeTableText(table.name) === normalizeTableText(trimmedName))) {
       nextErrors.name = "Une table porte déjà ce nom.";
     }
@@ -328,17 +329,19 @@ export function TableQrManager() {
               />
             </Field>
             <Field label="Zone" error={errors.area}>
-              <input
+              <select
                 value={form.area}
                 onChange={(event) => setForm({ ...form, area: event.target.value })}
-                className="min-h-14 rounded-2xl border border-slate-200 px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
-                list="table-zones"
-              />
-              <datalist id="table-zones">
-                <option value="Salle" />
-                <option value="Terrasse" />
-                <option value="Comptoir" />
-              </datalist>
+                className="min-h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 pr-10 text-lg font-semibold text-slate-900 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                aria-invalid={Boolean(errors.area)}
+              >
+                <option value="">Choisir une zone</option>
+                {tableZoneOptions.map((zone) => (
+                  <option key={zone} value={zone}>
+                    {zone}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Toggle label="QR actif" checked={form.isActive} onChange={(isActive) => setForm({ ...form, isActive })} />
             <button type="submit" className="min-h-14 rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green">
