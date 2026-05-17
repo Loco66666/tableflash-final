@@ -1,22 +1,80 @@
-import { Check, ChefHat, ClipboardList, Package, Table2, X } from "lucide-react";
-import type { Order } from "@/lib/types";
+import { Check, ChefHat, ClipboardList, Clock3, HandPlatter, Package, Table2, X } from "lucide-react";
+import type { Order, OrderStatus } from "@/lib/types";
 import { formatEuro } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui-custom/StatusBadge";
+import {
+  getOrderStatusBadgeTone,
+  getOrderStatusIconStyle,
+  getOrderStatusLabel,
+  getPrimaryOrderActionLabel,
+} from "@/lib/orders";
 
-export function OrderCard({ order }: { order: Order }) {
-  const isPending = order.status === "to_accept";
-  const badgeTone = order.status === "to_accept" ? "orange" : order.status === "paid" ? "green" : "blue";
+type OrderCardProps = {
+  order: Order;
+  onStatusChange?: (orderId: string, nextStatus: OrderStatus) => void;
+  onRefuse?: (orderId: string) => void;
+};
+
+function renderOrderIcon(status: OrderStatus) {
+  switch (status) {
+    case "new":
+      return <ClipboardList className="size-8" />;
+    case "accepted":
+    case "payment_pending":
+      return <Clock3 className="size-8" />;
+    case "paid":
+    case "served":
+      return <Check className="size-8" />;
+    case "preparing":
+      return <ChefHat className="size-8" />;
+    case "ready":
+      return <HandPlatter className="size-8" />;
+    case "refused":
+      return <X className="size-8" />;
+  }
+}
+
+export function OrderCard({ order, onStatusChange, onRefuse }: OrderCardProps) {
+  const primaryActionLabel = getPrimaryOrderActionLabel(order.status);
+  const isNew = order.status === "new";
+  const isClosed = order.status === "served" || order.status === "refused";
+
+  function handlePrimaryAction() {
+    if (order.status === "new") {
+      onStatusChange?.(order.id, "payment_pending");
+      return;
+    }
+
+    if (order.status === "accepted" || order.status === "payment_pending") {
+      onStatusChange?.(order.id, "paid");
+      return;
+    }
+
+    if (order.status === "paid") {
+      onStatusChange?.(order.id, "preparing");
+      return;
+    }
+
+    if (order.status === "preparing") {
+      onStatusChange?.(order.id, "ready");
+      return;
+    }
+
+    if (order.status === "ready") {
+      onStatusChange?.(order.id, "served");
+    }
+  }
 
   return (
     <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-card">
       <div className="flex gap-4">
-        <span className={(isPending ? "bg-orange-50 text-orange-600" : order.status === "preparing" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-800") + " grid size-16 shrink-0 place-items-center rounded-full"}>
-          {order.status === "preparing" ? <ChefHat className="size-8" /> : <ClipboardList className="size-8" />}
+        <span className={`${getOrderStatusIconStyle(order.status)} grid size-16 shrink-0 place-items-center rounded-full`}>
+          {renderOrderIcon(order.status)}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-col gap-3 min-[390px]:flex-row min-[390px]:items-start min-[390px]:justify-between">
             <h2 className="text-2xl font-black tracking-[-0.03em]">Commande #{order.id}</h2>
-            <StatusBadge label={order.paymentLabel} tone={badgeTone} />
+            <StatusBadge label={getOrderStatusLabel(order.status)} tone={getOrderStatusBadgeTone(order.status)} />
           </div>
           <div className="mt-4 grid gap-2 text-lg text-slate-700">
             <p className="flex items-center gap-3"><Table2 className="size-6 text-emerald-800" /> Table {order.table}</p>
@@ -25,12 +83,30 @@ export function OrderCard({ order }: { order: Order }) {
         </div>
       </div>
       <div className="mt-4 text-right text-4xl font-black tracking-[-0.05em]">{formatEuro(order.total)}</div>
-      <div className="mt-5 grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
-        <button className="min-h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-900 px-4 text-lg font-bold text-white shadow-green">
-          <span className="inline-flex items-center gap-3">{isPending ? <Check className="size-7" /> : <ChefHat className="size-6" />} {order.actionLabel}</span>
-        </button>
-        {isPending ? <button className="min-h-14 rounded-2xl border border-red-500 px-4 text-lg font-bold text-red-600"><span className="inline-flex items-center gap-3"><X className="size-7" /> Refuser</span></button> : null}
-      </div>
+      {primaryActionLabel ? (
+        <div className="mt-5 grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
+          <button
+            type="button"
+            onClick={handlePrimaryAction}
+            className="min-h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-900 px-4 text-lg font-bold text-white shadow-green transition active:scale-[0.99]"
+          >
+            <span className="inline-flex items-center gap-3">{order.status === "paid" || order.status === "preparing" ? <ChefHat className="size-6" /> : <Check className="size-7" />} {primaryActionLabel}</span>
+          </button>
+          {isNew ? (
+            <button
+              type="button"
+              onClick={() => onRefuse?.(order.id)}
+              className="min-h-14 rounded-2xl border border-red-500 px-4 text-lg font-bold text-red-600 transition active:scale-[0.99]"
+            >
+              <span className="inline-flex items-center gap-3"><X className="size-7" /> Refuser</span>
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <p className="mt-5 rounded-2xl bg-slate-50 px-4 py-3 text-center text-base font-semibold text-slate-600">
+          {isClosed ? getOrderStatusLabel(order.status) : "Action réalisée"}
+        </p>
+      )}
     </article>
   );
 }

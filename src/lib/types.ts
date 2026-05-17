@@ -1,4 +1,4 @@
-export type OrderStatus = "to_accept" | "accepted" | "paid" | "preparing" | "ready" | "served";
+export type OrderStatus = "new" | "accepted" | "payment_pending" | "paid" | "preparing" | "ready" | "served" | "refused";
 
 export type Category = {
   id: string;
@@ -25,8 +25,6 @@ export type Order = {
   total: number;
   paid: boolean;
   serviceDate: string;
-  paymentLabel: string;
-  actionLabel: string;
 };
 
 export type Review = {
