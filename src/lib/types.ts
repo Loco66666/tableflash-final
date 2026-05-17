@@ -1,4 +1,4 @@
-export type OrderStatus = "to_accept" | "paid" | "preparing" | "ready" | "served";
+export type OrderStatus = "to_accept" | "accepted" | "paid" | "preparing" | "ready" | "served";
 
 export type Category = {
   id: string;
@@ -23,6 +23,8 @@ export type Order = {
   status: OrderStatus;
   items: number;
   total: number;
+  paid: boolean;
+  serviceDate: string;
   paymentLabel: string;
   actionLabel: string;
 };
@@ -30,16 +32,21 @@ export type Order = {
 export type Review = {
   id: string;
   customer: string;
-  rating: 4 | 5;
+  rating: 1 | 2 | 3 | 4 | 5;
   table: number;
   orderId: string;
   ageLabel: string;
+  status: "pending" | "archived";
   suggestGoogle: boolean;
 };
 
 export type RestaurantSettings = {
   restaurantName: string;
   serviceLabel: string;
+  serviceOpen: boolean;
+  qrOrdersEnabled: boolean;
+  onSitePaymentEnabled: boolean;
+  serviceDate: string;
   address: string;
   phone: string;
   googleReviewLabel: string;
