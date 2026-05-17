@@ -54,10 +54,9 @@ export type RestaurantSettings = {
 
 export type TableInfo = {
   id: string;
-  number: number;
+  slug: string;
   name: string;
   area: string;
-  active: boolean;
+  isActive: boolean;
   scans: number;
-  customerPath: string;
 };

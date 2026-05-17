@@ -9,14 +9,14 @@ const steps = [
   { label: "Service", icon: Bell, done: false },
 ];
 
-export function CustomerTrackingPreview() {
+export function CustomerTrackingPreview({ tableName = "Table 1", tableArea = "" }: { tableName?: string; tableArea?: string }) {
   return (
     <div className="grid gap-6">
       <SectionCard className="flex items-center gap-4">
         <span className="grid size-16 place-items-center rounded-full bg-gradient-to-br from-emerald-600 to-emerald-900 text-white"><Check className="size-9" /></span>
         <div className="min-w-0">
           <h2 className="text-2xl font-black text-emerald-800">Commande envoyée</h2>
-          <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-lg text-slate-600"><span className="inline-flex items-center gap-2"><Table2 className="size-5" />Table 1</span><span className="inline-flex items-center gap-2"><QrCode className="size-5" />28,40 €</span></p>
+          <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-lg text-slate-600"><span className="inline-flex items-center gap-2"><Table2 className="size-5" />{tableArea ? `${tableName} • ${tableArea}` : tableName}</span><span className="inline-flex items-center gap-2"><QrCode className="size-5" />28,40 €</span></p>
         </div>
       </SectionCard>
       <section className="rounded-[1.6rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5 text-center shadow-card">
