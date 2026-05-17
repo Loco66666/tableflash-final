@@ -18,6 +18,11 @@ export type Product = {
   imageUrl?: string;
 };
 
+export type OrderLine = {
+  productId: string;
+  quantity: number;
+};
+
 export type Order = {
   id: string;
   table: number;
@@ -26,6 +31,9 @@ export type Order = {
   total: number;
   paid: boolean;
   serviceDate: string;
+  serviceTime?: string;
+  service?: "midi" | "soir";
+  lines?: OrderLine[];
   source?: "qr" | "service";
 };
 
