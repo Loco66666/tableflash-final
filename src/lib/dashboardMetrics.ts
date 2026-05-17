@@ -37,7 +37,7 @@ export function getDashboardMetrics({ orders, products, reviews, settings, table
   const unavailableProducts = products.filter((product) => !product.available);
   const estimatedSales = serviceOrders.reduce((total, order) => total + order.total, 0);
   const averageRating = reviews.length > 0 ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length : 0;
-  const activeTables = tables.filter((table) => table.active);
+  const activeTables = tables.filter((table) => table.isActive);
 
   return {
     service: {

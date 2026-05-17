@@ -82,11 +82,11 @@ export const reviews: Review[] = [
 ];
 
 export const tables: TableInfo[] = [
-  { id: "t1", number: 1, name: "Table 1", area: "Salle", active: true, scans: 18, customerPath: "/r/bistrot-des-halles/table/1" },
-  { id: "t2", number: 2, name: "Table 2", area: "Terrasse", active: true, scans: 15, customerPath: "/r/bistrot-des-halles/table/2" },
-  { id: "t3", number: 3, name: "Table 3", area: "Salle", active: true, scans: 14, customerPath: "/r/bistrot-des-halles/table/3" },
-  { id: "t4", number: 4, name: "Table 4", area: "Salle", active: true, scans: 12, customerPath: "/r/bistrot-des-halles/table/4" },
-  { id: "t5", number: 5, name: "Table 5", area: "Terrasse", active: true, scans: 9, customerPath: "/r/bistrot-des-halles/table/5" },
-  { id: "t6", number: 6, name: "Table 6", area: "Salle", active: true, scans: 12, customerPath: "/r/bistrot-des-halles/table/6" },
-  { id: "t7", number: 7, name: "Table 7", area: "Salle", active: false, scans: 0, customerPath: "/r/bistrot-des-halles/table/7" },
+  { id: "table-1", slug: "table-1", name: "Table 1", area: "Salle", isActive: true, scans: 18 },
+  { id: "table-2", slug: "table-2", name: "Table 2", area: "Terrasse", isActive: true, scans: 15 },
+  { id: "table-3", slug: "table-3", name: "Table 3", area: "Salle", isActive: true, scans: 14 },
+  { id: "table-4", slug: "table-4", name: "Table 4", area: "Salle", isActive: true, scans: 12 },
+  { id: "table-5", slug: "table-5", name: "Table 5", area: "Terrasse", isActive: true, scans: 9 },
+  { id: "table-6", slug: "table-6", name: "Table 6", area: "Salle", isActive: true, scans: 12 },
+  { id: "table-7", slug: "table-7", name: "Table 7", area: "Salle", isActive: false, scans: 0 },
 ];

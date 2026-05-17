@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, Link2, MoreHorizontal, Power, QrCode } from "lucide-react";
 import type { TableInfo } from "@/lib/types";
 import { StatusBadge } from "@/components/ui-custom/StatusBadge";
+import { getTableDisplayNumber } from "@/lib/tables";
 
 export function TableQrCard({
   table,
@@ -17,7 +18,8 @@ export function TableQrCard({
   onViewQr: (table: TableInfo) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const actionLabel = table.active ? "Désactiver" : "Activer";
+  const actionLabel = table.isActive ? "Désactiver" : "Activer";
+  const displayNumber = getTableDisplayNumber(table);
 
   function runMenuAction(action: () => void) {
     action();
@@ -28,7 +30,7 @@ export function TableQrCard({
     <article className="rounded-[1.35rem] border border-slate-200 bg-white p-5 shadow-card">
       <div className="flex items-start gap-4">
         <span className="grid size-16 shrink-0 place-items-center rounded-full bg-emerald-50 text-2xl font-black text-emerald-800">
-          {table.number}
+          {displayNumber}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
@@ -67,25 +69,25 @@ export function TableQrCard({
                     onClick={() => runMenuAction(() => onToggleActive(table.id))}
                     className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left font-bold text-slate-800 transition active:bg-emerald-50"
                   >
-                    {table.active ? <Power className="size-5 text-slate-600" /> : <Check className="size-5 text-emerald-800" />} {actionLabel}
+                    {table.isActive ? <Power className="size-5 text-slate-600" /> : <Check className="size-5 text-emerald-800" />} {actionLabel}
                   </button>
                 </div>
               ) : null}
             </div>
           </div>
           <div className="mt-3">
-            <StatusBadge label={table.active ? "QR actif" : "Désactivé"} tone={table.active ? "green" : "gray"} />
+            <StatusBadge label={table.isActive ? "QR actif" : "Désactivé"} tone={table.isActive ? "green" : "gray"} />
           </div>
         </div>
       </div>
       <div className="mt-5 grid grid-cols-2 gap-3">
         <button
           type="button"
-          onClick={() => (table.active ? onCopyLink(table) : onToggleActive(table.id))}
+          onClick={() => onCopyLink(table)}
           className="min-h-12 rounded-xl border border-slate-200 px-2 font-semibold text-emerald-800 transition active:bg-emerald-50"
         >
           <span className="inline-flex items-center gap-2">
-            {table.active ? <Link2 className="size-5" /> : <Power className="size-5" />} {table.active ? "Copier lien" : "Activer"}
+            <Link2 className="size-5" /> Copier lien
           </span>
         </button>
         <button
@@ -98,16 +100,16 @@ export function TableQrCard({
           </span>
         </button>
       </div>
-      {table.active ? (
-        <button
-          type="button"
-          onClick={() => onToggleActive(table.id)}
-          className="mt-3 min-h-11 w-full rounded-xl border border-slate-200 px-3 font-semibold text-slate-700 transition active:bg-slate-50"
-          aria-label={`${actionLabel} ${table.name}`}
-        >
-          {actionLabel}
-        </button>
-      ) : null}
+      <button
+        type="button"
+        onClick={() => onToggleActive(table.id)}
+        className="mt-3 min-h-11 w-full rounded-xl border border-slate-200 px-3 font-semibold text-slate-700 transition active:bg-slate-50"
+        aria-label={`${actionLabel} ${table.name}`}
+      >
+        <span className="inline-flex items-center gap-2">
+          <Power className="size-5" /> {actionLabel}
+        </span>
+      </button>
     </article>
   );
 }

@@ -9,13 +9,20 @@ import { TableQrCard } from "@/components/ui-custom/TableQrCard";
 import { orders as seedOrders } from "@/lib/data/seed";
 import { useOrdersStore } from "@/lib/local-store/ordersStore";
 import { useTablesStore } from "@/lib/local-store/tablesStore";
+import {
+  createUniqueTableId,
+  createUniqueTableSlug,
+  getCustomerPath,
+  normalizeTableText,
+  normalizeTables,
+} from "@/lib/tables";
 import type { TableInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type AddTableForm = {
   name: string;
   area: string;
-  active: boolean;
+  isActive: boolean;
 };
 
 type AddTableErrors = Partial<Record<"name" | "area", string>>;
@@ -33,63 +40,11 @@ type QrPanel = {
   path: string;
 };
 
-const restaurantSlug = "bistrot-des-halles";
 const seedQrOrderCount = seedOrders.filter((order) => order.source === "qr").length;
-const initialForm: AddTableForm = { name: "", area: "Salle", active: true };
+const initialForm: AddTableForm = { name: "", area: "Salle", isActive: true };
 
-function normalizeText(value: string) {
-  return value
-    .trim()
-    .toLocaleLowerCase("fr-FR")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function makeSlug(value: string) {
-  const slug = normalizeText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  return slug || "table";
-}
-
-function getTableNumber(value: string, tables: TableInfo[]) {
-  const numericMatch = value.match(/\d+/);
-  if (numericMatch) return Number(numericMatch[0]);
-  return tables.reduce((highestNumber, table) => Math.max(highestNumber, table.number), 0) + 1;
-}
-
-function createClientId(name: string, existingIds: string[]) {
-  const baseId = `table-${makeSlug(name)}`;
-  if (!existingIds.includes(baseId)) return baseId;
-
-  let index = 2;
-  while (existingIds.includes(`${baseId}-${index}`)) {
-    index += 1;
-  }
-  return `${baseId}-${index}`;
-}
-
-function buildCustomerPath(tableNumber: number) {
-  return `/r/${restaurantSlug}/table/${tableNumber}`;
-}
-
-function normalizeTable(table: TableInfo): TableInfo {
-  const name = table.name || `Table ${table.number}`;
-  return {
-    ...table,
-    name,
-    customerPath: table.customerPath || buildCustomerPath(table.number),
-  };
-}
-
-function normalizeTables(tables: TableInfo[]) {
-  return tables.map(normalizeTable);
-}
-
-function getCustomerPath(table: TableInfo) {
-  return table.customerPath || buildCustomerPath(table.number);
-}
-
-function getFullCustomerUrl(table: TableInfo) {
-  return `${window.location.origin}${getCustomerPath(table)}`;
+function getFullCustomerUrl(table: TableInfo, origin: string) {
+  return origin ? `${origin}${getCustomerPath(table)}` : getCustomerPath(table);
 }
 
 function getQrOrdersCount(orders: typeof seedOrders) {
@@ -198,16 +153,23 @@ export function TableQrManager() {
   const [manualLink, setManualLink] = useState<LinkPanel | null>(null);
   const [qrPanel, setQrPanel] = useState<QrPanel | null>(null);
   const [printPanelOpen, setPrintPanelOpen] = useState(false);
-  const [selectedPrintIds, setSelectedPrintIds] = useState<string[]>(() => normalizeTables(storedTables).filter((table) => table.active).map((table) => table.id));
+  const [selectedPrintIds, setSelectedPrintIds] = useState<string[]>(() => normalizeTables(storedTables).filter((table) => table.isActive).map((table) => table.id));
   const [printFormat, setPrintFormat] = useState<PrintFormat>("card");
+  const [origin, setOrigin] = useState("");
 
   const tables = useMemo(() => normalizeTables(storedTables), [storedTables]);
-  const activeTables = useMemo(() => tables.filter((table) => table.active), [tables]);
+  const activeTables = useMemo(() => tables.filter((table) => table.isActive), [tables]);
   const activePrintIds = useMemo(() => new Set(activeTables.map((table) => table.id)), [activeTables]);
   const selectedActivePrintIds = selectedPrintIds.filter((tableId) => activePrintIds.has(tableId));
   const scanCount = useMemo(() => tables.reduce((total, table) => total + table.scans, 0), [tables]);
   const qrOrdersCount = useMemo(() => getQrOrdersCount(orders), [orders]);
   const selectedPrintTables = activeTables.filter((table) => selectedPrintIds.includes(table.id));
+
+  useEffect(() => {
+    const originTimer = window.setTimeout(() => setOrigin(window.location.origin), 0);
+
+    return () => window.clearTimeout(originTimer);
+  }, []);
 
   useEffect(() => {
     if (searchParams.get("action") !== "print") return;
@@ -234,24 +196,22 @@ export function TableQrManager() {
 
     if (!trimmedName) nextErrors.name = "Le nom de la table est requis.";
     if (!trimmedArea) nextErrors.area = "La zone est requise.";
-    if (tables.some((table) => normalizeText(table.name) === normalizeText(trimmedName))) {
+    if (tables.some((table) => normalizeTableText(table.name) === normalizeTableText(trimmedName))) {
       nextErrors.name = "Une table porte déjà ce nom.";
     }
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    const tableNumber = getTableNumber(trimmedName, tables);
-    const id = createClientId(trimmedName, tables.map((table) => table.id));
-    const customerPath = buildCustomerPath(tableNumber);
+    const slug = createUniqueTableSlug(trimmedName, tables.map((table) => table.slug));
+    const id = createUniqueTableId(slug, tables.map((table) => table.id));
     const nextTable: TableInfo = {
       id,
-      number: tableNumber,
+      slug,
       name: trimmedName,
       area: trimmedArea,
-      active: form.active,
+      isActive: form.isActive,
       scans: 0,
-      customerPath,
     };
 
     setTables((currentTables) => [...normalizeTables(currentTables), nextTable]);
@@ -259,11 +219,11 @@ export function TableQrManager() {
   }
 
   function toggleTable(tableId: string) {
-    setTables((currentTables) => normalizeTables(currentTables).map((table) => (table.id === tableId ? { ...table, active: !table.active } : table)));
+    setTables((currentTables) => normalizeTables(currentTables).map((table) => (table.id === tableId ? { ...table, isActive: !table.isActive } : table)));
   }
 
   async function copyLink(table: TableInfo, explicitLink?: string) {
-    const link = explicitLink ?? getFullCustomerUrl(table);
+    const link = explicitLink ?? getFullCustomerUrl(table, origin || window.location.origin);
     if (navigator.clipboard?.writeText) {
       try {
         await navigator.clipboard.writeText(link);
@@ -279,7 +239,7 @@ export function TableQrManager() {
   }
 
   function viewQr(table: TableInfo) {
-    setQrPanel({ table, link: getFullCustomerUrl(table), path: getCustomerPath(table) });
+    setQrPanel({ table, link: getFullCustomerUrl(table, origin || window.location.origin), path: getCustomerPath(table) });
   }
 
   function openPrintPanel() {
@@ -380,7 +340,7 @@ export function TableQrManager() {
                 <option value="Comptoir" />
               </datalist>
             </Field>
-            <Toggle label="QR actif" checked={form.active} onChange={(active) => setForm({ ...form, active })} />
+            <Toggle label="QR actif" checked={form.isActive} onChange={(isActive) => setForm({ ...form, isActive })} />
             <button type="submit" className="min-h-14 rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green">
               Enregistrer la table
             </button>
@@ -401,10 +361,11 @@ export function TableQrManager() {
         <Panel title={qrPanel.table.name} onClose={() => setQrPanel(null)}>
           <div className="grid gap-5 text-center">
             <div className="mx-auto">
-              <span className={cn("inline-flex min-h-9 items-center rounded-full px-4 text-sm font-black", qrPanel.table.active ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600")}>
-                {qrPanel.table.active ? "QR actif" : "Désactivé"}
+              <span className={cn("inline-flex min-h-9 items-center rounded-full px-4 text-sm font-black", qrPanel.table.isActive ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600")}>
+                {qrPanel.table.isActive ? "QR actif" : "Désactivé"}
               </span>
             </div>
+            <p className="text-lg font-semibold text-slate-600">{qrPanel.table.area}</p>
             <CustomerMenuLink path={qrPanel.path} link={qrPanel.link} />
             <QrVisual value={qrPanel.link} />
             <button
@@ -451,7 +412,7 @@ export function TableQrManager() {
                 activeTables.map((table) => {
                   const selected = selectedPrintIds.includes(table.id);
                   const path = getCustomerPath(table);
-                  const link = getFullCustomerUrl(table);
+                  const link = getFullCustomerUrl(table, origin);
                   return (
                     <article
                       key={table.id}
