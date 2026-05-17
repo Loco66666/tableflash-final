@@ -26,6 +26,7 @@ export type Order = {
   total: number;
   paid: boolean;
   serviceDate: string;
+  source?: "qr" | "service";
 };
 
 export type Review = {
@@ -54,7 +55,9 @@ export type RestaurantSettings = {
 export type TableInfo = {
   id: string;
   number: number;
+  name: string;
   area: string;
   active: boolean;
   scans: number;
+  customerPath: string;
 };
