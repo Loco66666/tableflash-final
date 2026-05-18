@@ -10,8 +10,12 @@ type StoreResult<T> = {
 };
 
 function readLocalStoreValue<T>(key: string, fallbackValue: T) {
-  const storedValue = window.localStorage.getItem(key);
-  return storedValue ? (JSON.parse(storedValue) as T) : fallbackValue;
+  try {
+    const storedValue = window.localStorage.getItem(key);
+    return storedValue ? (JSON.parse(storedValue) as T) : fallbackValue;
+  } catch {
+    return fallbackValue;
+  }
 }
 
 export function createLocalStore<T>(key: string, initialValue: T) {
