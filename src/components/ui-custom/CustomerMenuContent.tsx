@@ -101,7 +101,8 @@ export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable }:
 
   const tables = normalizeTables(storedTables);
   const table = findTableBySlug(tableSlug, tables) ?? initialTable;
-  const restaurantName = settings.publicSlug === restaurantSlug || restaurantSettings.publicSlug === restaurantSlug ? settings.restaurantName : restaurantSettings.restaurantName;
+  const activeSettings = settings as Partial<typeof restaurantSettings> | undefined;
+  const restaurantName = activeSettings?.publicSlug === restaurantSlug || restaurantSettings.publicSlug === restaurantSlug ? activeSettings?.restaurantName ?? restaurantSettings.restaurantName : restaurantSettings.restaurantName;
   const tableName = table?.name ?? "";
   const tableArea = table?.area ?? "";
   const subtitle = table ? (tableArea ? `${tableName} • ${tableArea}` : tableName) : "QR de table";

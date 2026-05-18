@@ -11,6 +11,16 @@ const steps = [
   { label: "Service", icon: Bell },
 ];
 
+type CustomerReviewSettings = Partial<RestaurantSettings> & {
+  googleReviewsUrl?: string;
+  reviewUrl?: string;
+  reviewsSettings?: Partial<RestaurantSettings["reviewsSettings"]>;
+};
+
+function getGoogleReviewUrl(settings?: CustomerReviewSettings) {
+  return settings?.reviewsSettings?.googleReviewUrl || settings?.googleReviewUrl || settings?.googleReviewsUrl || settings?.reviewUrl || "";
+}
+
 const activeStepByStatus: Record<Order["status"], number> = {
   new: 0,
   accepted: 1,
@@ -42,12 +52,12 @@ export function CustomerTrackingPreview({
   tableArea?: string;
   total?: number;
   order?: Order;
-  settings?: RestaurantSettings;
+  settings?: CustomerReviewSettings;
 }) {
   const status = order?.status ?? "new";
   const activeStep = activeStepByStatus[status];
   const statusCopy = getStatusCopy(status);
-  const googleReviewUrl = settings?.reviewsSettings.googleReviewUrl || settings?.googleReviewUrl;
+  const googleReviewUrl = getGoogleReviewUrl(settings);
 
   return (
     <div className="grid gap-6">
