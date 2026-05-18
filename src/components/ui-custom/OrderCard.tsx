@@ -77,7 +77,7 @@ export function OrderCard({ order, onStatusChange, onRefuse }: OrderCardProps) {
             <StatusBadge label={getOrderStatusLabel(order.status)} tone={getOrderStatusBadgeTone(order.status)} />
           </div>
           <div className="mt-4 grid gap-2 text-lg text-slate-700">
-            <p className="flex items-center gap-3"><Table2 className="size-6 text-emerald-800" /> Table {order.table}</p>
+            <p className="flex items-center gap-3"><Table2 className="size-6 text-emerald-800" /> {order.tableName ?? `Table ${order.table}`}</p>
             <p className="flex items-center gap-3"><Package className="size-6 text-emerald-800" /> {order.items} {order.items > 1 ? "articles" : "article"}</p>
           </div>
         </div>

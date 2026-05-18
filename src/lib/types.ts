@@ -13,23 +13,38 @@ export type Product = {
   description: string;
   price: number;
   available: boolean;
+  isAvailable?: boolean;
+  outOfStock?: boolean;
+  stockStatus?: string;
+  status?: string;
   promoted?: boolean;
   visual: string;
   imageUrl?: string;
+  allergens?: string[] | string;
 };
 
 export type OrderLine = {
   productId: string;
   quantity: number;
+  name?: string;
+  unitPrice?: number;
 };
 
 export type Order = {
   id: string;
   table: number;
+  tableId?: string;
+  tableSlug?: string;
+  tableName?: string;
+  tableArea?: string;
+  restaurantSlug?: string;
   status: OrderStatus;
   items: number;
   total: number;
   paid: boolean;
+  paymentStatus?: "on_site_pending" | "paid";
+  paymentMethod?: "on_site";
+  customerNote?: string;
   serviceDate: string;
   serviceTime?: string;
   service?: "midi" | "soir";
