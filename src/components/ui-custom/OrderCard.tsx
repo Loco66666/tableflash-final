@@ -6,6 +6,7 @@ import {
   getOrderStatusBadgeTone,
   getOrderStatusIconStyle,
   getOrderStatusLabel,
+  getNextOrderStatus,
   getPrimaryOrderActionLabel,
 } from "@/lib/orders";
 
@@ -35,33 +36,15 @@ function renderOrderIcon(status: OrderStatus) {
 }
 
 export function OrderCard({ order, onStatusChange, onRefuse }: OrderCardProps) {
-  const primaryActionLabel = getPrimaryOrderActionLabel(order.status);
+  const primaryActionLabel = getPrimaryOrderActionLabel(order);
   const isNew = order.status === "new";
   const isClosed = order.status === "served" || order.status === "refused";
 
   function handlePrimaryAction() {
-    if (order.status === "new") {
-      onStatusChange?.(order.id, "payment_pending");
-      return;
-    }
+    const nextStatus = getNextOrderStatus(order);
 
-    if (order.status === "accepted" || order.status === "payment_pending") {
-      onStatusChange?.(order.id, "paid");
-      return;
-    }
-
-    if (order.status === "paid") {
-      onStatusChange?.(order.id, "preparing");
-      return;
-    }
-
-    if (order.status === "preparing") {
-      onStatusChange?.(order.id, "ready");
-      return;
-    }
-
-    if (order.status === "ready") {
-      onStatusChange?.(order.id, "served");
+    if (nextStatus) {
+      onStatusChange?.(order.id, nextStatus);
     }
   }
 

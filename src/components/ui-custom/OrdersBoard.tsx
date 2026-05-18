@@ -6,7 +6,7 @@ import { OrderCard } from "@/components/ui-custom/OrderCard";
 import { useOrdersStore } from "@/lib/local-store/ordersStore";
 import type { OrderStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { normalizeOrders, orderFilters, orderMatchesFilter, type OrderFilter } from "@/lib/orders";
+import { applyOrderStatusTransition, normalizeOrders, orderFilters, orderMatchesFilter, type OrderFilter } from "@/lib/orders";
 
 export function OrdersBoard({ initialFilter }: { initialFilter: OrderFilter }) {
   const router = useRouter();
@@ -23,9 +23,7 @@ export function OrdersBoard({ initialFilter }: { initialFilter: OrderFilter }) {
 
   function updateOrderStatus(orderId: string, nextStatus: OrderStatus) {
     setValue((currentOrders) =>
-      normalizeOrders(currentOrders).map((order) =>
-        order.id === orderId ? { ...order, status: nextStatus, paid: nextStatus !== "new" && nextStatus !== "accepted" && nextStatus !== "payment_pending" && nextStatus !== "refused" } : order,
-      ),
+      normalizeOrders(currentOrders).map((order) => (order.id === orderId ? applyOrderStatusTransition(order, nextStatus) : order)),
     );
   }
 

@@ -83,7 +83,7 @@ export function normalizeOrderFilterSlug(value: string | string[] | undefined): 
 export function orderMatchesFilter(order: Order, filter: OrderFilter) {
   switch (filter) {
     case "a-traiter":
-      return ["new", "accepted", "payment_pending", "paid"].includes(order.status);
+      return ["new", "payment_pending", "paid"].includes(order.status);
     case "en-preparation":
       return order.status === "preparing";
     case "pretes":
@@ -93,15 +93,19 @@ export function orderMatchesFilter(order: Order, filter: OrderFilter) {
   }
 }
 
-export function getNextOrderStatus(status: OrderStatus): OrderStatus | null {
-  switch (status) {
+export function canStartOrderPreparation(order: Order) {
+  return order.status === "paid" && (order.paid === true || order.paymentStatus === "paid");
+}
+
+export function getNextOrderStatus(order: Order): OrderStatus | null {
+  switch (order.status) {
     case "new":
       return "payment_pending";
     case "accepted":
     case "payment_pending":
       return "paid";
     case "paid":
-      return "preparing";
+      return canStartOrderPreparation(order) ? "preparing" : null;
     case "preparing":
       return "ready";
     case "ready":
@@ -112,15 +116,15 @@ export function getNextOrderStatus(status: OrderStatus): OrderStatus | null {
   }
 }
 
-export function getPrimaryOrderActionLabel(status: OrderStatus) {
-  switch (status) {
+export function getPrimaryOrderActionLabel(order: Order) {
+  switch (order.status) {
     case "new":
       return "Accepter";
     case "accepted":
     case "payment_pending":
       return "Marquer payée";
     case "paid":
-      return "Lancer préparation";
+      return canStartOrderPreparation(order) ? "Lancer préparation" : null;
     case "preparing":
       return "Marquer prête";
     case "ready":
@@ -131,17 +135,51 @@ export function getPrimaryOrderActionLabel(status: OrderStatus) {
   }
 }
 
+export function applyOrderStatusTransition(order: Order, nextStatus: OrderStatus): Order {
+  switch (nextStatus) {
+    case "new":
+      return { ...order, status: "new", paid: false, paymentStatus: "on_site_pending", paymentMethod: "on_site" };
+    case "accepted":
+    case "payment_pending":
+      return { ...order, status: "payment_pending", paid: false, paymentStatus: "on_site_pending", paymentMethod: "on_site" };
+    case "paid":
+      return { ...order, status: "paid", paid: true, paymentStatus: "paid", paymentMethod: "on_site" };
+    case "preparing":
+      if (!canStartOrderPreparation(order)) return order;
+      return { ...order, status: "preparing", paid: true, paymentStatus: "paid", paymentMethod: "on_site" };
+    case "ready":
+      return { ...order, status: "ready", paid: true, paymentStatus: "paid", paymentMethod: "on_site" };
+    case "served":
+      return { ...order, status: "served", paid: true, paymentStatus: "paid", paymentMethod: "on_site" };
+    case "refused":
+      return { ...order, status: "refused", paid: false, paymentStatus: "cancelled", paymentMethod: "on_site" };
+  }
+}
+
 export function normalizeOrders(orders: Order[]) {
   return orders.map((order) => {
     const legacyStatus = order.status as OrderStatus | "to_accept";
 
     if (legacyStatus === "to_accept") {
-      return { ...order, status: "new" as const, paid: false };
+      return { ...order, status: "new" as const, paid: false, paymentStatus: "on_site_pending" as const, paymentMethod: "on_site" as const };
     }
 
-    return {
-      ...order,
-      paid: order.status === "paid" || order.status === "preparing" || order.status === "ready" || order.status === "served" ? true : order.paid,
-    };
+    if (order.status === "refused") {
+      return { ...order, paid: false, paymentStatus: order.paymentStatus ?? "cancelled", paymentMethod: order.paymentMethod ?? "on_site" };
+    }
+
+    if (order.status === "new") {
+      return { ...order, paid: false, paymentStatus: order.paymentStatus ?? "on_site_pending", paymentMethod: order.paymentMethod ?? "on_site" };
+    }
+
+    if (order.status === "accepted" || order.status === "payment_pending") {
+      return { ...order, status: "payment_pending" as const, paid: false, paymentStatus: "on_site_pending" as const, paymentMethod: order.paymentMethod ?? "on_site" };
+    }
+
+    if (order.status === "paid" || order.status === "preparing" || order.status === "ready" || order.status === "served") {
+      return { ...order, paid: true, paymentStatus: "paid" as const, paymentMethod: order.paymentMethod ?? "on_site" };
+    }
+
+    return order;
   });
 }
