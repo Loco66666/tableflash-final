@@ -1,4 +1,4 @@
-import { Bell, Store, UserRound } from "lucide-react";
+import { Store, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({ title, subtitle, customer = false, compact = false }: { title: string; subtitle?: string; customer?: boolean; compact?: boolean }) {
@@ -16,10 +16,11 @@ export function PageHeader({ title, subtitle, customer = false, compact = false 
           </p>
         ) : null}
       </div>
-      <div className="relative grid size-11 shrink-0 place-items-center rounded-full bg-white text-slate-800">
-        {customer ? <UserRound className="size-7 stroke-emerald-800" /> : <Bell className="size-7 stroke-[1.8]" />}
-        {!customer ? <span className="absolute right-2 top-2 size-3 rounded-full bg-emerald-600 ring-2 ring-white" /> : null}
-      </div>
+      {customer ? (
+        <div className="relative grid size-11 shrink-0 place-items-center rounded-full bg-white text-slate-800">
+          <UserRound className="size-7 stroke-emerald-800" />
+        </div>
+      ) : null}
     </header>
   );
 }

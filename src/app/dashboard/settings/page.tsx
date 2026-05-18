@@ -4,8 +4,7 @@ import { useMemo, useState } from "react";
 import { Building2, Check, ChevronRight, Clock, CreditCard, Paintbrush, QrCode, Save, Star, X } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { restaurantSettings } from "@/lib/data/seed";
-import { useSettingsStore } from "@/lib/local-store/settingsStore";
+import { normalizeSettings, useSettingsStore } from "@/lib/local-store/settingsStore";
 import type { RestaurantSettings } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -23,39 +22,6 @@ const sectionCards: Array<{ id: SettingsSection; title: string; subtitle: string
   { id: "reviews", title: "Avis Google", subtitle: "Lien Google Avis", icon: Star },
   { id: "appearance", title: "Apparence", subtitle: "Classique premium", icon: Paintbrush },
 ];
-
-function normalizeSettings(settings: RestaurantSettings): RestaurantSettings {
-  const publicSlug = settings.publicSlug?.trim() || "bistrot-des-halles";
-  const reviewUrl = settings.reviewsSettings?.googleReviewUrl ?? settings.googleReviewUrl ?? "";
-
-  return {
-    ...restaurantSettings,
-    ...settings,
-    publicSlug,
-    city: settings.city ?? restaurantSettings.city,
-    email: settings.email ?? restaurantSettings.email,
-    website: settings.website ?? restaurantSettings.website,
-    googleReviewUrl: reviewUrl,
-    onSitePaymentEnabled: settings.ordersSettings?.onSitePaymentEnabled ?? settings.onSitePaymentEnabled ?? true,
-    hours: { ...restaurantSettings.hours, ...settings.hours },
-    ordersSettings: {
-      ...restaurantSettings.ordersSettings,
-      ...settings.ordersSettings,
-      onSitePaymentEnabled: settings.ordersSettings?.onSitePaymentEnabled ?? settings.onSitePaymentEnabled ?? true,
-    },
-    qr: {
-      ...restaurantSettings.qr,
-      ...settings.qr,
-      publicRestaurantLink: `/r/${publicSlug}`,
-    },
-    reviewsSettings: {
-      ...restaurantSettings.reviewsSettings,
-      ...settings.reviewsSettings,
-      googleReviewUrl: reviewUrl,
-    },
-    appearance: { ...restaurantSettings.appearance, ...settings.appearance },
-  };
-}
 
 function validateSettings(settings: RestaurantSettings) {
   const errors: ValidationErrors = {};
