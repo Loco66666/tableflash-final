@@ -53,8 +53,9 @@ export function getTableDisplayNumber(table: Pick<TableInfo, "name" | "slug">) {
   return match ? match[0] : "QR";
 }
 
-export function getCustomerPath(table: Pick<TableInfo, "slug">) {
-  return `/r/${restaurantSlug}/table/${table.slug}`;
+export function getCustomerPath(table: Pick<TableInfo, "slug">, publicRestaurantSlug = restaurantSlug) {
+  const normalizedRestaurantSlug = publicRestaurantSlug.trim() || restaurantSlug;
+  return `/r/${normalizedRestaurantSlug}/table/${table.slug}`;
 }
 
 export function getTableFallbackName(tableSlug: string) {

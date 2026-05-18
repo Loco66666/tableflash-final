@@ -7,10 +7,42 @@ export const restaurantSettings: RestaurantSettings = {
   qrOrdersEnabled: true,
   onSitePaymentEnabled: true,
   serviceDate: "2026-05-17",
-  address: "12 rue des Halles, Paris",
+  address: "12 rue des Halles",
   phone: "01 42 00 00 00",
   googleReviewLabel: "Lien Google Avis",
-  googleReviewUrl: "",
+  googleReviewUrl: "https://search.google.com/local/writereview?placeid=tableflash",
+  publicSlug: "bistrot-des-halles",
+  city: "Paris",
+  email: "contact@bistrotdeshalles.fr",
+  website: "https://bistrotdeshalles.fr",
+  hours: {
+    automaticMode: true,
+    lunchStart: "12:00",
+    lunchEnd: "14:30",
+    dinnerStart: "19:00",
+    dinnerEnd: "22:30",
+    openDays: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"],
+  },
+  ordersSettings: {
+    acceptanceMode: "automatic",
+    onSitePaymentEnabled: true,
+    customerMessage: "Merci, votre commande est bien transmise à l’équipe.",
+    customerTrackingEnabled: true,
+  },
+  qr: {
+    instruction: "Scannez le QR de votre table pour consulter le menu et commander.",
+    showTableName: true,
+    publicRestaurantLink: "/r/bistrot-des-halles",
+  },
+  reviewsSettings: {
+    enabledAfterMeal: true,
+    googleReviewUrl: "https://search.google.com/local/writereview?placeid=tableflash",
+    suggestGoogleOnPositive: true,
+  },
+  appearance: {
+    style: "Classique premium",
+    primaryColor: "Vert TableFlash",
+  },
 };
 
 export const categories: Category[] = [

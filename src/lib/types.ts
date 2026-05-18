@@ -62,6 +62,38 @@ export type RestaurantSettings = {
   phone: string;
   googleReviewLabel: string;
   googleReviewUrl: string;
+  publicSlug: string;
+  city: string;
+  email: string;
+  website: string;
+  hours: {
+    automaticMode: boolean;
+    lunchStart: string;
+    lunchEnd: string;
+    dinnerStart: string;
+    dinnerEnd: string;
+    openDays: string[];
+  };
+  ordersSettings: {
+    acceptanceMode: "automatic" | "manual";
+    onSitePaymentEnabled: boolean;
+    customerMessage: string;
+    customerTrackingEnabled: boolean;
+  };
+  qr: {
+    instruction: string;
+    showTableName: boolean;
+    publicRestaurantLink: string;
+  };
+  reviewsSettings: {
+    enabledAfterMeal: boolean;
+    googleReviewUrl: string;
+    suggestGoogleOnPositive: boolean;
+  };
+  appearance: {
+    style: "Classique premium" | "Chaleureux" | "Moderne";
+    primaryColor: string;
+  };
 };
 
 export type TableInfo = {

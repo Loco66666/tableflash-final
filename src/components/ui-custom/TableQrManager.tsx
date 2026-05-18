@@ -8,6 +8,7 @@ import { SectionCard } from "@/components/ui-custom/SectionCard";
 import { TableQrCard } from "@/components/ui-custom/TableQrCard";
 import { orders as seedOrders } from "@/lib/data/seed";
 import { useOrdersStore } from "@/lib/local-store/ordersStore";
+import { useSettingsStore } from "@/lib/local-store/settingsStore";
 import { useTablesStore } from "@/lib/local-store/tablesStore";
 import {
   createUniqueTableId,
@@ -44,8 +45,9 @@ type QrPanel = {
 const seedQrOrderCount = seedOrders.filter((order) => order.source === "qr").length;
 const initialForm: AddTableForm = { name: "", area: "", isActive: true };
 
-function getFullCustomerUrl(table: TableInfo, origin: string) {
-  return origin ? `${origin}${getCustomerPath(table)}` : getCustomerPath(table);
+function getFullCustomerUrl(table: TableInfo, origin: string, publicSlug: string) {
+  const path = getCustomerPath(table, publicSlug);
+  return origin ? `${origin}${path}` : path;
 }
 
 function getQrOrdersCount(orders: typeof seedOrders) {
@@ -147,6 +149,7 @@ export function TableQrManager() {
   const searchParams = useSearchParams();
   const { value: storedTables, setValue: setTables } = useTablesStore();
   const { value: orders } = useOrdersStore();
+  const { value: settings } = useSettingsStore();
   const [addPanelOpen, setAddPanelOpen] = useState(false);
   const [form, setForm] = useState<AddTableForm>(initialForm);
   const [errors, setErrors] = useState<AddTableErrors>({});
@@ -158,6 +161,7 @@ export function TableQrManager() {
   const [printFormat, setPrintFormat] = useState<PrintFormat>("card");
   const [origin, setOrigin] = useState("");
 
+  const publicSlug = settings.publicSlug?.trim() || "bistrot-des-halles";
   const tables = useMemo(() => normalizeTables(storedTables), [storedTables]);
   const activeTables = useMemo(() => tables.filter((table) => table.isActive), [tables]);
   const activePrintIds = useMemo(() => new Set(activeTables.map((table) => table.id)), [activeTables]);
@@ -224,7 +228,7 @@ export function TableQrManager() {
   }
 
   async function copyLink(table: TableInfo, explicitLink?: string) {
-    const link = explicitLink ?? getFullCustomerUrl(table, origin || window.location.origin);
+    const link = explicitLink ?? getFullCustomerUrl(table, origin || window.location.origin, publicSlug);
     if (navigator.clipboard?.writeText) {
       try {
         await navigator.clipboard.writeText(link);
@@ -232,15 +236,15 @@ export function TableQrManager() {
         window.setTimeout(() => setCopiedTableId(null), 1800);
         return;
       } catch {
-        setManualLink({ title: `Lien ${table.name}`, link, path: getCustomerPath(table) });
+        setManualLink({ title: `Lien ${table.name}`, link, path: getCustomerPath(table, publicSlug) });
         return;
       }
     }
-    setManualLink({ title: `Lien ${table.name}`, link, path: getCustomerPath(table) });
+    setManualLink({ title: `Lien ${table.name}`, link, path: getCustomerPath(table, publicSlug) });
   }
 
   function viewQr(table: TableInfo) {
-    setQrPanel({ table, link: getFullCustomerUrl(table, origin || window.location.origin), path: getCustomerPath(table) });
+    setQrPanel({ table, link: getFullCustomerUrl(table, origin || window.location.origin, publicSlug), path: getCustomerPath(table, publicSlug) });
   }
 
   function openPrintPanel() {
@@ -414,8 +418,8 @@ export function TableQrManager() {
               {activeTables.length > 0 ? (
                 activeTables.map((table) => {
                   const selected = selectedPrintIds.includes(table.id);
-                  const path = getCustomerPath(table);
-                  const link = getFullCustomerUrl(table, origin);
+                  const path = getCustomerPath(table, publicSlug);
+                  const link = getFullCustomerUrl(table, origin, publicSlug);
                   return (
                     <article
                       key={table.id}
