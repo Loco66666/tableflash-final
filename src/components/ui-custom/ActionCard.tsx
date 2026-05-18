@@ -29,14 +29,14 @@ export function ActionCard({
     return (
       <Link
         href={href}
-        className="flex min-h-32 flex-col justify-between rounded-[1.15rem] border border-slate-200 bg-white p-4 shadow-card transition active:scale-[0.99]"
+        className="flex min-h-24 flex-col justify-between rounded-[1.15rem] border border-slate-200 bg-white p-3 shadow-card transition active:scale-[0.99] min-[390px]:min-h-28 sm:p-4"
       >
-        <span className={`grid size-14 shrink-0 place-items-center rounded-full ${toneClass}`}>
-          <Icon className="size-8" />
+        <span className={`grid size-10 shrink-0 place-items-center rounded-full ${toneClass} sm:size-12`}>
+          <Icon className="size-5 stroke-[1.9] sm:size-6" />
         </span>
-        <span className="mt-4 flex items-end justify-between gap-2">
-          <span className="text-balance text-lg font-semibold leading-tight text-slate-950">{title}</span>
-          <ChevronRight className="size-6 shrink-0 text-slate-500" />
+        <span className="mt-3 flex items-end justify-between gap-1.5 sm:gap-2">
+          <span className="text-balance text-sm font-semibold leading-tight text-slate-950 sm:text-base">{title}</span>
+          <ChevronRight className="size-5 shrink-0 text-slate-500" />
         </span>
       </Link>
     );

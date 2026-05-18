@@ -119,9 +119,9 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="mb-7">
-        <h2 className="mb-4 text-2xl font-black tracking-[-0.03em]">Aujourd’hui</h2>
-        <div className="grid grid-cols-4 gap-2 min-[390px]:gap-3">
+      <section className="mb-6 md:mb-7">
+        <h2 className="mb-3 text-2xl font-black tracking-[-0.03em] min-[390px]:mb-4">Aujourd’hui</h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard icon={ShoppingBasket} value={String(metrics.today.ordersCount)} label={metrics.today.ordersLabel} />
           <StatCard icon={CreditCard} value={metrics.today.estimatedSales} label="ventes estimées" />
           <StatCard icon={Star} value={metrics.today.averageRating} label="avis clients" />
@@ -129,9 +129,9 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section>
-        <h2 className="mb-4 text-2xl font-black tracking-[-0.03em]">Actions rapides</h2>
-        <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-3">
+      <section className="pb-2">
+        <h2 className="mb-3 text-2xl font-black tracking-[-0.03em] min-[390px]:mb-4">Actions rapides</h2>
+        <div className="grid grid-cols-3 gap-2 min-[390px]:gap-3">
           <ActionCard href="/dashboard/orders" icon={ClipboardList} title="Voir les commandes" variant="tile" />
           <ActionCard href="/dashboard/menu?action=add-product" icon={Plus} title="Ajouter un produit" variant="tile" />
           <ActionCard href="/dashboard/qr?action=print" icon={Printer} title="Imprimer les QR" variant="tile" />
