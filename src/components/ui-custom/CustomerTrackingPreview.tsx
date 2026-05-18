@@ -23,21 +23,22 @@ function getGoogleReviewUrl(settings?: CustomerReviewSettings) {
 
 const activeStepByStatus: Record<Order["status"], number> = {
   new: 0,
-  accepted: 1,
-  payment_pending: 1,
+  accepted: 2,
+  payment_pending: 2,
   paid: 2,
   preparing: 3,
-  ready: 3,
+  ready: 4,
   served: 4,
   refused: 1,
 };
 
 function getStatusCopy(orderStatus: Order["status"]) {
+  if (orderStatus === "accepted" || orderStatus === "payment_pending") return { title: "Commande validée", message: "Le règlement se fait sur place." };
+  if (orderStatus === "paid") return { title: "Règlement noté", message: "L’équipe va lancer la préparation." };
   if (orderStatus === "preparing") return { title: "Votre commande est en préparation", message: "L’équipe prépare votre commande." };
-  if (orderStatus === "ready") return { title: "Votre commande est prête", message: "L’équipe arrive à votre table." };
-  if (orderStatus === "served") return { title: "Bon appétit", message: "Votre commande a été servie." };
-  if (orderStatus === "paid") return { title: "Règlement pris en compte", message: "La préparation peut commencer." };
-  if (orderStatus === "refused") return { title: "L’équipe revient vers vous", message: "Un membre de l’équipe va vous accompagner." };
+  if (orderStatus === "ready") return { title: "Votre commande est prête", message: "L’équipe va vous la servir." };
+  if (orderStatus === "served") return { title: "Commande servie", message: "Bon appétit." };
+  if (orderStatus === "refused") return { title: "Commande refusée", message: "Demandez plus d’informations à l’équipe." };
   return { title: "Votre commande a été envoyée", message: "L’équipe va valider votre commande." };
 }
 

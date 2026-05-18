@@ -42,7 +42,7 @@ export type Order = {
   items: number;
   total: number;
   paid: boolean;
-  paymentStatus?: "on_site_pending" | "paid";
+  paymentStatus?: "on_site_pending" | "paid" | "cancelled" | "not_paid";
   paymentMethod?: "on_site";
   customerNote?: string;
   serviceDate: string;
