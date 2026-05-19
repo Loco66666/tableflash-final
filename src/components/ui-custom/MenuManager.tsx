@@ -193,9 +193,12 @@ function ProductForm({
 function ImageField({ form, onChange, error }: { form: ProductFormState; onChange: (nextForm: ProductFormState) => void; error?: string }) {
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [failedImageSrc, setFailedImageSrc] = useState("");
-  const hasImageValue = Boolean(form.imageUrl?.trim());
-  const isDataImage = form.imageUrl.trim().startsWith("data:image");
-  const hasPreviewImage = hasImageValue && failedImageSrc !== form.imageUrl;
+  const imageValue = form.imageUrl ?? "";
+  const trimmedImageValue = imageValue.trim();
+  const hasImageValue = Boolean(trimmedImageValue);
+  const isDataImage = trimmedImageValue.startsWith("data:image");
+  const hasLocalImage = isDataImage;
+  const hasPreviewImage = hasImageValue && failedImageSrc !== trimmedImageValue;
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -217,12 +220,13 @@ function ImageField({ form, onChange, error }: { form: ProductFormState; onChang
   return (
     <Field label="Image du produit" error={error}>
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-1">
+        <div className="h-[160px] max-h-[180px] overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-white p-2 shadow-card">
           {hasPreviewImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={form.imageUrl} alt="Aperçu du produit" className="h-36 w-full rounded-xl object-cover" onError={() => setFailedImageSrc(form.imageUrl)} />
+            <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-xl bg-white/70 p-2">
+              <img src={trimmedImageValue} alt="Aperçu du produit" className="h-full w-full rounded-lg object-contain" onError={() => setFailedImageSrc(trimmedImageValue)} />
+            </div>
           ) : (
-            <div className="grid h-36 place-items-center rounded-xl bg-gradient-to-br from-slate-100 via-slate-50 to-white text-center">
+            <div className="grid h-full place-items-center rounded-xl bg-white/75 text-center">
               <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-600 shadow-card">
                 <ImagePlus className="size-4" />
                 Visuel automatique
@@ -231,7 +235,7 @@ function ImageField({ form, onChange, error }: { form: ProductFormState; onChang
           )}
         </div>
 
-        <p className="text-sm font-semibold text-slate-500">{hasImageValue && hasPreviewImage ? "Photo ajoutée" : "TableFlash affichera un visuel automatique."}</p>
+        <p className="text-sm font-semibold text-slate-500">{hasImageValue && hasPreviewImage ? "Photo ajoutée" : "Ajoutez une photo du produit. TableFlash affichera un visuel automatique."}</p>
 
         <div className="flex flex-wrap gap-2">
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-700 px-3 py-2 text-sm font-bold text-white">
@@ -240,22 +244,23 @@ function ImageField({ form, onChange, error }: { form: ProductFormState; onChang
             <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
           </label>
 
-          {(!isDataImage || !hasImageValue) && (
-            <button type="button" onClick={() => setShowUrlInput((prev) => !prev)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700">
+          <button type="button" onClick={() => setShowUrlInput((prev) => !prev)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700">
               <Link2 className="size-4" />Utiliser une URL
-            </button>
-          )}
+          </button>
 
-          {hasImageValue ? <button type="button" onClick={() => onChange({ ...form, imageUrl: "" })} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"><Trash2 className="size-4" />Supprimer l’image</button> : null}
+          {hasImageValue ? <button type="button" onClick={() => {
+            setFailedImageSrc("");
+            onChange({ ...form, imageUrl: "" });
+          }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"><Trash2 className="size-4" />Supprimer l’image</button> : null}
         </div>
 
-        {showUrlInput || (!isDataImage && hasImageValue) ? (
+        {showUrlInput ? (
           <div className="grid gap-2">
             <span className="text-sm font-bold text-slate-700">URL d’image</span>
             <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
               <Link2 className="size-4 text-slate-400" />
               <input
-                value={isDataImage ? "" : form.imageUrl ?? ""}
+                value={hasLocalImage ? "" : imageValue}
                 onChange={(event) => {
                   setFailedImageSrc("");
                   onChange({ ...form, imageUrl: event.target.value });
@@ -264,6 +269,7 @@ function ImageField({ form, onChange, error }: { form: ProductFormState; onChang
                 placeholder="https://..."
               />
             </div>
+            {hasLocalImage ? <p className="text-xs font-semibold text-slate-500">Une photo locale est déjà utilisée pour l’aperçu.</p> : null}
           </div>
         ) : null}
       </div>
