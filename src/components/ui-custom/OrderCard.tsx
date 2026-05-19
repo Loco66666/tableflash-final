@@ -3,6 +3,7 @@ import type { Order, OrderStatus } from "@/lib/types";
 import { formatEuro } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui-custom/StatusBadge";
 import {
+  getOrderTimestampLabel,
   getOrderStatusBadgeTone,
   getOrderStatusIconStyle,
   getOrderStatusLabel,
@@ -39,6 +40,7 @@ export function OrderCard({ order, onStatusChange, onRefuse }: OrderCardProps) {
   const primaryActionLabel = getPrimaryOrderActionLabel(order);
   const isNew = order.status === "new";
   const isClosed = order.status === "served" || order.status === "refused";
+  const timestampLabel = getOrderTimestampLabel(order);
 
   function handlePrimaryAction() {
     const nextStatus = getNextOrderStatus(order);
@@ -49,23 +51,26 @@ export function OrderCard({ order, onStatusChange, onRefuse }: OrderCardProps) {
   }
 
   return (
-    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-card">
-      <div className="flex gap-4">
-        <span className={`${getOrderStatusIconStyle(order.status)} grid size-16 shrink-0 place-items-center rounded-full`}>
+    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-card min-[390px]:p-5">
+      <div className="flex gap-3 min-[390px]:gap-4">
+        <span className={`${getOrderStatusIconStyle(order.status)} grid size-14 shrink-0 place-items-center rounded-full min-[390px]:size-16`}>
           {renderOrderIcon(order.status)}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-3 min-[390px]:flex-row min-[390px]:items-start min-[390px]:justify-between">
-            <h2 className="text-2xl font-black tracking-[-0.03em]">Commande #{order.id}</h2>
+          <div className="flex flex-col gap-2 min-[390px]:flex-row min-[390px]:items-start min-[390px]:justify-between">
+            <div>
+              <h2 className="text-xl font-black tracking-[-0.03em] min-[390px]:text-2xl">Commande #{order.id}</h2>
+              {timestampLabel ? <p className="mt-1 text-sm font-semibold text-slate-500">{timestampLabel}</p> : null}
+            </div>
             <StatusBadge label={getOrderStatusLabel(order.status)} tone={getOrderStatusBadgeTone(order.status)} />
           </div>
-          <div className="mt-4 grid gap-2 text-lg text-slate-700">
-            <p className="flex items-center gap-3"><Table2 className="size-6 text-emerald-800" /> {order.tableName ?? `Table ${order.table}`}</p>
-            <p className="flex items-center gap-3"><Package className="size-6 text-emerald-800" /> {order.items} {order.items > 1 ? "articles" : "article"}</p>
+          <div className="mt-3 grid gap-1.5 text-base text-slate-700 min-[390px]:text-lg">
+            <p className="flex items-center gap-2.5"><Table2 className="size-5 text-emerald-800 min-[390px]:size-6" /> {order.tableName ?? `Table ${order.table}`}</p>
+            <p className="flex items-center gap-2.5"><Package className="size-5 text-emerald-800 min-[390px]:size-6" /> {order.items} {order.items > 1 ? "articles" : "article"}</p>
           </div>
         </div>
       </div>
-      <div className="mt-4 text-right text-4xl font-black tracking-[-0.05em]">{formatEuro(order.total)}</div>
+      <div className="mt-4 text-right text-3xl font-black tracking-[-0.04em] min-[390px]:text-4xl">{formatEuro(order.total)}</div>
       {primaryActionLabel ? (
         <div className="mt-5 grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
           <button
@@ -86,9 +91,9 @@ export function OrderCard({ order, onStatusChange, onRefuse }: OrderCardProps) {
           ) : null}
         </div>
       ) : (
-        <p className="mt-5 rounded-2xl bg-slate-50 px-4 py-3 text-center text-base font-semibold text-slate-600">
-          {isClosed ? getOrderStatusLabel(order.status) : "Action réalisée"}
-        </p>
+        <div className="mt-4 flex justify-end">
+          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-600">{isClosed ? getOrderStatusLabel(order.status) : "Action réalisée"}</span>
+        </div>
       )}
     </article>
   );
