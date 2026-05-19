@@ -18,6 +18,23 @@ type ProductFormState = {
   imageUrl: string;
 };
 
+function normalizeProduct(product: Product): Product {
+  const available = typeof product.available === "boolean" ? product.available : Boolean(product.isAvailable ?? true);
+  const featured = Boolean(product.featured ?? product.promoted ?? (product as Product & { promo?: boolean; isPromo?: boolean }).promo ?? (product as Product & { promo?: boolean; isPromo?: boolean }).isPromo);
+  const imageUrl = product.imageDataUrl ?? product.imageUrl ?? (product as Product & { image?: string }).image ?? "";
+  return {
+    ...product,
+    description: product.description ?? "",
+    available,
+    isAvailable: available,
+    featured,
+    promoted: featured,
+    imageUrl,
+    imageDataUrl: imageUrl.startsWith("data:image") ? imageUrl : product.imageDataUrl,
+    promoPrice: typeof product.promoPrice === "number" && Number.isFinite(product.promoPrice) ? product.promoPrice : undefined,
+  };
+}
+
 type ProductFormErrors = Partial<Record<"name" | "categoryId" | "price" | "promoPrice" | "image", string>>;
 
 type PanelMode = "add-product" | "edit-product" | "add-category" | null;
@@ -68,15 +85,16 @@ function createClientId(prefix: string, label: string, existingIds: string[]) {
 }
 
 function getProductForm(product: Product): ProductFormState {
+  const normalizedProduct = normalizeProduct(product);
   return {
-    name: product.name,
-    categoryId: product.categoryId,
-    price: formatPriceInput(product.price),
-    description: product.description,
-    available: product.available,
-    featured: Boolean(product.featured ?? product.promoted),
-    promoPrice: typeof product.promoPrice === "number" ? formatPriceInput(product.promoPrice) : "",
-    imageUrl: product.imageDataUrl ?? product.imageUrl ?? "",
+    name: normalizedProduct.name ?? "",
+    categoryId: normalizedProduct.categoryId ?? "",
+    price: formatPriceInput(normalizedProduct.price),
+    description: normalizedProduct.description ?? "",
+    available: normalizedProduct.available,
+    featured: Boolean(normalizedProduct.featured ?? normalizedProduct.promoted),
+    promoPrice: typeof normalizedProduct.promoPrice === "number" ? formatPriceInput(normalizedProduct.promoPrice) : "",
+    imageUrl: normalizedProduct.imageDataUrl ?? normalizedProduct.imageUrl ?? "",
   };
 }
 
@@ -102,17 +120,17 @@ function ProductForm({
 
   return (
     <Panel title={title} onClose={onClose}>
-      <form className="grid gap-4" onSubmit={onSubmit}>
+      <form className="grid gap-3.5 pb-[max(env(safe-area-inset-bottom),0.75rem)]" onSubmit={onSubmit}>
         <Field label="Nom du produit" error={errors.name}>
           <input
-            value={form.name}
+            value={form.name ?? ""}
             onChange={(event) => onChange({ ...form, name: event.target.value })}
             className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
           />
         </Field>
         <Field label="Catégorie" error={errors.categoryId}>
           <select
-            value={form.categoryId}
+            value={form.categoryId ?? ""}
             onChange={(event) => onChange({ ...form, categoryId: event.target.value })}
             className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
           >
@@ -127,14 +145,14 @@ function ProductForm({
         <Field label="Prix" error={errors.price}>
           <input
             inputMode="decimal"
-            value={form.price}
+            value={form.price ?? ""}
             onChange={(event) => onChange({ ...form, price: event.target.value })}
             className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
           />
         </Field>
         <Field label="Description">
           <textarea
-            value={form.description}
+            value={form.description ?? ""}
             onChange={(event) => onChange({ ...form, description: event.target.value })}
             rows={3}
             className="min-h-28 w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
@@ -148,21 +166,21 @@ function ProductForm({
             onChange={(checked) => onChange({ ...form, available: checked })}
           />
           <Toggle
-            label="Mettre en avant ce produit"
-            sublabel="Affiche un badge sur la carte."
+            label="Mettre en avant"
+            sublabel="Ajoute un badge visible sur la carte."
             checked={form.featured}
             onChange={(checked) => onChange({ ...form, featured: checked })}
           />
         </div>
         <Field label="Prix promotionnel" error={errors.promoPrice}>
-          <input inputMode="decimal" value={form.promoPrice} onChange={(event) => onChange({ ...form, promoPrice: event.target.value })} className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+          <input inputMode="decimal" value={form.promoPrice ?? ""} onChange={(event) => onChange({ ...form, promoPrice: event.target.value })} className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
         </Field>
         <ImageField form={form} onChange={onChange} error={errors.image} />
-        <div className="grid gap-3 pt-2">
-          <button type="submit" className="min-h-14 rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green">
+        <div className="sticky bottom-0 z-10 -mx-1 grid gap-2 border-t border-slate-200 bg-white/95 px-1 pt-3 backdrop-blur">
+          <button type="submit" className="min-h-12 rounded-2xl bg-emerald-700 px-5 text-base font-black text-white shadow-green">
             {submitLabel}
           </button>
-          <button type="button" onClick={onClose} className="min-h-12 rounded-2xl border border-slate-200 bg-white px-5 text-lg font-bold text-slate-700">
+          <button type="button" onClick={onClose} className="min-h-11 rounded-2xl border border-slate-200 bg-white px-5 text-base font-bold text-slate-700">
             Annuler
           </button>
         </div>
@@ -188,17 +206,18 @@ function ImageField({ form, onChange, error }: { form: ProductFormState; onChang
 
   return (
     <Field label="Image du produit" error={error}>
-      <div className="grid gap-2 rounded-2xl border border-slate-200 p-3">
+      <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
+        {form.imageUrl ? <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-1"><img src={form.imageUrl} alt="Aperçu du produit" className="h-28 w-full rounded-lg object-cover" /></div> : null}
         <div className="flex flex-wrap gap-2">
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800"><ImagePlus className="size-4" />Ajouter une photo<input type="file" accept="image/*" className="hidden" onChange={handleFileChange} /></label>
-          <button type="button" onClick={() => onChange({ ...form, imageUrl: "" })} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700"><Trash2 className="size-4" />Supprimer l’image</button>
+          <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"><Link2 className="size-4" />URL d’image</label>
+          {form.imageUrl ? <button type="button" onClick={() => onChange({ ...form, imageUrl: "" })} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"><Trash2 className="size-4" />Supprimer l’image</button> : null}
         </div>
-        <label className="text-sm font-bold text-slate-700">Coller une URL d’image</label>
         <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3">
           <Link2 className="size-4 text-slate-400" />
-          <input value={form.imageUrl} onChange={(event) => onChange({ ...form, imageUrl: event.target.value })} className="min-h-11 w-full bg-transparent text-base font-semibold outline-none" />
+          <input value={form.imageUrl ?? ""} onChange={(event) => onChange({ ...form, imageUrl: event.target.value })} className="min-h-11 w-full bg-transparent text-base font-semibold outline-none" placeholder="https://..." />
         </div>
-        {form.imageUrl ? <p className="text-sm font-semibold text-emerald-700">Photo ajoutée</p> : <p className="text-sm font-semibold text-slate-500">Utiliser une image automatique</p>}
+        <p className="text-sm font-semibold text-slate-500">Sans image, TableFlash affiche un visuel automatique.</p>
       </div>
     </Field>
   );
@@ -366,10 +385,10 @@ export function MenuManager() {
       if (panelMode === "edit-product" && editingProductId) {
         return {
           ...currentValue,
-          products: currentValue.products.map((product) => (product.id === editingProductId ? nextProduct : product)),
+          products: currentValue.products.map((product) => (product.id === editingProductId ? normalizeProduct(nextProduct) : normalizeProduct(product))),
         };
       }
-      return { ...currentValue, products: [nextProduct, ...currentValue.products] };
+      return { ...currentValue, products: [normalizeProduct(nextProduct), ...currentValue.products.map(normalizeProduct)] };
     });
     closePanel();
   }
@@ -434,7 +453,7 @@ export function MenuManager() {
         />
       </label>
 
-      <div className="mb-6 -mx-1 flex gap-3 overflow-x-auto px-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mb-6 -mx-1 flex gap-3 overflow-x-auto px-1 pb-2 pr-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {categories.map((category) => (
           <button
             key={category.id}
