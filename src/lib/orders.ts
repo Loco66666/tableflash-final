@@ -191,9 +191,15 @@ export function normalizeOrders(orders: Order[]) {
 const shortMonthFormatter = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" });
 
 function parseOrderDate(order: Order) {
-  const explicitDate = order.serviceDate;
+  if (order.createdAt) {
+    const parsedCreatedAt = new Date(order.createdAt);
+    if (!Number.isNaN(parsedCreatedAt.getTime())) return parsedCreatedAt;
+  }
+
+  const explicitDate = order.createdDate ?? order.serviceDate;
+  const explicitTime = order.createdTime ?? order.serviceTime;
   if (!explicitDate) return null;
-  const dateText = order.serviceTime ? `${explicitDate}T${order.serviceTime}` : `${explicitDate}T00:00`;
+  const dateText = explicitTime ? `${explicitDate}T${explicitTime}` : `${explicitDate}T00:00`;
   const parsed = new Date(dateText);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
@@ -209,9 +215,38 @@ function getDateLabel(target: Date, reference: Date) {
 }
 
 export function getOrderTimestampLabel(order: Order, now = new Date()) {
+  if (order.timeLabel) return order.timeLabel;
   const orderDate = parseOrderDate(order);
   if (!orderDate) return null;
   const dateLabel = getDateLabel(orderDate, now);
   const timeLabel = orderDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   return `${dateLabel} • ${timeLabel}`;
+}
+
+export function isActiveOrderStatus(status: OrderStatus) {
+  return status === "new" || status === "payment_pending" || status === "paid" || status === "preparing" || status === "ready";
+}
+
+export function getWaitingLabel(order: Order, now = new Date()) {
+  const orderDate = parseOrderDate(order);
+  if (!orderDate) return null;
+
+  const elapsedMinutes = Math.max(0, Math.floor((now.getTime() - orderDate.getTime()) / 60_000));
+
+  if (order.status === "preparing") return `En préparation depuis ${elapsedMinutes} min`;
+  if (order.status === "new" || order.status === "payment_pending") return `À traiter depuis ${elapsedMinutes} min`;
+  if (order.status === "paid" || order.status === "ready") return `Attente : ${elapsedMinutes} min`;
+  return null;
+}
+
+export function getWaitingToneClass(minutes: number) {
+  if (minutes >= 20) return "text-amber-700";
+  if (minutes >= 10) return "text-amber-600";
+  return "text-slate-500";
+}
+
+export function getElapsedMinutes(order: Order, now = new Date()) {
+  const orderDate = parseOrderDate(order);
+  if (!orderDate) return null;
+  return Math.max(0, Math.floor((now.getTime() - orderDate.getTime()) / 60_000));
 }
