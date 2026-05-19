@@ -1,66 +1,64 @@
-import { Edit3, ImageIcon, Tag } from "lucide-react";
+"use client";
+
+import { Edit3, IceCreamBowl, Leaf, Tag, Utensils, Wine } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { Product } from "@/lib/types";
 import { formatEuro } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui-custom/StatusBadge";
 
 type ProductCardProduct = Product & { categoryName?: string };
 
-const visuals = {
-  salad: "from-lime-100 via-emerald-50 to-yellow-100 before:bg-[radial-gradient(circle_at_35%_35%,#65a30d_0_10%,transparent_11%),radial-gradient(circle_at_60%_40%,#facc15_0_7%,transparent_8%),radial-gradient(circle_at_50%_65%,#15803d_0_14%,transparent_15%)]",
-  burger:
-    "from-amber-100 via-orange-100 to-yellow-50 before:bg-[radial-gradient(ellipse_at_50%_32%,#b45309_0_22%,transparent_23%),radial-gradient(ellipse_at_50%_54%,#7f1d1d_0_24%,transparent_25%),radial-gradient(ellipse_at_50%_72%,#facc15_0_22%,transparent_23%)]",
-  dessert:
-    "from-stone-100 via-amber-50 to-rose-50 before:bg-[linear-gradient(180deg,#92400e_0_18%,#fff7ed_18%_46%,#78350f_46%_62%,#ffedd5_62%)]",
-};
+function getVisualStyle(categoryName?: string) {
+  const name = (categoryName ?? "").toLocaleLowerCase("fr-FR");
+  if (name.includes("entr")) return { tone: "from-emerald-100 via-lime-50 to-white", Icon: Leaf };
+  if (name.includes("dess")) return { tone: "from-amber-50 via-rose-50 to-white", Icon: IceCreamBowl };
+  if (name.includes("boiss")) return { tone: "from-sky-100 via-cyan-50 to-white", Icon: Wine };
+  return { tone: "from-orange-100 via-amber-50 to-white", Icon: Utensils };
+}
 
-export function ProductVisual({ visual, imageUrl, alt }: { visual: Product["visual"]; imageUrl?: string; alt?: string }) {
-  if (imageUrl) {
+export function ProductVisual({ visual, imageUrl, alt, categoryName }: { visual: Product["visual"]; imageUrl?: string; alt?: string; categoryName?: string }) {
+  const [broken, setBroken] = useState(false);
+  const showImage = Boolean(imageUrl) && !broken;
+  const style = useMemo(() => getVisualStyle(categoryName ?? visual), [categoryName, visual]);
+
+  if (showImage) {
     return (
-      <div className="relative min-h-32 overflow-hidden rounded-2xl bg-emerald-50">
+      <div className="relative h-24 overflow-hidden rounded-xl bg-emerald-50 sm:h-28">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imageUrl} alt={alt ?? "Produit"} className="absolute inset-0 size-full object-cover" />
+        <img src={imageUrl} alt={alt ?? "Produit"} className="absolute inset-0 size-full object-cover" onError={() => setBroken(true)} />
       </div>
     );
   }
 
+  const Icon = style.Icon;
   return (
-    <div
-      className={`relative min-h-32 overflow-hidden rounded-2xl bg-gradient-to-br ${
-        visuals[visual as keyof typeof visuals] ?? visuals.salad
-      } before:absolute before:inset-3 before:rounded-2xl before:bg-no-repeat before:content-['']`}
-      aria-hidden="true"
-    />
+    <div className={`relative grid h-24 place-items-center overflow-hidden rounded-xl bg-gradient-to-br ${style.tone} sm:h-28`} aria-hidden="true">
+      <span className="rounded-full bg-white/85 p-2.5 text-slate-700 shadow-card"><Icon className="size-6" /></span>
+    </div>
   );
 }
 
 export function ProductCard({ product, onEdit }: { product: ProductCardProduct; onEdit?: (product: Product) => void }) {
+  const featured = Boolean(product.featured ?? product.promoted);
+  const promoPrice = typeof product.promoPrice === "number" && product.promoPrice > 0 ? product.promoPrice : null;
   return (
-    <article className="grid grid-cols-[7rem_1fr_auto] gap-4 rounded-[1.35rem] border border-slate-200 bg-white p-4 shadow-card max-[380px]:grid-cols-[6rem_1fr]">
-      <ProductVisual visual={product.visual} imageUrl={product.imageUrl} alt={product.name} />
-      <div className="min-w-0 py-1">
-        <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
-          <h2 className="min-w-0 text-xl font-black tracking-[-0.03em]">{product.name}</h2>
-          {product.imageUrl ? <ImageIcon className="mt-1 size-4 shrink-0 text-emerald-700" aria-label="Image" /> : null}
-        </div>
+    <article className="grid grid-cols-[6rem_1fr] gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-card sm:grid-cols-[7rem_1fr_auto] sm:gap-4 sm:p-4">
+      <ProductVisual visual={product.visual} imageUrl={product.imageUrl} alt={product.name} categoryName={product.categoryName} />
+      <div className="min-w-0">
+        <h2 className="text-lg font-black leading-tight tracking-[-0.02em] text-slate-950 [overflow-wrap:anywhere]">{product.name}</h2>
         <p className="mt-1 text-sm font-semibold text-slate-500">{product.categoryName}</p>
-        <p className="mt-2 text-2xl font-black text-emerald-800">{formatEuro(product.price)}</p>
-        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-600">{product.description}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap items-baseline gap-2">
+          {promoPrice ? <span className="text-xl font-black text-rose-700">{formatEuro(promoPrice)}</span> : <span className="text-xl font-black text-emerald-800">{formatEuro(product.price)}</span>}
+          {promoPrice ? <span className="text-sm font-semibold text-slate-500 line-through">{formatEuro(product.price)}</span> : null}
+        </div>
+        <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-600">{product.description}</p>
+        <div className="mt-2 flex flex-wrap gap-2">
           <StatusBadge label={product.available ? "Disponible" : "Rupture"} tone={product.available ? "green" : "red"} />
-          {product.promoted ? (
-            <span className="inline-flex min-h-8 items-center gap-1 rounded-xl px-2 text-sm font-semibold text-amber-600">
-              <Tag className="size-4" /> Promo
-            </span>
-          ) : null}
+          {featured ? <span className="inline-flex items-center gap-1 rounded-xl bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700"><Tag className="size-3.5" />Mis en avant</span> : null}
         </div>
       </div>
-      <button
-        type="button"
-        onClick={() => onEdit?.(product)}
-        className="flex min-h-24 min-w-20 flex-col items-center justify-center gap-2 self-center rounded-2xl bg-emerald-50 px-3 text-emerald-800 max-[380px]:col-span-2 max-[380px]:min-h-12 max-[380px]:flex-row"
-      >
-        <Edit3 className="size-8" />
-        <span className="font-semibold">Modifier</span>
+      <button type="button" onClick={() => onEdit?.(product)} className="col-span-2 min-h-11 rounded-xl bg-emerald-50 px-3 text-sm font-bold text-emerald-800 sm:col-span-1 sm:min-h-20 sm:min-w-20">
+        <span className="inline-flex items-center gap-1.5"><Edit3 className="size-4 sm:size-5" />Modifier</span>
       </button>
     </article>
   );
