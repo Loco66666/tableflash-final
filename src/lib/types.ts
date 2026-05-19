@@ -18,8 +18,11 @@ export type Product = {
   stockStatus?: string;
   status?: string;
   promoted?: boolean;
+  featured?: boolean;
+  promoPrice?: number;
   visual: string;
   imageUrl?: string;
+  imageDataUrl?: string;
   allergens?: string[] | string;
 };
 

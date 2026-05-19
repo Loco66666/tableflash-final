@@ -22,16 +22,16 @@ export function CustomerProductCard({ product, onAdd }: CustomerProductCardProps
       <div className="min-w-0 py-1">
         <div className="flex flex-wrap items-start gap-2">
           <h2 className="min-w-0 text-[1.35rem] font-black leading-tight tracking-[-0.04em] text-slate-950">{product.name}</h2>
-          {product.promoted ? (
+          {Boolean(product.featured ?? product.promoted) ? (
             <span className="inline-flex min-h-7 shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2.5 text-sm font-black text-amber-700">
-              <Tag className="size-4" /> Promo
+              <Tag className="size-4" /> Mis en avant
             </span>
           ) : null}
         </div>
         <p className="mt-2 line-clamp-3 text-base leading-relaxed text-slate-600">{product.description}</p>
         {allergensLabel ? <p className="mt-2 text-sm font-semibold leading-snug text-slate-500">Allergènes : {allergensLabel}</p> : null}
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <strong className="text-2xl font-black text-emerald-800">{formatEuro(product.price)}</strong>
+          {typeof product.promoPrice === "number" && product.promoPrice > 0 ? (<div className="flex items-baseline gap-2"><strong className="text-2xl font-black text-rose-700">{formatEuro(product.promoPrice)}</strong><span className="text-sm font-semibold text-slate-500 line-through">{formatEuro(product.price)}</span></div>) : (<strong className="text-2xl font-black text-emerald-800">{formatEuro(product.price)}</strong>)}
           <button
             type="button"
             onClick={() => onAdd(product)}

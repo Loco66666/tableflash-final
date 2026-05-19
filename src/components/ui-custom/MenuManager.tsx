@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { FolderPlus, Plus, Search, X } from "lucide-react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FolderPlus, ImagePlus, Link2, Plus, Search, Trash2, X } from "lucide-react";
 import { ProductCard } from "@/components/ui-custom/ProductCard";
 import { useMenuStore } from "@/lib/local-store/menuStore";
 import type { Category, Product } from "@/lib/types";
@@ -13,11 +13,12 @@ type ProductFormState = {
   price: string;
   description: string;
   available: boolean;
-  promoted: boolean;
+  featured: boolean;
+  promoPrice: string;
   imageUrl: string;
 };
 
-type ProductFormErrors = Partial<Record<"name" | "categoryId" | "price", string>>;
+type ProductFormErrors = Partial<Record<"name" | "categoryId" | "price" | "promoPrice" | "image", string>>;
 
 type PanelMode = "add-product" | "edit-product" | "add-category" | null;
 
@@ -27,7 +28,8 @@ const emptyProductForm: ProductFormState = {
   price: "",
   description: "",
   available: true,
-  promoted: false,
+  featured: false,
+  promoPrice: "",
   imageUrl: "",
 };
 
@@ -72,8 +74,9 @@ function getProductForm(product: Product): ProductFormState {
     price: formatPriceInput(product.price),
     description: product.description,
     available: product.available,
-    promoted: Boolean(product.promoted),
-    imageUrl: product.imageUrl ?? "",
+    featured: Boolean(product.featured ?? product.promoted),
+    promoPrice: typeof product.promoPrice === "number" ? formatPriceInput(product.promoPrice) : "",
+    imageUrl: product.imageDataUrl ?? product.imageUrl ?? "",
   };
 }
 
@@ -139,25 +142,22 @@ function ProductForm({
         </Field>
         <div className="grid gap-3 rounded-2xl bg-slate-50 p-3">
           <Toggle
-            label="Disponible"
-            sublabel={form.available ? "Le produit peut être commandé" : "Le produit est en rupture"}
+            label="Produit disponible"
+            sublabel={form.available ? "Visible sur le menu client" : "Masqué du menu client et marqué en rupture côté restaurant"}
             checked={form.available}
             onChange={(checked) => onChange({ ...form, available: checked })}
           />
           <Toggle
-            label="Promotion simple"
-            sublabel="Affiche le label Promo sur la carte"
-            checked={form.promoted}
-            onChange={(checked) => onChange({ ...form, promoted: checked })}
+            label="Mettre en avant ce produit"
+            sublabel="Affiche un badge sur la carte."
+            checked={form.featured}
+            onChange={(checked) => onChange({ ...form, featured: checked })}
           />
         </div>
-        <Field label="Image URL optionnelle">
-          <input
-            value={form.imageUrl}
-            onChange={(event) => onChange({ ...form, imageUrl: event.target.value })}
-            className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
-          />
+        <Field label="Prix promotionnel" error={errors.promoPrice}>
+          <input inputMode="decimal" value={form.promoPrice} onChange={(event) => onChange({ ...form, promoPrice: event.target.value })} className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
         </Field>
+        <ImageField form={form} onChange={onChange} error={errors.image} />
         <div className="grid gap-3 pt-2">
           <button type="submit" className="min-h-14 rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green">
             {submitLabel}
@@ -168,6 +168,39 @@ function ProductForm({
         </div>
       </form>
     </Panel>
+  );
+}
+
+
+function ImageField({ form, onChange, error }: { form: ProductFormState; onChange: (nextForm: ProductFormState) => void; error?: string }) {
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 2 * 1024 * 1024) {
+      onChange({ ...form });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => onChange({ ...form, imageUrl: String(reader.result ?? "") });
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <Field label="Image du produit" error={error}>
+      <div className="grid gap-2 rounded-2xl border border-slate-200 p-3">
+        <div className="flex flex-wrap gap-2">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800"><ImagePlus className="size-4" />Ajouter une photo<input type="file" accept="image/*" className="hidden" onChange={handleFileChange} /></label>
+          <button type="button" onClick={() => onChange({ ...form, imageUrl: "" })} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700"><Trash2 className="size-4" />Supprimer l’image</button>
+        </div>
+        <label className="text-sm font-bold text-slate-700">Coller une URL d’image</label>
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3">
+          <Link2 className="size-4 text-slate-400" />
+          <input value={form.imageUrl} onChange={(event) => onChange({ ...form, imageUrl: event.target.value })} className="min-h-11 w-full bg-transparent text-base font-semibold outline-none" />
+        </div>
+        {form.imageUrl ? <p className="text-sm font-semibold text-emerald-700">Photo ajoutée</p> : <p className="text-sm font-semibold text-slate-500">Utiliser une image automatique</p>}
+      </div>
+    </Field>
   );
 }
 
@@ -295,16 +328,19 @@ export function MenuManager() {
   function validateProductForm() {
     const nextErrors: ProductFormErrors = {};
     const price = parsePrice(productForm.price);
+    const promoPrice = productForm.promoPrice ? parsePrice(productForm.promoPrice) : Number.NaN;
     if (!productForm.name.trim()) nextErrors.name = "Le nom est requis.";
     if (!productForm.categoryId) nextErrors.categoryId = "La catégorie est requise.";
     if (!productForm.price.trim() || !Number.isFinite(price) || price <= 0) nextErrors.price = "Indiquez un prix positif.";
+    if (productForm.promoPrice && (!Number.isFinite(promoPrice) || promoPrice <= 0 || promoPrice >= price)) nextErrors.promoPrice = "Le prix promotionnel doit être inférieur au prix normal";
+    if (productForm.imageUrl.startsWith("data:image") && productForm.imageUrl.length > 2_800_000) nextErrors.image = "Image trop lourde. Choisissez une photo plus légère.";
     setProductErrors(nextErrors);
-    return { valid: Object.keys(nextErrors).length === 0, price };
+    return { valid: Object.keys(nextErrors).length === 0, price, promoPrice };
   }
 
   function saveProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const { valid, price } = validateProductForm();
+    const { valid, price, promoPrice } = validateProductForm();
     if (!valid) return;
 
     const trimmedName = productForm.name.trim();
@@ -319,9 +355,11 @@ export function MenuManager() {
       description: productForm.description.trim(),
       price,
       available: productForm.available,
-      promoted: productForm.promoted,
+      featured: productForm.featured,
+      promoted: productForm.featured,
+      promoPrice: Number.isFinite(promoPrice) ? promoPrice : undefined,
       visual: "salad",
-      ...(trimmedImageUrl ? { imageUrl: trimmedImageUrl } : {}),
+      ...(trimmedImageUrl ? { imageUrl: trimmedImageUrl, imageDataUrl: trimmedImageUrl.startsWith("data:image") ? trimmedImageUrl : undefined } : {}),
     };
 
     setValue((currentValue) => {
@@ -396,7 +434,7 @@ export function MenuManager() {
         />
       </label>
 
-      <div className="mb-6 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mb-6 -mx-1 flex gap-3 overflow-x-auto px-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {categories.map((category) => (
           <button
             key={category.id}
