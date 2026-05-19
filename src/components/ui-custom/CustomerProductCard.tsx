@@ -23,8 +23,8 @@ export function CustomerProductCard({ product, onAdd }: CustomerProductCardProps
         <div className="flex flex-wrap items-start gap-2">
           <h2 className="min-w-0 text-[1.35rem] font-black leading-tight tracking-[-0.04em] text-slate-950">{product.name}</h2>
           {Boolean(product.featured ?? product.promoted) ? (
-            <span className="inline-flex min-h-7 shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2.5 text-sm font-black text-amber-700">
-              <Tag className="size-4" /> Mis en avant
+            <span className="inline-flex min-h-7 shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 text-sm font-black text-emerald-700">
+              <Tag className="size-4" /> Suggestion
             </span>
           ) : null}
         </div>
