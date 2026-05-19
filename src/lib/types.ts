@@ -32,6 +32,10 @@ export type OrderLine = {
 
 export type Order = {
   id: string;
+  createdAt?: string;
+  createdDate?: string;
+  createdTime?: string;
+  timeLabel?: string;
   table: number;
   tableId?: string;
   tableSlug?: string;
