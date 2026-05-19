@@ -246,6 +246,10 @@ export function TableQrManager() {
   function viewQr(table: TableInfo) {
     setQrPanel({ table, link: getFullCustomerUrl(table, origin || window.location.origin, publicSlug), path: getCustomerPath(table, publicSlug) });
   }
+  function openCustomerMenu(table: TableInfo) {
+    const path = getCustomerPath(table, publicSlug);
+    window.open(path, "_blank", "noopener,noreferrer");
+  }
 
   function openPrintPanel() {
     setSelectedPrintIds(activeTables.map((table) => table.id));
@@ -272,12 +276,12 @@ export function TableQrManager() {
         <div>
           <TrendingUp className="mx-auto mb-2 size-8 rounded-full bg-emerald-100 p-1 text-emerald-800" />
           <strong className="text-3xl font-black text-emerald-800">{scanCount}</strong>
-          <p className="text-sm text-slate-600 min-[390px]:text-base">scans</p>
+          <p className="text-sm text-slate-600 min-[390px]:text-base">Scans</p>
         </div>
         <div>
           <ReceiptText className="mx-auto mb-2 size-8 rounded-full bg-emerald-100 p-1 text-emerald-800" />
           <strong className="text-3xl font-black text-emerald-800">{qrOrdersCount}</strong>
-          <p className="text-sm text-slate-600 min-[390px]:text-base">commandes QR</p>
+          <p className="text-sm text-slate-600 min-[390px]:text-base">Commandes</p>
         </div>
       </SectionCard>
 
@@ -295,7 +299,7 @@ export function TableQrManager() {
         <div className="grid gap-4">
           {tables.map((table) => (
             <div key={table.id} className="grid gap-2">
-              <TableQrCard table={table} onCopyLink={copyLink} onToggleActive={toggleTable} onViewQr={viewQr} />
+              <TableQrCard table={table} onCopyLink={copyLink} onToggleActive={toggleTable} onViewQr={viewQr} onOpenCustomerMenu={openCustomerMenu} />
               {copiedTableId === table.id ? (
                 <p className="rounded-full bg-emerald-50 px-4 py-2 text-center text-sm font-bold text-emerald-800" role="status">
                   Lien copié
