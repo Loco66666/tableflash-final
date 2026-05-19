@@ -33,6 +33,13 @@ const links: Array<{
     icon: Settings,
     tone: "bg-blue-50 text-blue-700",
   },
+  {
+    href: "/dashboard/help",
+    label: "Aide",
+    subtitle: "Questions fréquentes et support",
+    icon: HelpCircle,
+    tone: "bg-violet-50 text-violet-700",
+  },
 ];
 
 export default function MorePage() {
@@ -60,15 +67,6 @@ export default function MorePage() {
           );
         })}
 
-        <SectionCard className="flex min-h-24 items-center gap-4 border-dashed bg-slate-50/80 p-5 text-slate-700">
-          <span className="grid size-14 shrink-0 place-items-center rounded-full bg-white text-slate-600">
-            <HelpCircle className="size-8" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-2xl font-black leading-tight tracking-[-0.03em] text-slate-950">Aide</span>
-            <span className="mt-1 block text-lg leading-snug text-slate-600">Besoin d’aide ?</span>
-          </span>
-        </SectionCard>
       </section>
     </AppShell>
   );
