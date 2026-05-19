@@ -191,6 +191,12 @@ function ProductForm({
 
 
 function ImageField({ form, onChange, error }: { form: ProductFormState; onChange: (nextForm: ProductFormState) => void; error?: string }) {
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [failedImageSrc, setFailedImageSrc] = useState("");
+  const hasImageValue = Boolean(form.imageUrl?.trim());
+  const isDataImage = form.imageUrl.trim().startsWith("data:image");
+  const hasPreviewImage = hasImageValue && failedImageSrc !== form.imageUrl;
+
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -200,24 +206,66 @@ function ImageField({ form, onChange, error }: { form: ProductFormState; onChang
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => onChange({ ...form, imageUrl: String(reader.result ?? "") });
+    reader.onload = () => {
+      setFailedImageSrc("");
+      setShowUrlInput(false);
+      onChange({ ...form, imageUrl: String(reader.result ?? "") });
+    };
     reader.readAsDataURL(file);
   }
 
   return (
     <Field label="Image du produit" error={error}>
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
-        {form.imageUrl ? <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-1"><img src={form.imageUrl} alt="Aperçu du produit" className="h-28 w-full rounded-lg object-cover" /></div> : null}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-1">
+          {hasPreviewImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={form.imageUrl} alt="Aperçu du produit" className="h-36 w-full rounded-xl object-cover" onError={() => setFailedImageSrc(form.imageUrl)} />
+          ) : (
+            <div className="grid h-36 place-items-center rounded-xl bg-gradient-to-br from-slate-100 via-slate-50 to-white text-center">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-600 shadow-card">
+                <ImagePlus className="size-4" />
+                Visuel automatique
+              </span>
+            </div>
+          )}
+        </div>
+
+        <p className="text-sm font-semibold text-slate-500">{hasImageValue && hasPreviewImage ? "Photo ajoutée" : "TableFlash affichera un visuel automatique."}</p>
+
         <div className="flex flex-wrap gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800"><ImagePlus className="size-4" />Ajouter une photo<input type="file" accept="image/*" className="hidden" onChange={handleFileChange} /></label>
-          <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"><Link2 className="size-4" />URL d’image</label>
-          {form.imageUrl ? <button type="button" onClick={() => onChange({ ...form, imageUrl: "" })} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"><Trash2 className="size-4" />Supprimer l’image</button> : null}
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-700 px-3 py-2 text-sm font-bold text-white">
+            <ImagePlus className="size-4" />
+            {hasImageValue ? "Remplacer la photo" : "Ajouter une photo"}
+            <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+          </label>
+
+          {(!isDataImage || !hasImageValue) && (
+            <button type="button" onClick={() => setShowUrlInput((prev) => !prev)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700">
+              <Link2 className="size-4" />Utiliser une URL
+            </button>
+          )}
+
+          {hasImageValue ? <button type="button" onClick={() => onChange({ ...form, imageUrl: "" })} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"><Trash2 className="size-4" />Supprimer l’image</button> : null}
         </div>
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3">
-          <Link2 className="size-4 text-slate-400" />
-          <input value={form.imageUrl ?? ""} onChange={(event) => onChange({ ...form, imageUrl: event.target.value })} className="min-h-11 w-full bg-transparent text-base font-semibold outline-none" placeholder="https://..." />
-        </div>
-        <p className="text-sm font-semibold text-slate-500">Sans image, TableFlash affiche un visuel automatique.</p>
+
+        {showUrlInput || (!isDataImage && hasImageValue) ? (
+          <div className="grid gap-2">
+            <span className="text-sm font-bold text-slate-700">URL d’image</span>
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
+              <Link2 className="size-4 text-slate-400" />
+              <input
+                value={isDataImage ? "" : form.imageUrl ?? ""}
+                onChange={(event) => {
+                  setFailedImageSrc("");
+                  onChange({ ...form, imageUrl: event.target.value });
+                }}
+                className="min-h-11 w-full bg-transparent text-base font-semibold outline-none"
+                placeholder="https://..."
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
     </Field>
   );
