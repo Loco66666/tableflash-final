@@ -33,7 +33,8 @@ export function OrdersBoard({ initialFilter }: { initialFilter: OrderFilter }) {
 
   return (
     <>
-      <div className="mb-6 grid grid-cols-2 gap-2 rounded-[1.2rem] border border-slate-200 bg-white p-1.5 shadow-card min-[430px]:grid-cols-4">
+      <div className="mb-6 -mx-1 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="inline-flex min-w-full gap-2 rounded-[1.2rem] border border-slate-200 bg-white p-1.5 shadow-card min-[430px]:grid min-[430px]:grid-cols-4">
         {orderFilters.map((filter) => {
           const active = activeFilter === filter.value;
           return (
@@ -42,7 +43,7 @@ export function OrdersBoard({ initialFilter }: { initialFilter: OrderFilter }) {
               type="button"
               onClick={() => selectFilter(filter.value)}
               className={cn(
-                "min-h-12 rounded-2xl px-2 text-sm font-semibold transition min-[390px]:text-base",
+                "min-h-12 min-w-[9rem] shrink-0 rounded-2xl px-3 text-sm font-semibold whitespace-nowrap transition min-[390px]:text-base min-[430px]:min-w-0",
                 active ? "bg-emerald-700 text-white shadow-green" : "text-slate-700 active:bg-emerald-50",
               )}
               aria-pressed={active}
@@ -51,6 +52,7 @@ export function OrdersBoard({ initialFilter }: { initialFilter: OrderFilter }) {
             </button>
           );
         })}
+        </div>
       </div>
 
       {visibleOrders.length > 0 ? (

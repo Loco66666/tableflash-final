@@ -180,6 +180,38 @@ export function normalizeOrders(orders: Order[]) {
       return { ...order, paid: true, paymentStatus: "paid" as const, paymentMethod: order.paymentMethod ?? "on_site" };
     }
 
-    return order;
+    return {
+      ...order,
+      serviceDate: order.serviceDate,
+      serviceTime: order.serviceTime,
+    };
   });
+}
+
+const shortMonthFormatter = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" });
+
+function parseOrderDate(order: Order) {
+  const explicitDate = order.serviceDate;
+  if (!explicitDate) return null;
+  const dateText = order.serviceTime ? `${explicitDate}T${order.serviceTime}` : `${explicitDate}T00:00`;
+  const parsed = new Date(dateText);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getDateLabel(target: Date, reference: Date) {
+  const targetMidnight = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
+  const referenceMidnight = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate()).getTime();
+  const dayDiff = Math.round((targetMidnight - referenceMidnight) / 86_400_000);
+
+  if (dayDiff === 0) return "Aujourd’hui";
+  if (dayDiff === -1) return "Hier";
+  return shortMonthFormatter.format(target).replace(".", "");
+}
+
+export function getOrderTimestampLabel(order: Order, now = new Date()) {
+  const orderDate = parseOrderDate(order);
+  if (!orderDate) return null;
+  const dateLabel = getDateLabel(orderDate, now);
+  const timeLabel = orderDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return `${dateLabel} • ${timeLabel}`;
 }
