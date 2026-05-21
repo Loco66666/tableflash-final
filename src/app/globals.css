@@ -57,3 +57,11 @@
   .shadow-card { box-shadow: var(--shadow-card); }
   .shadow-green { box-shadow: var(--shadow-green); }
 }
+
+.safe-pb-bottom-nav {
+  padding-bottom: max(env(safe-area-inset-bottom), 10px);
+}
+
+.safe-pb-form {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
+}

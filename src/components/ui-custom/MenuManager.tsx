@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { FolderPlus, ImagePlus, Link2, Plus, Search, Trash2, X } from "lucide-react";
@@ -120,7 +120,7 @@ function ProductForm({
 
   return (
     <Panel title={title} onClose={onClose}>
-      <form className="grid gap-3.5 pb-[max(env(safe-area-inset-bottom),0.75rem)]" onSubmit={onSubmit}>
+      <form className="grid gap-3.5 safe-pb-form" onSubmit={onSubmit}>
         <Field label="Nom du produit" error={errors.name}>
           <input
             value={form.name ?? ""}
@@ -128,13 +128,13 @@ function ProductForm({
             className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
           />
         </Field>
-        <Field label="Catégorie" error={errors.categoryId}>
+        <Field label="CatÃ©gorie" error={errors.categoryId}>
           <select
             value={form.categoryId ?? ""}
             onChange={(event) => onChange({ ...form, categoryId: event.target.value })}
             className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
           >
-            <option value="">Choisir une catégorie</option>
+            <option value="">Choisir une catÃ©gorie</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -161,7 +161,7 @@ function ProductForm({
         <div className="grid gap-3 rounded-2xl bg-slate-50 p-3">
           <Toggle
             label="Produit disponible"
-            sublabel={form.available ? "Visible sur le menu client" : "Masqué du menu client et marqué en rupture côté restaurant"}
+            sublabel={form.available ? "Visible sur le menu client" : "MasquÃ© du menu client et marquÃ© en rupture cÃ´tÃ© restaurant"}
             checked={form.available}
             onChange={(checked) => onChange({ ...form, available: checked })}
           />
@@ -223,7 +223,7 @@ function ImageField({ form, onChange, error }: { form: ProductFormState; onChang
         <div className="h-[160px] max-h-[180px] overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-white p-2 shadow-card">
           {hasPreviewImage ? (
             <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-xl bg-white/70 p-2">
-              <img src={trimmedImageValue} alt="Aperçu du produit" className="h-full w-full rounded-lg object-contain" onError={() => setFailedImageSrc(trimmedImageValue)} />
+              <img src={trimmedImageValue} alt="AperÃ§u du produit" className="h-full w-full rounded-lg object-contain" onError={() => setFailedImageSrc(trimmedImageValue)} />
             </div>
           ) : (
             <div className="grid h-full place-items-center rounded-xl bg-white/75 text-center">
@@ -235,7 +235,7 @@ function ImageField({ form, onChange, error }: { form: ProductFormState; onChang
           )}
         </div>
 
-        <p className="text-sm font-semibold text-slate-500">{hasImageValue && hasPreviewImage ? "Photo ajoutée" : "Ajoutez une photo du produit. TableFlash affichera un visuel automatique."}</p>
+        <p className="text-sm font-semibold text-slate-500">{hasImageValue && hasPreviewImage ? "Photo ajoutÃ©e" : "Ajoutez une photo du produit. TableFlash affichera un visuel automatique."}</p>
 
         <div className="flex flex-wrap gap-2">
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-700 px-3 py-2 text-sm font-bold text-white">
@@ -251,12 +251,12 @@ function ImageField({ form, onChange, error }: { form: ProductFormState; onChang
           {hasImageValue ? <button type="button" onClick={() => {
             setFailedImageSrc("");
             onChange({ ...form, imageUrl: "" });
-          }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"><Trash2 className="size-4" />Supprimer l’image</button> : null}
+          }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"><Trash2 className="size-4" />Supprimer lâ€™image</button> : null}
         </div>
 
         {showUrlInput ? (
           <div className="grid gap-2">
-            <span className="text-sm font-bold text-slate-700">URL d’image</span>
+            <span className="text-sm font-bold text-slate-700">URL dâ€™image</span>
             <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
               <Link2 className="size-4 text-slate-400" />
               <input
@@ -269,7 +269,7 @@ function ImageField({ form, onChange, error }: { form: ProductFormState; onChang
                 placeholder="https://..."
               />
             </div>
-            {hasLocalImage ? <p className="text-xs font-semibold text-slate-500">Une photo locale est déjà utilisée pour l’aperçu.</p> : null}
+            {hasLocalImage ? <p className="text-xs font-semibold text-slate-500">Une photo locale est dÃ©jÃ  utilisÃ©e pour lâ€™aperÃ§u.</p> : null}
           </div>
         ) : null}
       </div>
@@ -339,7 +339,7 @@ export function MenuManager() {
     () =>
       value.products.map((product) => ({
         ...product,
-        categoryName: categoryById.get(product.categoryId)?.name ?? "Catégorie",
+        categoryName: categoryById.get(product.categoryId)?.name ?? "CatÃ©gorie",
       })),
     [categoryById, value.products],
   );
@@ -403,10 +403,10 @@ export function MenuManager() {
     const price = parsePrice(productForm.price);
     const promoPrice = productForm.promoPrice ? parsePrice(productForm.promoPrice) : Number.NaN;
     if (!productForm.name.trim()) nextErrors.name = "Le nom est requis.";
-    if (!productForm.categoryId) nextErrors.categoryId = "La catégorie est requise.";
+    if (!productForm.categoryId) nextErrors.categoryId = "La catÃ©gorie est requise.";
     if (!productForm.price.trim() || !Number.isFinite(price) || price <= 0) nextErrors.price = "Indiquez un prix positif.";
-    if (productForm.promoPrice && (!Number.isFinite(promoPrice) || promoPrice <= 0 || promoPrice >= price)) nextErrors.promoPrice = "Le prix promotionnel doit être inférieur au prix normal";
-    if (productForm.imageUrl.startsWith("data:image") && productForm.imageUrl.length > 2_800_000) nextErrors.image = "Image trop lourde. Choisissez une photo plus légère.";
+    if (productForm.promoPrice && (!Number.isFinite(promoPrice) || promoPrice <= 0 || promoPrice >= price)) nextErrors.promoPrice = "Le prix promotionnel doit Ãªtre infÃ©rieur au prix normal";
+    if (productForm.imageUrl.startsWith("data:image") && productForm.imageUrl.length > 2_800_000) nextErrors.image = "Image trop lourde. Choisissez une photo plus lÃ©gÃ¨re.";
     setProductErrors(nextErrors);
     return { valid: Object.keys(nextErrors).length === 0, price, promoPrice };
   }
@@ -457,7 +457,7 @@ export function MenuManager() {
 
     const duplicate = menuCategories.some((category) => normalizeText(category.name) === normalizeText(trimmedName));
     if (duplicate) {
-      setCategoryError("Cette catégorie existe déjà.");
+      setCategoryError("Cette catÃ©gorie existe dÃ©jÃ .");
       return;
     }
 
@@ -491,7 +491,7 @@ export function MenuManager() {
           className="min-h-16 rounded-[1.2rem] border border-slate-200 bg-white text-xl font-black text-emerald-800 shadow-card"
         >
           <span className="inline-flex items-center gap-4">
-            <FolderPlus className="size-8" />Ajouter une catégorie
+            <FolderPlus className="size-8" />Ajouter une catÃ©gorie
           </span>
         </button>
       </div>
@@ -528,7 +528,7 @@ export function MenuManager() {
           filteredProducts.map((product) => <ProductCard key={product.id} product={product} onEdit={openEditProduct} />)
         ) : (
           <section className="rounded-[1.35rem] border border-dashed border-emerald-200 bg-emerald-50/70 p-6 text-center">
-            <h2 className="text-2xl font-black tracking-[-0.04em] text-emerald-900">Aucun produit trouvé</h2>
+            <h2 className="text-2xl font-black tracking-[-0.04em] text-emerald-900">Aucun produit trouvÃ©</h2>
             <p className="mt-2 text-base font-semibold text-slate-600">Modifiez la recherche ou ajoutez un produit.</p>
           </section>
         )}
@@ -547,9 +547,9 @@ export function MenuManager() {
       ) : null}
 
       {panelMode === "add-category" ? (
-        <Panel title="Ajouter une catégorie" onClose={closePanel}>
+        <Panel title="Ajouter une catÃ©gorie" onClose={closePanel}>
           <form className="grid gap-4" onSubmit={saveCategory}>
-            <Field label="Nom de la catégorie" error={categoryError}>
+            <Field label="Nom de la catÃ©gorie" error={categoryError}>
               <input
                 value={categoryName}
                 onChange={(event) => {
@@ -560,7 +560,7 @@ export function MenuManager() {
               />
             </Field>
             <button type="submit" className="min-h-14 rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green">
-              Enregistrer la catégorie
+              Enregistrer la catÃ©gorie
             </button>
             <button type="button" onClick={closePanel} className="min-h-12 rounded-2xl border border-slate-200 bg-white px-5 text-lg font-bold text-slate-700">
               Annuler
@@ -571,3 +571,4 @@ export function MenuManager() {
     </>
   );
 }
+
