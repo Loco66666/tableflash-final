@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { FolderPlus, ImagePlus, Link2, Plus, Search, Trash2, X } from "lucide-react";
+import Image from "next/image";
 import { ProductCard } from "@/components/ui-custom/ProductCard";
 import { useMenuStore } from "@/lib/local-store/menuStore";
 import type { Category, Product } from "@/lib/types";
@@ -220,10 +221,18 @@ function ImageField({ form, onChange, error }: { form: ProductFormState; onChang
   return (
     <Field label="Image du produit" error={error}>
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
-        <div className="h-[160px] max-h-[180px] overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-white p-2 shadow-card">
+        <div className="h-40 max-h-45 overflow-hidden rounded-2xl border border-slate-200 bg-linear-to-br from-slate-100 via-slate-50 to-white p-2 shadow-card">
           {hasPreviewImage ? (
-            <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-xl bg-white/70 p-2">
-              <img src={trimmedImageValue} alt="AperÃ§u du produit" className="h-full w-full rounded-lg object-contain" onError={() => setFailedImageSrc(trimmedImageValue)} />
+            <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl bg-white/70 p-2">
+              <Image
+                src={trimmedImageValue}
+                alt="AperÃ§u du produit"
+                fill
+                sizes="(max-width: 768px) 100vw, 640px"
+                unoptimized
+                className="rounded-lg object-contain p-2"
+                onError={() => setFailedImageSrc(trimmedImageValue)}
+              />
             </div>
           ) : (
             <div className="grid h-full place-items-center rounded-xl bg-white/75 text-center">
@@ -280,7 +289,7 @@ function ImageField({ form, onChange, error }: { form: ProductFormState; onChang
 function Panel({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-slate-950/35 px-3 pb-3 pt-10 backdrop-blur-sm sm:items-center sm:justify-center" role="dialog" aria-modal="true" aria-labelledby="menu-panel-title">
-      <section className="max-h-[92dvh] w-full max-w-[640px] overflow-y-auto rounded-[1.6rem] bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
+      <section className="max-h-[92dvh] w-full max-w-160 overflow-y-auto rounded-[1.6rem] bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
         <div className="mb-5 flex items-center justify-between gap-4">
           <h2 id="menu-panel-title" className="text-2xl font-black tracking-[-0.04em] text-slate-950">
             {title}
@@ -476,7 +485,7 @@ export function MenuManager() {
   return (
     <>
       <div className="grid gap-4">
-        <button type="button" onClick={openAddProduct} className="min-h-20 rounded-[1.2rem] bg-gradient-to-br from-emerald-600 to-emerald-900 text-xl font-black text-white shadow-green">
+        <button type="button" onClick={openAddProduct} className="min-h-20 rounded-[1.2rem] bg-linear-to-br from-emerald-600 to-emerald-900 text-xl font-black text-white shadow-green">
           <span className="inline-flex items-center gap-4">
             <Plus className="size-9 rounded-full bg-white p-1 text-emerald-800" />Ajouter un produit
           </span>
@@ -507,7 +516,7 @@ export function MenuManager() {
         />
       </label>
 
-      <div className="mb-6 -mx-1 flex gap-3 overflow-x-auto px-1 pb-2 pr-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="scrollbar-none mb-6 -mx-1 flex gap-3 overflow-x-auto px-1 pb-2 pr-6 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {categories.map((category) => (
           <button
             key={category.id}
@@ -571,4 +580,3 @@ export function MenuManager() {
     </>
   );
 }
-
