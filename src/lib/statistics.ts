@@ -1,4 +1,4 @@
-import type { Order, Product, Review, TableInfo } from "@/lib/types";
+import type { Order, OrderLine, Product, Review, TableInfo } from "@/lib/types";
 
 export const REFERENCE_DATE = "2026-05-17";
 
@@ -15,11 +15,13 @@ export type TopProduct = {
   name: string;
   visual: string;
   quantity: number;
+  revenue: number;
 };
 
 export type ActiveTable = {
   table: number;
   name: string;
+  area: string;
   orders: number;
   scans: number;
 };
@@ -124,18 +126,21 @@ function getActivityChart(orders: Order[], filter: StatisticsFilter): ChartPoint
 
 function getTopProducts(orders: Order[], products: Product[]): TopProduct[] {
   const productMap = new Map(products.map((product) => [product.id, product]));
-  const totals = new Map<string, number>();
+  const totals = new Map<string, { quantity: number; revenue: number }>();
 
   orders.forEach((order) => {
     getOrderLines(order).forEach((line) => {
-      totals.set(line.productId, (totals.get(line.productId) ?? 0) + line.quantity);
+      const current = totals.get(line.productId) ?? { quantity: 0, revenue: 0 };
+      const product = productMap.get(line.productId);
+      const unitPrice = line.unitPrice ?? product?.price ?? 0;
+      totals.set(line.productId, { quantity: current.quantity + line.quantity, revenue: current.revenue + unitPrice * line.quantity });
     });
   });
 
   return Array.from(totals.entries())
-    .map(([productId, quantity]) => {
+    .map(([productId, total]) => {
       const product = productMap.get(productId);
-      return { id: productId, name: product?.name ?? "Produit", visual: product?.visual ?? "dish", quantity };
+      return { id: productId, name: product?.name ?? "Produit", visual: product?.visual ?? "dish", quantity: total.quantity, revenue: roundMoney(total.revenue) };
     })
     .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 3);
@@ -149,28 +154,28 @@ function getActiveTables(orders: Order[], tables: TableInfo[]): ActiveTable[] {
   return Array.from(counts.entries())
     .map(([table, orderCount]) => {
       const tableInfo = tableMap.get(table);
-      return { table, name: tableInfo?.name ?? `Table ${table}`, orders: orderCount, scans: tableInfo?.scans ?? 0 };
+      return { table, name: tableInfo?.name ?? `Table ${table}`, area: tableInfo?.area ?? "Salle", orders: orderCount, scans: tableInfo?.scans ?? 0 };
     })
     .sort((a, b) => b.orders + b.scans / 100 - (a.orders + a.scans / 100))
     .slice(0, 2);
 }
 
 function getInsights({ chart, topProducts, activeTables, filteredOrders }: Pick<StatisticsModel, "chart" | "topProducts" | "activeTables" | "filteredOrders">) {
-  if (filteredOrders.length === 0) return ["Activité calme sur cette période", "Aucun retard à signaler"];
+  if (filteredOrders.length === 0) return ["Aucune donnée pour cette période", "Les statistiques apparaîtront après les premières commandes"];
 
   const peak = chart.reduce((best, point) => (point.value > best.value ? point : best), chart[0] ?? { label: "", value: 0 });
   const delays = filteredOrders.filter((order) => order.status === "payment_pending" || order.status === "preparing").length;
   const insights: string[] = [];
 
   if (peak.value > 0) insights.push(`Pic à ${peak.label}`);
-  if (topProducts[0]) insights.push(`${topProducts[0].name} fonctionne bien`);
-  if (activeTables[0]) insights.push(`${activeTables[0].name} très active`);
+  if (topProducts[0]) insights.push(`${topProducts[0].name} est le produit le plus commandé`);
+  if (activeTables[0]) insights.push(`${activeTables[0].name} génère le plus de scans`);
   insights.push(delays > 0 ? `${delays} retards à surveiller` : "Aucun retard à signaler");
 
   return insights.slice(0, 4);
 }
 
-function getOrderLines(order: Order) {
+function getOrderLines(order: Order): OrderLine[] {
   if (order.lines && order.lines.length > 0) return order.lines;
 
   const fallbackProductIds = ["p1", "p2", "p3"];
