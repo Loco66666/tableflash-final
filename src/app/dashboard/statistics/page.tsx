@@ -57,8 +57,8 @@ export default function StatisticsPage() {
     <AppShell>
       <PageHeader title="Statistiques" subtitle="Vue d’ensemble de votre activité" />
 
-      <div className="mb-5 space-y-3">
-        <div className="grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1.5">
+      <div className="mb-4 space-y-2.5">
+        <div className="grid grid-cols-3 gap-1.5 rounded-2xl bg-slate-100 p-1">
           {periodFilters.map((filter) => {
             const active = activeFilter === filter.value;
             return (
@@ -68,7 +68,7 @@ export default function StatisticsPage() {
                 onClick={() => setActiveFilter(filter.value)}
                 aria-pressed={active}
                 className={cn(
-                  "min-h-10 rounded-xl px-2 text-sm font-semibold transition",
+                  "rounded-xl px-2 py-2 text-xs font-semibold leading-tight transition",
                   active ? "bg-white text-emerald-800 shadow-sm" : "text-slate-600 active:bg-white/80",
                 )}
               >
@@ -78,7 +78,7 @@ export default function StatisticsPage() {
           })}
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="inline-flex rounded-full bg-slate-100 p-1">
           {serviceFilters.map((filter) => {
             const active = activeFilter === filter.value;
             return (
@@ -88,10 +88,8 @@ export default function StatisticsPage() {
                 onClick={() => setActiveFilter(filter.value)}
                 aria-pressed={active}
                 className={cn(
-                  "inline-flex min-h-9 items-center rounded-full border px-4 text-sm font-semibold transition",
-                  active
-                    ? "border-emerald-700 bg-emerald-700 text-white shadow-green"
-                    : "border-slate-200 bg-white text-slate-700 active:bg-slate-50",
+                  "rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                  active ? "bg-emerald-700 text-white shadow-green" : "text-slate-700",
                 )}
               >
                 {filter.label}
@@ -101,46 +99,46 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      <SectionCard className="mb-5 border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700">{periodLabel}</p>
-        <p className="mt-1 text-xl font-black tracking-[-0.02em] text-slate-950">{statistics.orderCount} commandes · {formatEuroWhole(statistics.salesTotal)} estimés</p>
+      <SectionCard className="mb-4 border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30 p-4 shadow-sm">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">{periodLabel}</p>
+        <p className="mt-1 text-lg font-black tracking-[-0.02em] text-slate-950">{statistics.orderCount} commandes · {formatEuroWhole(statistics.salesTotal)} estimés</p>
         <p className="mt-1 text-sm font-medium text-slate-600">{peakLabel}</p>
       </SectionCard>
 
-      <div className="mb-5 grid grid-cols-2 gap-3">
+      <div className="mb-4 grid grid-cols-2 gap-2.5">
         <KpiCard icon={ShoppingBasket} value={statistics.orderCount.toLocaleString("fr-FR")} label="Commandes" helper={hasActivity ? `${statistics.filteredOrders.length} suivies` : "Aucune activité"} />
         <KpiCard icon={Euro} value={formatEuroWhole(statistics.salesTotal)} label="Ventes estimées" helper={hasActivity ? "Statuts encaissés inclus" : "Aucune vente"} />
         <KpiCard icon={ShoppingCart} value={formatEuro(statistics.averageBasket)} label="Panier moyen" helper={hasActivity ? "Par commande confirmée" : "En attente de données"} />
         <KpiCard icon={Star} value={`${formatRating(statistics.averageRating)}/5`} label="Note clients" helper={statistics.averageRating > 0 ? "Avis clients" : "Pas encore d’avis"} />
       </div>
 
-      <SectionCard className="mb-5">
-        <div className="mb-3 flex items-center justify-between gap-3">
+      <SectionCard className="mb-4 p-4">
+        <div className="mb-3 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-black tracking-[-0.02em]">Activité</h2>
-            <p className="text-sm text-slate-600">Commandes par créneau</p>
+            <h2 className="text-lg font-black tracking-[-0.02em]">Activité du service</h2>
+            <p className="text-xs text-slate-600">Commandes par heure</p>
           </div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800">
             <BarChart3 className="size-3.5" /> {statistics.filteredOrders.length} commandes
           </span>
         </div>
         <ActivityChart points={statistics.chart} hasActivity={hasActivity} />
       </SectionCard>
 
-      <SectionCard className="mb-5">
-        <h2 className="mb-3 text-xl font-black tracking-[-0.02em]">Top produits</h2>
+      <SectionCard className="mb-4 p-4">
+        <h2 className="mb-3 text-lg font-black tracking-[-0.02em]">Top produits</h2>
         {statistics.topProducts.length > 0 ? (
           <div className="space-y-2">
             {statistics.topProducts.map((product, index) => (
-              <div key={product.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
-                <span className={cn("grid size-11 place-items-center rounded-xl bg-gradient-to-br text-xl", productVisualStyles[product.visual] ?? productVisualStyles.dish)}>
+              <div key={product.id} className="flex items-center gap-2.5 rounded-xl border border-slate-100 bg-white p-2.5 shadow-sm">
+                <span className={cn("inline-flex min-w-8 justify-center rounded-md bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-800")}>#{index + 1}</span>
+                <span className={cn("grid size-9 place-items-center rounded-lg bg-gradient-to-br text-base", productVisualStyles[product.visual] ?? productVisualStyles.dish)}>
                   {productVisualLabels[product.visual] ?? productVisualLabels.dish}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold text-slate-950">{product.name}</p>
                   <p className="text-xs text-slate-600">{product.quantity} commandes · {formatEuroWhole(product.revenue)}</p>
                 </div>
-                <span className={cn("inline-flex min-w-7 justify-center rounded-full px-2 py-1 text-xs font-black", index === 0 ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-800")}>#{index + 1}</span>
               </div>
             ))}
           </div>
@@ -149,22 +147,21 @@ export default function StatisticsPage() {
         )}
       </SectionCard>
 
-      <SectionCard className="mb-5">
-        <h2 className="mb-3 text-xl font-black tracking-[-0.02em]">Tables actives</h2>
+      <SectionCard className="mb-4 p-4">
+        <h2 className="mb-3 text-lg font-black tracking-[-0.02em]">Tables actives</h2>
         {statistics.activeTables.length > 0 ? (
-          <div className="grid gap-3 min-[560px]:grid-cols-2">
+          <div className="space-y-2.5">
             {statistics.activeTables.map((table) => (
-              <div key={table.table} className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3">
+              <div key={table.table} className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-sm font-black text-emerald-950">{table.name}</p>
-                    <p className="text-xs font-medium text-emerald-700">{table.area}</p>
+                    <p className="text-sm font-black text-slate-900">{table.name}</p>
+                    <p className="mt-0.5 text-xs text-slate-600">{table.area} · {table.orders} commande{table.orders > 1 ? "s" : ""} · {table.scans} scans</p>
                   </div>
-                  <span className="inline-flex size-6 items-center justify-center rounded-full bg-emerald-600/15 text-emerald-700">
-                    <Flame className="size-3.5" />
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                    <Flame className="size-3" /> Active
                   </span>
                 </div>
-                <p className="mt-2 text-xs font-medium text-slate-700">{table.orders} commande{table.orders > 1 ? "s" : ""} · {table.scans} scans</p>
               </div>
             ))}
           </div>
@@ -173,22 +170,19 @@ export default function StatisticsPage() {
         )}
       </SectionCard>
 
-      <SectionCard>
-        <h2 className="mb-3 text-xl font-black tracking-[-0.02em]">À retenir</h2>
+      <SectionCard className="p-4">
+        <h2 className="mb-3 text-lg font-black tracking-[-0.02em]">À retenir</h2>
         {statistics.orderCount === 0 ? (
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-slate-900">Aucune donnée pour cette période</p>
-            <p className="text-sm text-slate-600">Les statistiques apparaîtront après les premières commandes</p>
-          </div>
+          <p className="text-sm text-slate-600">Les enseignements apparaîtront après les premières commandes.</p>
         ) : (
-          <div className="grid gap-2 text-sm">
-            {statistics.insights.map((insight, index) => {
+          <div className="space-y-2">
+            {statistics.insights.slice(0, 4).map((insight, index) => {
               const Icon = getInsightIcon(index);
               return (
-                <p key={`${insight}-${index}`} className="flex items-center gap-2 text-slate-900">
-                  <Icon className={cn("size-7 shrink-0 rounded-full p-1.5", getInsightTone(index))} />
-                  <span>{insight}</span>
-                </p>
+                <div key={`${insight}-${index}`} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50/60 px-2.5 py-2">
+                  <Icon className={cn("size-6 shrink-0 rounded-full p-1.5", getInsightTone(index))} />
+                  <span className="text-sm text-slate-900">{insight}</span>
+                </div>
               );
             })}
           </div>
@@ -200,13 +194,13 @@ export default function StatisticsPage() {
 
 function KpiCard({ icon: Icon, value, label, helper }: { icon: ComponentType<{ className?: string }>; value: string; label: string; helper: string }) {
   return (
-    <SectionCard className="rounded-2xl p-3 shadow-sm">
-      <div className="mb-2 inline-flex size-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
-        <Icon className="size-4" />
+    <SectionCard className="rounded-2xl border border-slate-100 p-3 shadow-sm">
+      <div className="mb-1.5 inline-flex size-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+        <Icon className="size-3.5" />
       </div>
-      <p className="text-lg font-black tracking-[-0.02em] text-slate-950">{value}</p>
-      <p className="text-xs font-semibold text-slate-600">{label}</p>
-      <p className="mt-1 text-[11px] text-slate-500">{helper}</p>
+      <p className="text-base font-black tracking-[-0.02em] text-slate-950">{value}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-0.5 text-[11px] text-slate-500">{helper}</p>
     </SectionCard>
   );
 }
@@ -226,47 +220,39 @@ function ActivityChart({ points, hasActivity }: { points: ChartPoint[]; hasActiv
   }
 
   const maxValue = Math.max(...points.map((point) => point.value), 1);
-  const chartHeight = 170;
-  const chartWidth = 360;
-  const left = 24;
-  const right = 336;
-  const top = 16;
-  const bottom = 152;
   const yTicks = [maxValue, Math.ceil(maxValue * 0.66), Math.ceil(maxValue * 0.33), 0];
-  const path = points
-    .map((point, index) => {
-      const x = points.length <= 1 ? (left + right) / 2 : left + (index / (points.length - 1)) * (right - left);
-      const y = bottom - (point.value / maxValue) * (bottom - top);
-      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-    })
-    .join(" ");
-  const areaPath = `${path} L ${right} ${bottom} L ${left} ${bottom} Z`;
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-slate-50/70 p-3">
-      <div className="relative h-[236px]">
-        <div className="absolute inset-x-0 top-2 grid h-[150px] grid-rows-4 pl-8 text-[11px] text-slate-500">
-          {yTicks.map((tick, index) => (
-            <div key={`${tick}-${index}`} className="relative border-t border-emerald-100/70 first:border-emerald-200">
-              <span className="absolute -left-7 -top-2.5 w-6 text-right tabular-nums">{tick}</span>
-            </div>
+    <div className="overflow-hidden rounded-xl border border-emerald-100/70 bg-emerald-50/30 px-2 pt-2">
+      <div className="grid h-[200px] grid-cols-[30px_1fr] gap-2">
+        <div className="grid grid-rows-4 text-[10px] text-slate-500">
+          {yTicks.map((tick, idx) => (
+            <span key={`${tick}-${idx}`} className="-translate-y-1 text-right tabular-nums">{tick}</span>
           ))}
         </div>
-        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="absolute inset-x-0 top-0 h-[182px] w-full" role="img" aria-label="Courbe d’activité">
-          <path d={areaPath} fill="#059669" opacity="0.12" />
-          <path d={path} fill="none" stroke="#059669" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
-          {points.map((point, index) => {
-            const x = points.length <= 1 ? (left + right) / 2 : left + (index / (points.length - 1)) * (right - left);
-            const y = bottom - (point.value / maxValue) * (bottom - top);
-            return <circle key={`${point.label}-${index}`} cx={x} cy={y} r="3.5" fill="#fff" stroke="#059669" strokeWidth="2" />;
-          })}
-        </svg>
-        <div className="absolute inset-x-6 bottom-1 grid text-[11px] font-medium text-slate-600" style={{ gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))` }}>
-          {points.map((point) => (
-            <span key={point.label} className="text-center">
-              {point.label}
-            </span>
-          ))}
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-0 grid grid-rows-4">
+            {yTicks.map((tick, idx) => (
+              <div key={`${tick}-${idx}-line`} className="border-t border-emerald-100/70" />
+            ))}
+          </div>
+          <div className="absolute inset-x-0 top-0 h-[160px]">
+            <div className="grid h-full items-end" style={{ gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))` }}>
+              {points.map((point, index) => {
+                const height = Math.max((point.value / maxValue) * 100, point.value > 0 ? 8 : 2);
+                return (
+                  <div key={`${point.label}-${index}`} className="flex h-full items-end justify-center px-1">
+                    <div className="w-full rounded-t-md bg-gradient-to-t from-emerald-500 to-emerald-300/90" style={{ height: `${height}%` }} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="absolute inset-x-0 bottom-2 grid text-[11px] font-medium text-slate-600" style={{ gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))` }}>
+            {points.map((point, idx) => (
+              <span key={`${point.label}-${idx}-x`} className="text-center">{point.label}</span>
+            ))}
+          </div>
         </div>
       </div>
     </div>
