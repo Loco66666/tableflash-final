@@ -34,5 +34,5 @@ export async function getCurrentProfile(userId?: string): Promise<CurrentProfile
     .maybeSingle();
 
   if (error || !data) return null;
-  return data as CurrentProfile;
+  return { id: data.id, role: data.role };
 }
