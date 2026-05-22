@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type StoreResult<T> = {
   value: T;
@@ -24,6 +24,11 @@ export function createLocalStore<T>(key: string, initialValue: T) {
   return function useLocalStore(): StoreResult<T> {
     const [value, setStateValue] = useState<T>(initialValue);
     const [hydrated, setHydrated] = useState(false);
+    const valueRef = useRef(value);
+
+    useEffect(() => {
+      valueRef.current = value;
+    }, [value]);
 
     const refreshFromStorage = useCallback(() => {
       setStateValue(readLocalStoreValue(key, initialValue));
@@ -57,13 +62,13 @@ export function createLocalStore<T>(key: string, initialValue: T) {
 
     const setValue = useCallback(
       (nextValue: T | ((currentValue: T) => T)) => {
-        setStateValue((currentValue) => {
-          const resolvedValue =
-            typeof nextValue === "function" ? (nextValue as (currentValue: T) => T)(currentValue) : nextValue;
-          window.localStorage.setItem(key, JSON.stringify(resolvedValue));
-          window.dispatchEvent(new Event(changeEventName));
-          return resolvedValue;
-        });
+        const currentValue = valueRef.current;
+        const resolvedValue =
+          typeof nextValue === "function" ? (nextValue as (currentValue: T) => T)(currentValue) : nextValue;
+        valueRef.current = resolvedValue;
+        setStateValue(resolvedValue);
+        window.localStorage.setItem(key, JSON.stringify(resolvedValue));
+        window.dispatchEvent(new Event(changeEventName));
       },
       [],
     );
