@@ -46,19 +46,19 @@ export function CustomerCartBar({
       <div className="sticky bottom-4 z-30 mt-6 rounded-[1.6rem] bg-white/95 p-3 shadow-[0_12px_40px_rgba(15,23,42,0.16)] backdrop-blur">
         <div className="grid grid-cols-[1fr_1.15fr] gap-3 max-[370px]:grid-cols-1">
           <button type="button" onClick={onOpen} className="flex min-h-16 items-center gap-3 rounded-2xl px-1 text-left transition active:scale-[0.99]">
-            <span className="relative grid size-16 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-800">
+            <span className="relative grid size-16 shrink-0 place-items-center rounded-2xl bg-[var(--tf-primary-50)] text-[var(--tf-primary-800)]">
               <ShoppingBasket className="size-8" />
-              <span className="absolute -right-1 -top-1 grid size-6 place-items-center rounded-full bg-emerald-700 text-sm font-black text-white">{itemCount}</span>
+              <span className="absolute -right-1 -top-1 grid size-6 place-items-center rounded-full bg-[var(--tf-primary-700)] text-sm font-black text-white">{itemCount}</span>
             </span>
             <span className="min-w-0">
               <span className="block font-semibold">Panier • {itemCount} {itemLabel}</span>
-              <strong className="block text-3xl font-black text-emerald-800">{formatEuro(total)}</strong>
+              <strong className="block text-3xl font-black text-[var(--tf-primary-800)]">{formatEuro(total)}</strong>
             </span>
           </button>
           <button
             type="button"
             onClick={hasItems ? onOpen : onConfirm}
-            className="min-h-16 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-900 px-4 text-lg font-bold text-white shadow-green transition active:scale-[0.99]"
+            className="min-h-16 rounded-2xl bg-gradient-to-br from-[var(--tf-primary-600)] to-[var(--tf-primary-900)] px-4 text-lg font-bold text-white shadow-green transition active:scale-[0.99]"
           >
             <span className="inline-flex items-center gap-2">{hasItems ? "Voir le panier" : "Confirmer la commande"} <ChevronRight className="size-6" /></span>
           </button>
@@ -86,7 +86,7 @@ export function CustomerCartBar({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h3 className="text-xl font-black leading-tight text-slate-950">{line.product.name}</h3>
-                        <p className="mt-1 text-base font-bold text-emerald-800">{formatEuro(line.product.price)} pièce</p>
+                        <p className="mt-1 text-base font-bold text-[var(--tf-primary-800)]">{formatEuro(line.product.price)} pièce</p>
                       </div>
                       <strong className="shrink-0 text-xl font-black text-slate-950">{formatEuro(line.product.price * line.quantity)}</strong>
                     </div>
@@ -96,7 +96,7 @@ export function CustomerCartBar({
                           <Minus className="size-5" />
                         </button>
                         <span className="min-w-10 text-center text-xl font-black">{line.quantity}</span>
-                        <button type="button" onClick={() => onIncrease(line.product.id)} className="grid size-11 place-items-center rounded-xl bg-white text-emerald-800 shadow-card" aria-label={`Ajouter ${line.product.name}`}>
+                        <button type="button" onClick={() => onIncrease(line.product.id)} className="grid size-11 place-items-center rounded-xl bg-white text-[var(--tf-primary-800)] shadow-card" aria-label={`Ajouter ${line.product.name}`}>
                           <Plus className="size-5" />
                         </button>
                       </div>
@@ -108,8 +108,8 @@ export function CustomerCartBar({
                 ))}
               </div>
             ) : (
-              <div className="rounded-[1.25rem] border border-dashed border-emerald-200 bg-emerald-50/60 p-6 text-center">
-                <p className="text-xl font-black text-emerald-900">Ajoutez au moins un produit avant de confirmer.</p>
+              <div className="rounded-[1.25rem] border border-dashed border-[color:var(--tf-primary-100)] bg-[color:var(--tf-primary-50)]/60 p-6 text-center">
+                <p className="text-xl font-black text-[var(--tf-primary-900)]">Ajoutez au moins un produit avant de confirmer.</p>
               </div>
             )}
 
@@ -127,7 +127,7 @@ export function CustomerCartBar({
             <div className="mt-5 rounded-[1.25rem] bg-slate-50 p-4">
               <div className="flex items-center justify-between gap-3 text-lg font-bold text-slate-700">
                 <span>Total</span>
-                <strong className="text-3xl font-black text-emerald-800">{formatEuro(total)}</strong>
+                <strong className="text-3xl font-black text-[var(--tf-primary-800)]">{formatEuro(total)}</strong>
               </div>
               <p className="mt-2 text-base font-semibold text-slate-600">Paiement sur place</p>
             </div>
@@ -137,7 +137,7 @@ export function CustomerCartBar({
             <button
               type="button"
               onClick={onConfirm}
-              className="mt-5 min-h-16 w-full rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-900 px-5 text-lg font-black text-white shadow-green transition active:scale-[0.99]"
+              className="mt-5 min-h-16 w-full rounded-2xl bg-gradient-to-br from-[var(--tf-primary-600)] to-[var(--tf-primary-900)] px-5 text-lg font-black text-white shadow-green transition active:scale-[0.99]"
             >
               Confirmer la commande
             </button>

@@ -113,7 +113,7 @@ export type RestaurantSettings = {
     suggestGoogleOnPositive: boolean;
   };
   appearance: {
-    style: "Classique premium" | "Chaleureux" | "Moderne";
+    style: "Classique" | "Moderne" | "Premium";
     primaryColor: string;
   };
 };

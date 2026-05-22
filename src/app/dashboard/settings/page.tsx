@@ -5,6 +5,7 @@ import { Building2, Check, ChevronRight, Clock, CreditCard, Paintbrush, QrCode, 
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { normalizeSettings, useSettingsStore } from "@/lib/local-store/settingsStore";
+import { appearanceStyleOptions, getAppearanceTheme, primaryColorOptions } from "@/lib/theme";
 import type { RestaurantSettings } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +13,6 @@ type SettingsSection = "establishment" | "hours" | "orders" | "qr" | "reviews" |
 type ValidationErrors = Partial<Record<"restaurantName" | "publicSlug" | "email" | "googleReviewUrl" | "service", string>>;
 
 const openDayOptions = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-const appearanceStyles: RestaurantSettings["appearance"]["style"][] = ["Classique premium", "Chaleureux", "Moderne"];
 
 const sectionCards: Array<{ id: SettingsSection; title: string; subtitle: string; icon: typeof Building2 }> = [
   { id: "establishment", title: "Établissement", subtitle: "Nom, adresse, téléphone", icon: Building2 },
@@ -20,7 +20,7 @@ const sectionCards: Array<{ id: SettingsSection; title: string; subtitle: string
   { id: "orders", title: "Commandes", subtitle: "Paiement sur place", icon: CreditCard },
   { id: "qr", title: "QR", subtitle: "Instruction QR", icon: QrCode },
   { id: "reviews", title: "Avis Google", subtitle: "Lien Google Avis", icon: Star },
-  { id: "appearance", title: "Apparence", subtitle: "Classique premium", icon: Paintbrush },
+  { id: "appearance", title: "Apparence", subtitle: "Couleurs et style", icon: Paintbrush },
 ];
 
 function validateSettings(settings: RestaurantSettings) {
@@ -133,6 +133,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   const draft = draftOverride ?? hydratedSettings;
+  const appearanceTheme = useMemo(() => getAppearanceTheme(draft.appearance), [draft.appearance]);
   const preparation = useMemo(() => getPreparationStatus(draft), [draft]);
   const activeSectionTitle = activeSection ? sectionCards.find((section) => section.id === activeSection)?.title : null;
 
@@ -331,16 +332,33 @@ export default function SettingsPage() {
               <>
                 <Field section="appearance" name="style" label="Style">
                   <Select id={fieldId("appearance", "style")} value={draft.appearance.style} onChange={(event) => updateDraft({ ...draft, appearance: { ...draft.appearance, style: event.target.value as RestaurantSettings["appearance"]["style"] } })}>
-                    {appearanceStyles.map((style) => <option key={style} value={style}>{style}</option>)}
+                    {appearanceStyleOptions.map((style) => <option key={style} value={style}>{style}</option>)}
                   </Select>
                 </Field>
+                <p className="rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">Le style ajuste les arrondis, contrastes et cartes principales.</p>
                 <Field section="appearance" name="primaryColor" label="Couleur principale">
-                  <Input id={fieldId("appearance", "primaryColor")} value={draft.appearance.primaryColor} onChange={(event) => updateDraft({ ...draft, appearance: { ...draft.appearance, primaryColor: event.target.value } })} />
+                  <Select id={fieldId("appearance", "primaryColor")} value={draft.appearance.primaryColor} onChange={(event) => updateDraft({ ...draft, appearance: { ...draft.appearance, primaryColor: event.target.value } })}>
+                    {primaryColorOptions.map((color) => <option key={color.value} value={color.value}>{color.label}</option>)}
+                  </Select>
                 </Field>
+                <div className="rounded-[1.1rem] border border-slate-200 bg-white p-4">
+                  <p className="text-sm font-black text-slate-800">Aperçu</p>
+                  <div className={cn("mt-3 border border-slate-200 bg-[var(--tf-primary-50)] p-3", appearanceTheme.cardClass)} style={{
+                    ["--tf-primary-50" as string]: appearanceTheme.colors[50],
+                    ["--tf-primary-600" as string]: appearanceTheme.colors[600],
+                    ["--tf-primary-700" as string]: appearanceTheme.colors[700],
+                    ["--tf-primary-800" as string]: appearanceTheme.colors[800],
+                  }}>
+                    <span className={cn("inline-flex px-3 py-1 text-sm font-bold text-white", appearanceTheme.radiusClass)} style={{ backgroundColor: "var(--tf-primary-700)" }}>Nouveau</span>
+                    <p className="mt-3 text-base font-black text-slate-900">Carte principale</p>
+                    <p className="text-sm text-slate-700">Le bouton et les badges suivent la couleur choisie.</p>
+                    <button type="button" className={cn("mt-3 min-h-11 px-4 text-sm font-black text-white", appearanceTheme.radiusClass)} style={{ backgroundColor: "var(--tf-primary-700)" }}>Action principale</button>
+                  </div>
+                </div>
               </>
             ) : null}
 
-            <button type="button" onClick={saveSettings} className="mt-2 min-h-14 rounded-2xl bg-emerald-800 px-4 text-lg font-black text-white shadow-green">
+            <button type="button" onClick={saveSettings} className="mt-2 min-h-14 rounded-2xl bg-[var(--tf-primary-800)] px-4 text-lg font-black text-white shadow-green">
               Enregistrer
             </button>
           </div>

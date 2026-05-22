@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -37,13 +37,13 @@ export function MobileBottomNav() {
               href={item.href}
               className={cn(
                 "flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[0.78rem] font-medium text-slate-500 transition",
-                active && "text-emerald-800",
+                active && "text-[var(--tf-primary-800)]",
               )}
               aria-current={active ? "page" : undefined}
             >
-              <Icon className={cn("size-6 stroke-[1.9]", active && "fill-emerald-700/10 stroke-emerald-800")} />
+              <Icon className={cn("size-6 stroke-[1.9]", active && "fill-[color:var(--tf-primary-700)]/10 stroke-[var(--tf-primary-800)]")} />
               <span>{item.label}</span>
-              <span className={cn("h-1 w-8 rounded-full", active ? "bg-emerald-700" : "bg-transparent")} />
+              <span className={cn("h-1 w-8 rounded-full", active ? "bg-[var(--tf-primary-700)]" : "bg-transparent")} />
             </Link>
           );
         })}

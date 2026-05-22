@@ -234,7 +234,7 @@ export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable }:
               key={category.id}
               type="button"
               onClick={() => setSelectedCategoryId(category.id)}
-              className={(active ? "bg-emerald-700 text-white shadow-green" : "border border-slate-200 bg-white text-slate-700 shadow-card") + " flex min-h-14 shrink-0 items-center gap-2 rounded-full px-5 text-lg font-semibold"}
+              className={(active ? "bg-[var(--tf-primary-700)] text-white shadow-green" : "border border-slate-200 bg-white text-slate-700 shadow-card") + " flex min-h-14 shrink-0 items-center gap-2 rounded-full px-5 text-lg font-semibold"}
               aria-pressed={active}
             >
               <Icon className="size-5" />

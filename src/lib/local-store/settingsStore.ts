@@ -2,6 +2,7 @@
 
 import { restaurantSettings } from "@/lib/data/seed";
 import { createLocalStore } from "@/lib/local-store/createLocalStore";
+import { normalizeAppearance } from "@/lib/theme";
 import type { RestaurantSettings } from "@/lib/types";
 
 type LegacySettings = Partial<RestaurantSettings> & {
@@ -52,7 +53,7 @@ export function normalizeSettings(settings?: LegacySettings | null): RestaurantS
       ...safeSettings.reviewsSettings,
       googleReviewUrl: reviewUrl,
     },
-    appearance: { ...restaurantSettings.appearance, ...safeSettings.appearance },
+    appearance: normalizeAppearance({ ...restaurantSettings.appearance, ...safeSettings.appearance }),
   };
 }
 
