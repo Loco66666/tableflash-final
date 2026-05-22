@@ -61,6 +61,10 @@ export function getAppearanceTheme(appearance?: Partial<RestaurantSettings["appe
 export function getAppearanceCssVars(appearance?: Partial<RestaurantSettings["appearance"]> | null): CSSProperties {
   const theme = getAppearanceTheme(appearance);
   return {
+    ["--tf-primary" as string]: theme.colors[700],
+    ["--tf-primary-dark" as string]: theme.colors[900],
+    ["--tf-primary-soft" as string]: theme.colors[50],
+    ["--tf-primary-ring" as string]: theme.colors[100],
     ["--tf-primary-50" as string]: theme.colors[50],
     ["--tf-primary-100" as string]: theme.colors[100],
     ["--tf-primary-600" as string]: theme.colors[600],

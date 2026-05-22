@@ -26,7 +26,7 @@ export function MobileBottomNav() {
   const activeKey = getActiveKey(pathname);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-emerald-950/10 bg-white/95 px-2 safe-pb-bottom-nav pt-2 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur md:left-1/2 md:max-w-[760px] md:-translate-x-1/2 md:rounded-t-[2rem]">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[color:var(--tf-primary-dark)]/10 bg-white/95 px-2 safe-pb-bottom-nav pt-2 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur md:left-1/2 md:max-w-[760px] md:-translate-x-1/2 md:rounded-t-[2rem]">
       <div className="mx-auto grid max-w-[430px] grid-cols-5 gap-1">
         {items.map((item) => {
           const Icon = item.icon;
@@ -51,4 +51,3 @@ export function MobileBottomNav() {
     </nav>
   );
 }
-
