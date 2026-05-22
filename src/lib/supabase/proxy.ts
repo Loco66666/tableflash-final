@@ -1,7 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export function createProxyClient(request: NextRequest) {
+type ProxyClient = {
+  supabase: ReturnType<typeof createServerClient>;
+  response: NextResponse;
+};
+
+export function createProxyClient(request: NextRequest): ProxyClient {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
