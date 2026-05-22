@@ -20,7 +20,7 @@ type CookieToSet = {
 export const createClient = async (): Promise<SupabaseClient<Database>> => {
   const cookieStore = await cookies();
 
-  return createServerClient<Database>(
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
     {
@@ -35,5 +35,5 @@ export const createClient = async (): Promise<SupabaseClient<Database>> => {
         },
       },
     },
-  );
+  ) as SupabaseClient<Database>;
 };
