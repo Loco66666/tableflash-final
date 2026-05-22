@@ -40,7 +40,7 @@ export const restaurantSettings: RestaurantSettings = {
     suggestGoogleOnPositive: true,
   },
   appearance: {
-    style: "Classique premium",
+    style: "Classique",
     primaryColor: "Vert TableFlash",
   },
 };
