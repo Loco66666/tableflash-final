@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Building2, Check, ChevronRight, Clock, CreditCard, Paintbrush, QrCode, Save, Star, X } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -125,7 +125,7 @@ function Sheet({ title, children, onClose }: { title: string; children: React.Re
 }
 
 export default function SettingsPage() {
-  const { value: storedSettings, setValue: setStoredSettings } = useSettingsStore();
+  const { value: storedSettings, setValue: setStoredSettings, hydrated } = useSettingsStore();
   const hydratedSettings = useMemo(() => normalizeSettings(storedSettings), [storedSettings]);
   const [draftOverride, setDraftOverride] = useState<RestaurantSettings | null>(null);
   const [activeSection, setActiveSection] = useState<SettingsSection | null>(null);
@@ -136,6 +136,15 @@ export default function SettingsPage() {
   const appearanceTheme = useMemo(() => getAppearanceTheme(draft.appearance), [draft.appearance]);
   const preparation = useMemo(() => getPreparationStatus(draft), [draft]);
   const activeSectionTitle = activeSection ? sectionCards.find((section) => section.id === activeSection)?.title : null;
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const normalizedSerialized = JSON.stringify(hydratedSettings);
+    const storedSerialized = JSON.stringify(storedSettings);
+    if (normalizedSerialized !== storedSerialized) {
+      setStoredSettings(hydratedSettings);
+    }
+  }, [hydrated, hydratedSettings, setStoredSettings, storedSettings]);
 
   function updateDraft(nextSettings: RestaurantSettings) {
     const normalized = normalizeSettings({ ...nextSettings, qr: { ...nextSettings.qr, publicRestaurantLink: `/r/${nextSettings.publicSlug.trim() || "bistrot-des-halles"}` } });
