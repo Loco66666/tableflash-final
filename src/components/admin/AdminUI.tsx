@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { Bell, Building2, CheckCircle2, ChevronDown, ClipboardList, Eye, LogOut, Store, X, Zap } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -14,9 +15,9 @@ const navItems = [
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [logoutMessage, setLogoutMessage] = useState("");
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -78,10 +79,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <div className="h-6 border-l border-slate-200" />
             <button
               className="inline-flex items-center gap-1.5 text-sm text-slate-700"
-              onClick={() => {
-                setLogoutMessage("Déconnexion simulée pour la version locale");
-                setTimeout(() => setLogoutMessage(""), 2200);
-              }}
+              onClick={() => router.push("/logout")}
             >
               <LogOut className="h-4 w-4" />Déconnexion
             </button>
@@ -101,7 +99,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
           })}
         </nav>
       </header>
-      {logoutMessage && <InlineToast message={logoutMessage} />}
       <main className="mx-auto w-full max-w-[1500px] px-8 py-6">{children}</main>
     </div>
   );
