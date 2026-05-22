@@ -2,20 +2,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-
-type CookieToSet = {
-  name: string;
-  value: string;
-  options?: {
-    domain?: string;
-    expires?: Date;
-    httpOnly?: boolean;
-    maxAge?: number;
-    path?: string;
-    sameSite?: "lax" | "strict" | "none";
-    secure?: boolean;
-  };
-};
+import type { SupabaseCookieToSet } from "@/lib/supabase/cookies";
 
 export const createClient = async (): Promise<SupabaseClient<Database>> => {
   const cookieStore = await cookies();
@@ -28,7 +15,7 @@ export const createClient = async (): Promise<SupabaseClient<Database>> => {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet: CookieToSet[]) {
+        setAll(cookiesToSet: SupabaseCookieToSet[]) {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);
           });
