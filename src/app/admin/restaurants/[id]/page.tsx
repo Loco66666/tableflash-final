@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AdminShell } from "@/components/admin/AdminShell";
+import { AdminShell } from "@/components/admin/AdminUI";
 import { adminRestaurants } from "@/lib/admin-data";
 
 export default function RestaurantDetailPage() {

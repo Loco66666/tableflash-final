@@ -1,15 +1,18 @@
 import Link from "next/link";
-import { AdminShell } from "@/components/admin/AdminShell";
 import { ArrowRight, Clock3, Euro, FileText, Store } from "lucide-react";
+import { AdminPanel, AdminShell } from "@/components/admin/AdminUI";
+
+const kpis = [
+  ["Restaurants actifs", "48", "+6 ce mois-ci", Store],
+  ["Demandes en attente", "5", "+2 depuis hier", FileText],
+  ["Essais en cours", "12", "+3 ce mois-ci", Clock3],
+  ["CA mensuel", "18 650 €", "+12,4% vs mois dernier", Euro],
+] as const;
 
 export default function AdminDashboardPage() {
-  return <AdminShell><h1 className="text-3xl font-semibold">Tableau de bord</h1><p className="text-slate-600">Surveillez la performance de la plateforme et gérez votre réseau de restaurants.</p>
-    <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">{[
-      ["Restaurants actifs", "48", "+6 ce mois-ci", Store, "bg-emerald-100 text-emerald-700"],
-      ["Demandes en attente", "5", "+2 depuis hier", FileText, "bg-amber-100 text-amber-700"],
-      ["Essais en cours", "12", "+3 ce mois-ci", Clock3, "bg-emerald-100 text-emerald-700"],
-      ["CA mensuel", "18 650 €", "+12,4% vs mois dernier", Euro, "bg-emerald-100 text-emerald-700"],
-    ].map(([t,v,s,I,c])=><div key={String(t)} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className={`mb-3 inline-flex rounded-xl p-2 ${c}`}><I size={18}/></div><p className="text-sm text-slate-500">{String(t)}</p><p className="text-2xl font-semibold">{String(v)}</p><p className="text-sm text-emerald-600">{String(s)}</p></div>)}</section>
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="mb-4 text-lg font-semibold">Actions rapides</h2><div className="grid gap-4 md:grid-cols-3">{[["Examiner les demandes","Voir et approuver les nouvelles demandes d’inscription.","/admin/requests"],["Gérer les restaurants","Consulter, modifier ou bloquer les restaurants inscrits.","/admin/restaurants"],["Voir les analytics","Consulter les performances et les indicateurs clés de la plateforme.","/admin"]].map(([t,d,h])=><Link href={String(h)} key={String(t)} className="flex items-center justify-between rounded-2xl border border-slate-200 p-4 hover:bg-slate-50"><div><p className="font-medium">{String(t)}</p><p className="text-sm text-slate-500">{String(d)}</p></div><ArrowRight size={16} className="text-slate-400"/></Link>)}</div></section>
+  return <AdminShell><h1 className="text-6xl font-semibold">Tableau de bord</h1><p className="mt-2 text-3xl text-slate-600">Surveillez la performance de la plateforme et gérez votre réseau de restaurants.</p>
+    <div className="mt-8 grid grid-cols-4 gap-6">{kpis.map(([t,v,s,I])=><div key={t} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div className="mb-5 inline-flex rounded-2xl bg-emerald-100 p-4 text-emerald-600"><I className="h-9 w-9"/></div><p className="text-3xl text-slate-600">{t}</p><p className="text-6xl font-semibold leading-tight">{v}</p><p className="mt-2 text-2xl text-emerald-600">↗ {s}</p></div>)}</div>
+    <AdminPanel title="Actions rapides"><div className="grid grid-cols-3 gap-4">{[["Examiner les demandes","/admin/requests"],["Gérer les restaurants","/admin/restaurants"],["Voir les analytics","/admin"]].map(([t,h])=><Link key={t} href={h} className="flex items-center justify-between rounded-2xl border border-slate-200 p-5"><p className="text-4xl font-semibold">{t}</p><ArrowRight className="h-7 w-7"/></Link>)}</div></AdminPanel>
+    <div className="mt-6 grid grid-cols-2 gap-6"><AdminPanel title="Dernières activités" right={<button className="text-emerald-600 text-2xl">Voir tout</button>}><div className="space-y-4 text-2xl"><p>Vous avez approuvé la demande de “Le Bistronome”</p><p>Nouvelle demande reçue de “Chez Marius”</p><p>Le restaurant “La Table Verte” a été activé</p><p>125 scans de QR enregistrés aujourd’hui</p><p>Le restaurant “Old Café” a été bloqué</p></div></AdminPanel><AdminPanel title="État de la plateforme"><div className="space-y-3 text-2xl"><p>Restaurants actifs 48</p><p>En attente d’approbation 5</p><p>Activité QR aujourd’hui 125</p></div><div className="mt-6 grid grid-cols-3 gap-2 border-t pt-4 text-2xl"><p>Taux d’activation<br/><span className="text-5xl font-semibold">96%</span></p><p>Temps de réponse moyen<br/><span className="text-5xl font-semibold">2h 18m</span></p><p>Taux de complétion des profils<br/><span className="text-5xl font-semibold">89%</span></p></div></AdminPanel></div>
   </AdminShell>;
 }
