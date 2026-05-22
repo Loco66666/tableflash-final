@@ -83,11 +83,11 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="flex min-h-14 w-full items-center justify-between gap-4 rounded-2xl bg-emerald-50 px-4 text-left"
+      className="flex min-h-14 w-full items-center justify-between gap-4 rounded-2xl tf-primary-soft-bg px-4 text-left"
       aria-pressed={checked}
     >
       <span className="text-base font-black text-slate-800">{label}</span>
-      <span className={cn("flex h-8 w-14 shrink-0 items-center rounded-full p-1 transition", checked ? "bg-emerald-700" : "bg-slate-300")}>
+      <span className={cn("flex h-8 w-14 shrink-0 items-center rounded-full p-1 transition", checked ? "tf-primary-bg" : "bg-slate-300")}>
         <span className={cn("size-6 rounded-full bg-white transition", checked && "translate-x-6")} />
       </span>
     </button>
@@ -95,15 +95,15 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
 }
 
 function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={cn("min-h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100", props.className)} />;
+  return <input {...props} className={cn("min-h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-[var(--tf-primary)] focus:ring-4 focus:ring-[var(--tf-primary-ring)]", props.className)} />;
 }
 
 function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} className={cn("min-h-28 w-full resize-none rounded-2xl border border-slate-200 bg-white p-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100", props.className)} />;
+  return <textarea {...props} className={cn("min-h-28 w-full resize-none rounded-2xl border border-slate-200 bg-white p-4 text-lg font-semibold outline-none focus:border-[var(--tf-primary)] focus:ring-4 focus:ring-[var(--tf-primary-ring)]", props.className)} />;
 }
 
 function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={cn("min-h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100", props.className)} />;
+  return <select {...props} className={cn("min-h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-[var(--tf-primary)] focus:ring-4 focus:ring-[var(--tf-primary-ring)]", props.className)} />;
 }
 
 function Sheet({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
@@ -191,18 +191,18 @@ export default function SettingsPage() {
     <AppShell>
       <PageHeader title="Réglages" />
 
-      <section className="mb-7 rounded-[1.4rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-card">
+      <section className="mb-7 rounded-[1.4rem] border border-[color:var(--tf-primary-ring)] bg-gradient-to-br from-[var(--tf-primary-soft)] to-white p-5 shadow-card">
         <div className="flex items-center gap-5">
-          <span className="grid size-24 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-900 text-white shadow-green">
+          <span className="grid size-24 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--tf-primary-600)] to-[var(--tf-primary-dark)] text-white shadow-green">
             <Check className="size-14" />
           </span>
           <div className="min-w-0">
-            <p className="text-2xl font-black text-emerald-800">État de préparation</p>
-            <h2 className="text-5xl font-black tracking-[-0.06em] text-emerald-800">{preparation.percent}% prêt</h2>
+            <p className="text-2xl font-black tf-primary-dark-text">État de préparation</p>
+            <h2 className="text-5xl font-black tracking-[-0.06em] tf-primary-dark-text">{preparation.percent}% prêt</h2>
           </div>
         </div>
         {preparation.missing.length > 0 ? (
-          <p className="mt-4 rounded-2xl bg-white/80 p-4 text-base font-semibold leading-relaxed text-emerald-950">
+          <p className="mt-4 rounded-2xl bg-white/80 p-4 text-base font-semibold leading-relaxed tf-primary-dark-text">
             À compléter : {preparation.missing.join(", ")}.
           </p>
         ) : null}
@@ -218,7 +218,7 @@ export default function SettingsPage() {
               onClick={() => setActiveSection(section.id)}
               className="flex min-h-24 w-full items-center gap-4 rounded-[1.4rem] border border-slate-200/80 bg-white p-5 text-left shadow-card"
             >
-              <span className="grid size-14 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-800">
+              <span className="grid size-14 shrink-0 place-items-center rounded-full tf-primary-soft-bg tf-primary-dark-text">
                 <Icon className="size-8" />
               </span>
               <span className="min-w-0 flex-1">
@@ -231,9 +231,9 @@ export default function SettingsPage() {
         })}
       </div>
 
-      {saved ? <p className="mt-5 rounded-2xl bg-emerald-50 p-4 text-center text-lg font-black text-emerald-800" role="status">Réglages enregistrés</p> : null}
+      {saved ? <p className="mt-5 rounded-2xl tf-primary-soft-bg p-4 text-center text-lg font-black tf-primary-dark-text" role="status">Réglages enregistrés</p> : null}
 
-      <button type="button" onClick={saveSettings} className="mt-7 min-h-16 rounded-[1.2rem] bg-gradient-to-br from-emerald-600 to-emerald-900 px-4 text-xl font-black text-white shadow-green">
+      <button type="button" onClick={saveSettings} className="mt-7 min-h-16 rounded-[1.2rem] bg-gradient-to-br from-[var(--tf-primary-600)] to-[var(--tf-primary-dark)] px-4 text-xl font-black text-white shadow-green">
         <span className="inline-flex items-center gap-4"><Save className="size-8" /> Enregistrer</span>
       </button>
 
@@ -248,7 +248,7 @@ export default function SettingsPage() {
                 <Field section="establishment" name="publicSlug" label="Slug public" error={errors.publicSlug}>
                   <Input id={fieldId("establishment", "publicSlug")} value={draft.publicSlug} onChange={(event) => updateDraft({ ...draft, publicSlug: event.target.value.trim().toLocaleLowerCase("fr-FR") })} aria-invalid={Boolean(errors.publicSlug)} />
                 </Field>
-                <p className="rounded-2xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-950">Lien client : /r/{draft.publicSlug || "bistrot-des-halles"}/table/table-1</p>
+                <p className="rounded-2xl tf-primary-soft-bg p-4 text-sm font-semibold tf-primary-dark-text">Lien client : /r/{draft.publicSlug || "bistrot-des-halles"}/table/table-1</p>
                 <Field section="establishment" name="address" label="Adresse">
                   <Input id={fieldId("establishment", "address")} value={draft.address} onChange={(event) => updateDraft({ ...draft, address: event.target.value })} />
                 </Field>
@@ -269,7 +269,7 @@ export default function SettingsPage() {
 
             {activeSection === "hours" ? (
               <>
-                <p className="rounded-2xl bg-emerald-50 p-4 text-base font-semibold leading-relaxed text-emerald-950">Les horaires contrôlent l’ouverture du menu client et les statistiques.</p>
+                <p className="rounded-2xl tf-primary-soft-bg p-4 text-base font-semibold leading-relaxed tf-primary-dark-text">Les horaires contrôlent l’ouverture du menu client et les statistiques.</p>
                 <Toggle label="Mode automatique activé" checked={draft.hours.automaticMode} onChange={(automaticMode) => updateDraft({ ...draft, hours: { ...draft.hours, automaticMode } })} />
                 <div className="grid gap-4 min-[430px]:grid-cols-2">
                   <Field section="hours" name="lunchStart" label="Service midi début" error={errors.service}>
@@ -291,7 +291,7 @@ export default function SettingsPage() {
                     {openDayOptions.map((day) => {
                       const selected = draft.hours.openDays.includes(day);
                       return (
-                        <button key={day} type="button" onClick={() => toggleOpenDay(day)} className={cn("min-h-12 rounded-2xl border px-2 text-base font-black", selected ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-200 text-slate-700")} aria-pressed={selected}>
+                        <button key={day} type="button" onClick={() => toggleOpenDay(day)} className={cn("min-h-12 rounded-2xl border px-2 text-base font-black", selected ? "tf-primary-border tf-primary-bg text-white" : "border-slate-200 text-slate-700")} aria-pressed={selected}>
                           {day}
                         </button>
                       );
@@ -304,8 +304,8 @@ export default function SettingsPage() {
             {activeSection === "orders" ? (
               <>
                 <div className="grid gap-3 min-[430px]:grid-cols-2">
-                  <button type="button" onClick={() => updateDraft({ ...draft, ordersSettings: { ...draft.ordersSettings, acceptanceMode: "automatic" } })} className={cn("min-h-14 rounded-2xl border px-4 text-base font-black", draft.ordersSettings.acceptanceMode === "automatic" ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-200 text-slate-700")} aria-pressed={draft.ordersSettings.acceptanceMode === "automatic"}>Acceptation automatique</button>
-                  <button type="button" onClick={() => updateDraft({ ...draft, ordersSettings: { ...draft.ordersSettings, acceptanceMode: "manual" } })} className={cn("min-h-14 rounded-2xl border px-4 text-base font-black", draft.ordersSettings.acceptanceMode === "manual" ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-200 text-slate-700")} aria-pressed={draft.ordersSettings.acceptanceMode === "manual"}>Mode manuel</button>
+                  <button type="button" onClick={() => updateDraft({ ...draft, ordersSettings: { ...draft.ordersSettings, acceptanceMode: "automatic" } })} className={cn("min-h-14 rounded-2xl border px-4 text-base font-black", draft.ordersSettings.acceptanceMode === "automatic" ? "tf-primary-border tf-primary-bg text-white" : "border-slate-200 text-slate-700")} aria-pressed={draft.ordersSettings.acceptanceMode === "automatic"}>Acceptation automatique</button>
+                  <button type="button" onClick={() => updateDraft({ ...draft, ordersSettings: { ...draft.ordersSettings, acceptanceMode: "manual" } })} className={cn("min-h-14 rounded-2xl border px-4 text-base font-black", draft.ordersSettings.acceptanceMode === "manual" ? "tf-primary-border tf-primary-bg text-white" : "border-slate-200 text-slate-700")} aria-pressed={draft.ordersSettings.acceptanceMode === "manual"}>Mode manuel</button>
                 </div>
                 <Toggle label="Paiement sur place" checked={draft.ordersSettings.onSitePaymentEnabled} onChange={(onSitePaymentEnabled) => updateDraft({ ...draft, ordersSettings: { ...draft.ordersSettings, onSitePaymentEnabled } })} />
                 <Field section="orders" name="customerMessage" label="Message client">
