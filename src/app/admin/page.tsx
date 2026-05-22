@@ -10,9 +10,45 @@ const kpis = [
 ] as const;
 
 export default function AdminDashboardPage() {
-  return <AdminShell><h1 className="text-6xl font-semibold">Tableau de bord</h1><p className="mt-2 text-3xl text-slate-600">Surveillez la performance de la plateforme et gérez votre réseau de restaurants.</p>
-    <div className="mt-8 grid grid-cols-4 gap-6">{kpis.map(([t,v,s,I])=><div key={t} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div className="mb-5 inline-flex rounded-2xl bg-emerald-100 p-4 text-emerald-600"><I className="h-9 w-9"/></div><p className="text-3xl text-slate-600">{t}</p><p className="text-6xl font-semibold leading-tight">{v}</p><p className="mt-2 text-2xl text-emerald-600">↗ {s}</p></div>)}</div>
-    <AdminPanel title="Actions rapides"><div className="grid grid-cols-3 gap-4">{[["Examiner les demandes","/admin/requests"],["Gérer les restaurants","/admin/restaurants"],["Voir les analytics","/admin"]].map(([t,h])=><Link key={t} href={h} className="flex items-center justify-between rounded-2xl border border-slate-200 p-5"><p className="text-4xl font-semibold">{t}</p><ArrowRight className="h-7 w-7"/></Link>)}</div></AdminPanel>
-    <div className="mt-6 grid grid-cols-2 gap-6"><AdminPanel title="Dernières activités" right={<button className="text-emerald-600 text-2xl">Voir tout</button>}><div className="space-y-4 text-2xl"><p>Vous avez approuvé la demande de “Le Bistronome”</p><p>Nouvelle demande reçue de “Chez Marius”</p><p>Le restaurant “La Table Verte” a été activé</p><p>125 scans de QR enregistrés aujourd’hui</p><p>Le restaurant “Old Café” a été bloqué</p></div></AdminPanel><AdminPanel title="État de la plateforme"><div className="space-y-3 text-2xl"><p>Restaurants actifs 48</p><p>En attente d’approbation 5</p><p>Activité QR aujourd’hui 125</p></div><div className="mt-6 grid grid-cols-3 gap-2 border-t pt-4 text-2xl"><p>Taux d’activation<br/><span className="text-5xl font-semibold">96%</span></p><p>Temps de réponse moyen<br/><span className="text-5xl font-semibold">2h 18m</span></p><p>Taux de complétion des profils<br/><span className="text-5xl font-semibold">89%</span></p></div></AdminPanel></div>
-  </AdminShell>;
+  return (
+    <AdminShell>
+      <h1 className="text-[56px] font-semibold leading-tight">Tableau de bord</h1>
+      <p className="mt-1 text-[42px] text-slate-700">Surveillez la performance de la plateforme et gérez votre réseau de restaurants.</p>
+      <div className="mt-5 grid grid-cols-4 gap-4">
+        {kpis.map(([t, v, s, I]) => (
+          <div key={t} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,.06)]">
+            <div className="mb-4 inline-flex rounded-2xl bg-emerald-100 p-3 text-emerald-600"><I className="h-5 w-5" /></div>
+            <p className="text-[41px] text-slate-700">{t}</p>
+            <p className="text-6xl font-semibold leading-tight">{v}</p>
+            <p className="mt-1 text-[36px] text-emerald-600">↗ {s}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4"><AdminPanel title="Actions rapides"><div className="grid grid-cols-3 gap-3">{[["Examiner les demandes", "/admin/requests"], ["Gérer les restaurants", "/admin/restaurants"], ["Voir les analytics", "/admin"]].map(([t, h]) => <Link key={t} href={h} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-5xl font-semibold">{t}<ArrowRight className="h-5 w-5" /></Link>)}</div></AdminPanel></div>
+
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        <AdminPanel title="Dernières activités" right={<button className="text-[34px] text-emerald-600">Voir tout</button>}>
+          <div className="space-y-3 text-[36px] text-slate-700">
+            <p>Vous avez approuvé la demande de “Le Bistronome”</p>
+            <p>Nouvelle demande reçue de “Chez Marius”</p>
+            <p>Le restaurant “La Table Verte” a été activé</p>
+            <p>125 scans de QR enregistrés aujourd’hui</p>
+          </div>
+        </AdminPanel>
+        <AdminPanel title="État de la plateforme">
+          <div className="space-y-3 text-[36px] text-slate-700">
+            <p>Restaurants actifs: <span className="font-semibold text-slate-900">48</span></p>
+            <p>En attente d’approbation: <span className="font-semibold text-slate-900">5</span></p>
+            <p>Activité QR aujourd’hui: <span className="font-semibold text-slate-900">125</span></p>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-3 border-t border-slate-100 pt-4">
+            <p className="text-[32px] text-slate-600">Taux d’activation<br /><span className="text-5xl font-semibold text-slate-900">96%</span></p>
+            <p className="text-[32px] text-slate-600">Temps de réponse moyen<br /><span className="text-5xl font-semibold text-slate-900">2h 18m</span></p>
+            <p className="text-[32px] text-slate-600">Profils complets<br /><span className="text-5xl font-semibold text-slate-900">89%</span></p>
+          </div>
+        </AdminPanel>
+      </div>
+    </AdminShell>
+  );
 }
