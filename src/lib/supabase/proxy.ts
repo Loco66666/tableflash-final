@@ -11,7 +11,7 @@ type ProxyClient = {
 export function createProxyClient(request: NextRequest): ProxyClient {
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient<Database>(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
     {
@@ -26,7 +26,7 @@ export function createProxyClient(request: NextRequest): ProxyClient {
         },
       },
     },
-  );
+  ) as SupabaseClient<Database>;
 
   return { supabase, response };
 }
