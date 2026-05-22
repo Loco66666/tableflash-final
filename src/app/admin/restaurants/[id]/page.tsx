@@ -1,42 +1,47 @@
 "use client";
 
 import Link from "next/link";
+import { PencilLine } from "lucide-react";
 import { useParams } from "next/navigation";
-import { AdminPanel, AdminShell } from "@/components/admin/AdminUI";
+import { useState } from "react";
+import { AdminPanel, AdminShell, InlineToast, SimpleModal } from "@/components/admin/AdminUI";
 import { adminRestaurants } from "@/lib/admin-data";
 
 export default function RestaurantDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const restaurant = adminRestaurants.find((r) => r.id === id) ?? adminRestaurants[2];
+  const baseRestaurant = adminRestaurants.find((r) => r.id === id) ?? adminRestaurants[2];
+  const [status, setStatus] = useState(baseRestaurant.status);
+  const [openModal, setOpenModal] = useState<"suspend" | "billing" | "contact" | "activity" | "requests" | "note" | null>(null);
+  const [toast, setToast] = useState("");
 
   return (
     <AdminShell>
-      <p className="text-sm text-slate-500">Restaurants / {restaurant.name}</p>
+      {toast && <InlineToast message={toast} />}
+      <p className="text-sm text-slate-500">Restaurants / {baseRestaurant.name}</p>
       <div className="mt-2 rounded-2xl border border-slate-200 bg-white p-4">
         <div className="flex items-start justify-between gap-4">
-          <div><p className="text-3xl font-semibold">{restaurant.name}</p><p className="text-sm text-slate-600">{restaurant.status} • {restaurant.plan} • Restaurant</p></div>
+          <div><p className="text-3xl font-semibold">{baseRestaurant.name}</p><p className="text-sm text-slate-600">{status} • {baseRestaurant.plan} • Restaurant</p></div>
           <div className="flex gap-2">
             <Link href="/dashboard" className="rounded-lg border px-3 py-2 text-sm">Ouvrir le dashboard</Link>
-            <button className="rounded-lg border px-3 py-2 text-sm">Suspendre</button>
-            <button className="rounded-lg border px-3 py-2 text-sm">Réinitialiser l’accès</button>
+            <button onClick={() => setOpenModal("suspend")} className="rounded-lg border px-3 py-2 text-sm">Suspendre</button>
+            <button onClick={() => {setToast("Accès réinitialisé"); setTimeout(() => setToast(""), 1800);}} className="rounded-lg border px-3 py-2 text-sm">Réinitialiser l’accès</button>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-1 gap-2 border-t border-slate-100 pt-3 text-sm text-slate-700 lg:grid-cols-5">
-          <p>Propriétaire: <strong>{restaurant.owner}</strong></p>
-          <p>Ville: <strong>{restaurant.city}</strong></p>
-          <p>Téléphone: <strong>{restaurant.phone}</strong></p>
-          <p>Email: <strong>{restaurant.email}</strong></p>
-          <p>Inscrit le: <strong>20 mai 2026</strong></p>
-        </div>
       </div>
-
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <AdminPanel title="Abonnement & facturation"><p className="text-sm">Plan: {restaurant.plan}</p><p className="text-sm">Tarif: {restaurant.priceOrTrial}</p><p className="text-sm">Prochaine facture: 01 juin 2026</p></AdminPanel>
-        <AdminPanel title="Informations opérationnelles"><p className="text-sm">Type: Restaurant</p><p className="text-sm">Source: Google Recherche</p><p className="text-sm">Dernière activité: {restaurant.lastActivity}</p></AdminPanel>
-        <AdminPanel title="Demandes récentes"><ul className="space-y-2 text-sm"><li>Réinitialisation de mot de passe</li><li>Ajout d’un utilisateur manager</li><li>Question sur l’abonnement</li></ul></AdminPanel>
-        <AdminPanel title="Activité récente"><div className="mb-3 grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3"><p className="text-sm">Commandes<br/><strong className="text-3xl">{restaurant.ordersToday}</strong></p><p className="text-sm">Scans QR<br/><strong className="text-3xl">{restaurant.scansToday}</strong></p><p className="text-sm">Conversion<br/><strong className="text-3xl">28%</strong></p></div><p className="text-sm text-slate-600">Aujourd’hui, activité stable avec un pic entre 12h et 14h.</p></AdminPanel>
+        <AdminPanel title="Abonnement & facturation" right={<button onClick={() => setOpenModal("billing")} className="text-sm text-emerald-600">Voir la facturation</button>}><p className="text-sm">Plan: {baseRestaurant.plan}</p></AdminPanel>
+        <AdminPanel title="Informations opérationnelles" right={<button onClick={() => setOpenModal("contact")} className="text-sm text-emerald-600">Contacter</button>}><p className="text-sm">Dernière activité: {baseRestaurant.lastActivity}</p></AdminPanel>
+        <AdminPanel title="Demandes récentes" right={<button onClick={() => setOpenModal("requests")} className="text-sm text-emerald-600">Voir tout</button>}><ul className="space-y-2 text-sm"><li>Réinitialisation de mot de passe</li></ul></AdminPanel>
+        <AdminPanel title="Activité récente" right={<button onClick={() => setOpenModal("activity")} className="text-sm text-emerald-600">Voir toute l’activité</button>}><p className="text-sm">Aujourd’hui, activité stable avec un pic entre 12h et 14h.</p></AdminPanel>
       </div>
-      <div className="mt-4"><AdminPanel title="État d’essai & abonnement"><div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-3"><p>Essai restant<br/><strong className="text-3xl">13 jours</strong></p><p>Statut paiement<br/><strong className="text-3xl">À jour</strong></p><p>Risque churn<br/><strong className="text-3xl">Faible</strong></p></div></AdminPanel></div>
+      <div className="mt-4"><AdminPanel title="Note interne" right={<button onClick={() => setOpenModal("note")} className="rounded p-1 hover:bg-slate-100"><PencilLine className="h-4 w-4" /></button>}><p className="text-sm text-slate-600">Client engagé, à suivre sur l’activation de l’équipe.</p></AdminPanel></div>
+
+      {openModal === "suspend" && <SimpleModal title="Confirmer l’action" onClose={() => setOpenModal(null)}><p className="text-sm">Voulez-vous mettre à jour le statut ?</p><div className="mt-4 flex justify-end gap-2"><button onClick={() => setOpenModal(null)} className="rounded-lg border px-4 py-2 text-sm">Annuler</button><button onClick={() => {setStatus((s) => s === "Suspendu" ? "Actif" : "Suspendu"); setOpenModal(null);}} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white">Confirmer</button></div></SimpleModal>}
+      {openModal === "billing" && <SimpleModal title="Résumé de facturation" onClose={() => setOpenModal(null)}><p className="text-sm">Plan {baseRestaurant.plan}, prochaine échéance: 01 juin 2026.</p></SimpleModal>}
+      {openModal === "contact" && <SimpleModal title="Contacter le restaurant" onClose={() => setOpenModal(null)}><p className="text-sm">Email: {baseRestaurant.email}</p><p className="text-sm">Téléphone: {baseRestaurant.phone}</p></SimpleModal>}
+      {openModal === "activity" && <SimpleModal title="Toute l’activité" onClose={() => setOpenModal(null)}><ul className="text-sm"><li>12:45 - Nouveau scan QR</li><li>13:10 - Commande validée</li></ul></SimpleModal>}
+      {openModal === "requests" && <SimpleModal title="Toutes les demandes récentes" onClose={() => setOpenModal(null)}><ul className="text-sm"><li>Support sur abonnement</li><li>Demande d’accès manager</li></ul></SimpleModal>}
+      {openModal === "note" && <SimpleModal title="Modifier la note interne" onClose={() => setOpenModal(null)}><textarea rows={4} className="w-full rounded-lg border border-slate-200 p-2 text-sm" defaultValue="Client engagé, à suivre sur l’activation de l’équipe."/><div className="mt-3 flex justify-end"><button onClick={() => {setOpenModal(null); setToast("Note mise à jour"); setTimeout(() => setToast(""), 1800);}} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white">Enregistrer</button></div></SimpleModal>}
     </AdminShell>
   );
 }
