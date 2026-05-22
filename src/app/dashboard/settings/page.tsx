@@ -1,15 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Building2, Check, ChevronRight, Clock, CreditCard, Paintbrush, QrCode, Save, Star, X } from "lucide-react";
+import { Building2, Check, ChevronRight, Clock, CreditCard, QrCode, Save, Star, X } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { normalizeSettings, useSettingsStore } from "@/lib/local-store/settingsStore";
-import { appearanceStyleOptions, getAppearanceTheme, primaryColorOptions } from "@/lib/theme";
 import type { RestaurantSettings } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type SettingsSection = "establishment" | "hours" | "orders" | "qr" | "reviews" | "appearance";
+type SettingsSection = "establishment" | "hours" | "orders" | "qr" | "reviews";
 type ValidationErrors = Partial<Record<"restaurantName" | "publicSlug" | "email" | "googleReviewUrl" | "service", string>>;
 
 const openDayOptions = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
@@ -20,7 +19,6 @@ const sectionCards: Array<{ id: SettingsSection; title: string; subtitle: string
   { id: "orders", title: "Commandes", subtitle: "Paiement sur place", icon: CreditCard },
   { id: "qr", title: "QR", subtitle: "Instruction QR", icon: QrCode },
   { id: "reviews", title: "Avis Google", subtitle: "Lien Google Avis", icon: Star },
-  { id: "appearance", title: "Apparence", subtitle: "Couleurs et style", icon: Paintbrush },
 ];
 
 function validateSettings(settings: RestaurantSettings) {
@@ -102,10 +100,6 @@ function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea {...props} className={cn("min-h-28 w-full resize-none rounded-2xl border border-slate-200 bg-white p-4 text-lg font-semibold outline-none focus:border-[var(--tf-primary)] focus:ring-4 focus:ring-[var(--tf-primary-ring)]", props.className)} />;
 }
 
-function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={cn("min-h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-[var(--tf-primary)] focus:ring-4 focus:ring-[var(--tf-primary-ring)]", props.className)} />;
-}
-
 function Sheet({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-slate-950/35 px-3 pb-3 pt-10 backdrop-blur-sm sm:items-center sm:justify-center" role="dialog" aria-modal="true" aria-labelledby="settings-sheet-title">
@@ -133,7 +127,6 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   const draft = draftOverride ?? hydratedSettings;
-  const appearanceTheme = useMemo(() => getAppearanceTheme(draft.appearance), [draft.appearance]);
   const preparation = useMemo(() => getPreparationStatus(draft), [draft]);
   const activeSectionTitle = activeSection ? sectionCards.find((section) => section.id === activeSection)?.title : null;
 
@@ -334,36 +327,6 @@ export default function SettingsPage() {
                   <Input id={fieldId("reviews", "googleReviewUrl")} value={draft.reviewsSettings.googleReviewUrl} onChange={(event) => updateDraft({ ...draft, reviewsSettings: { ...draft.reviewsSettings, googleReviewUrl: event.target.value } })} inputMode="url" aria-invalid={Boolean(errors.googleReviewUrl)} />
                 </Field>
                 <Toggle label="Proposer Google si avis positif" checked={draft.reviewsSettings.suggestGoogleOnPositive} onChange={(suggestGoogleOnPositive) => updateDraft({ ...draft, reviewsSettings: { ...draft.reviewsSettings, suggestGoogleOnPositive } })} />
-              </>
-            ) : null}
-
-            {activeSection === "appearance" ? (
-              <>
-                <Field section="appearance" name="style" label="Style">
-                  <Select id={fieldId("appearance", "style")} value={draft.appearance.style} onChange={(event) => updateDraft({ ...draft, appearance: { ...draft.appearance, style: event.target.value as RestaurantSettings["appearance"]["style"] } })}>
-                    {appearanceStyleOptions.map((style) => <option key={style} value={style}>{style}</option>)}
-                  </Select>
-                </Field>
-                <p className="rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">Le style ajuste les arrondis, contrastes et cartes principales.</p>
-                <Field section="appearance" name="primaryColor" label="Couleur principale">
-                  <Select id={fieldId("appearance", "primaryColor")} value={draft.appearance.primaryColor} onChange={(event) => updateDraft({ ...draft, appearance: { ...draft.appearance, primaryColor: event.target.value } })}>
-                    {primaryColorOptions.map((color) => <option key={color.value} value={color.value}>{color.label}</option>)}
-                  </Select>
-                </Field>
-                <div className="rounded-[1.1rem] border border-slate-200 bg-white p-4">
-                  <p className="text-sm font-black text-slate-800">Aperçu</p>
-                  <div className={cn("mt-3 border border-slate-200 bg-[var(--tf-primary-50)] p-3", appearanceTheme.cardClass)} style={{
-                    ["--tf-primary-50" as string]: appearanceTheme.colors[50],
-                    ["--tf-primary-600" as string]: appearanceTheme.colors[600],
-                    ["--tf-primary-700" as string]: appearanceTheme.colors[700],
-                    ["--tf-primary-800" as string]: appearanceTheme.colors[800],
-                  }}>
-                    <span className={cn("inline-flex px-3 py-1 text-sm font-bold text-white", appearanceTheme.radiusClass)} style={{ backgroundColor: "var(--tf-primary-700)" }}>Nouveau</span>
-                    <p className="mt-3 text-base font-black text-slate-900">Carte principale</p>
-                    <p className="text-sm text-slate-700">Le bouton et les badges suivent la couleur choisie.</p>
-                    <button type="button" className={cn("mt-3 min-h-11 px-4 text-sm font-black text-white", appearanceTheme.radiusClass)} style={{ backgroundColor: "var(--tf-primary-700)" }}>Action principale</button>
-                  </div>
-                </div>
               </>
             ) : null}
 
