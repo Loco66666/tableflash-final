@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { AdminShell } from "@/components/admin/AdminShell";
+import { AdminShell } from "@/components/admin/AdminUI";
 import { adminRequests } from "@/lib/admin-data";
 
 export default function AdminRequestsPage() {

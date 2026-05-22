@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { AdminShell } from "@/components/admin/AdminShell";
+import { AdminShell } from "@/components/admin/AdminUI";
 import { adminRestaurants } from "@/lib/admin-data";
 
 export default function AdminRestaurantsPage() {
