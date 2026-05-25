@@ -21,8 +21,8 @@ export const createClient = async (): Promise<SupabaseClient<Database>> => {
               cookieStore.set(name, value, options);
             });
           } catch {
-            // The `setAll` method may run from a Server Component where cookie writes are blocked.
-            // Session refresh is handled in proxy middleware where response cookies can be set.
+            // Server Components cannot set cookies.
+            // This is safe to ignore because proxy.ts refreshes the session cookies.
           }
         },
       },
