@@ -56,3 +56,13 @@ where id = '<AUTH_USER_ID>';
 - Variable: `NEXT_PUBLIC_TABLEFLASH_AUTH_BYPASS`
 - Toujours `false` par défaut.
 - Passer à `true` uniquement pour debug local contrôlé.
+
+## Troubleshooting: profile_query_error / stack depth limit exceeded
+Ce problème arrive lorsqu'une policy RLS récursive sur `public.profiles` relit `public.profiles` pendant sa propre évaluation.
+
+Fix: appliquer la migration `supabase/migrations/002_fix_profiles_rls.sql`.
+
+Policy attendue pour le login/profile lookup:
+- `profiles_select_own`
+- `using (id = auth.uid())`
+
