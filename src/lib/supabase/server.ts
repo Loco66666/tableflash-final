@@ -16,9 +16,14 @@ export const createClient = async (): Promise<SupabaseClient<Database>> => {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet: SupabaseCookieToSet[]) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // The `setAll` method may run from a Server Component where cookie writes are blocked.
+            // Session refresh is handled in proxy middleware where response cookies can be set.
+          }
         },
       },
     },
