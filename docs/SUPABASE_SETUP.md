@@ -18,10 +18,11 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SECRET_KEY=
 ```
 
-## 4) Apply migration
+## 4) Apply migrations (in order)
 1. Open Supabase SQL Editor.
-2. Paste `supabase/migrations/001_initial_tableflash_schema.sql`.
-3. Run and verify all tables/types/functions/policies are created.
+2. Run `supabase/migrations/001_initial_tableflash_schema.sql`.
+3. Then run `supabase/migrations/002_fix_profiles_rls.sql`.
+4. Verify all tables/types/functions/policies are created and the profiles self-read policy exists.
 
 ## 5) Security notes
 - Never expose `SUPABASE_SECRET_KEY` in browser code.
