@@ -2,19 +2,28 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/require-role";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { RestaurantStatus } from "@/lib/supabase/types";
 
 async function updateRestaurantStatus(restaurantId: string, status: RestaurantStatus) {
   const { profile } = await requireRole(["super_admin"]);
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from("restaurants")
     .update({ status })
     .eq("id", restaurantId);
 
-  if (error) throw new Error("Mise à jour du statut impossible");
+  if (error) {
+    console.error("[admin/restaurants] status update failed", {
+      restaurantId,
+      status,
+      errorCode: error.code,
+      errorMessage: error.message,
+    });
+
+    throw new Error("Mise à jour du statut impossible");
+  }
 
   await supabase.from("admin_events").insert({
     actor_id: profile.id,
