@@ -229,6 +229,80 @@ export type Database = {
         Relationships: [];
       };
 
+      menu_categories: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          name: string;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          name: string;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          name?: string;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+
+      menu_products: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          category_id: string | null;
+          name: string;
+          description: string | null;
+          price_cents: number;
+          image_url: string | null;
+          sort_order: number;
+          is_available: boolean;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          category_id?: string | null;
+          name: string;
+          description?: string | null;
+          price_cents: number;
+          image_url?: string | null;
+          sort_order?: number;
+          is_available?: boolean;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          category_id?: string | null;
+          name?: string;
+          description?: string | null;
+          price_cents?: number;
+          image_url?: string | null;
+          sort_order?: number;
+          is_available?: boolean;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+
       admin_events: {
         Row: {
           id: string;

@@ -9,7 +9,6 @@ import { CustomerCartBar } from "@/components/ui-custom/CustomerCartBar";
 import { CustomerProductCard } from "@/components/ui-custom/CustomerProductCard";
 import { CustomerTrackingPreview } from "@/components/ui-custom/CustomerTrackingPreview";
 import { restaurantSettings } from "@/lib/data/seed";
-import { useMenuStore } from "@/lib/local-store/menuStore";
 import { useOrdersStore } from "@/lib/local-store/ordersStore";
 import { useSettingsStore } from "@/lib/local-store/settingsStore";
 import { useTablesStore } from "@/lib/local-store/tablesStore";
@@ -23,8 +22,6 @@ type BasketLine = {
 };
 
 const preferredCategoryOrder = ["starters", "mains", "desserts", "drinks"];
-const fallbackCategoryNames = ["Entrées", "Plats", "Desserts", "Boissons"];
-
 const categoryIcons: Record<string, LucideIcon> = {
   all: Sparkles,
   starters: Leaf,
@@ -57,13 +54,6 @@ function getVisibleCategories(categories: Category[]) {
     return firstIndex - secondIndex;
   });
 
-  fallbackCategoryNames.forEach((name, index) => {
-    const id = preferredCategoryOrder[index];
-    if (!sortedCategories.some((category) => category.id === id)) {
-      sortedCategories.splice(index, 0, { id, name, icon: id });
-    }
-  });
-
   return [allCategory, ...sortedCategories];
 }
 
@@ -86,9 +76,16 @@ function createOrderNumber(existingOrders: Order[]) {
   return String(nextNumber).padStart(4, "0");
 }
 
-export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable }: { restaurantSlug: string; tableSlug: string; initialTable?: TableInfo }) {
+type PublicMenuPayload = {
+  restaurantName: string;
+  restaurantCity: string | null;
+  status: "active" | "trial" | "suspended" | "archived";
+  categories: Category[];
+  products: Product[];
+};
+
+export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable, publicMenu }: { restaurantSlug: string; tableSlug: string; initialTable?: TableInfo; publicMenu: PublicMenuPayload }) {
   const { value: storedTables } = useTablesStore();
-  const { value: menu } = useMenuStore();
   const { value: settings } = useSettingsStore();
   const { value: orders, setValue: setOrders } = useOrdersStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
@@ -102,12 +99,12 @@ export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable }:
   const tables = normalizeTables(storedTables);
   const table = findTableBySlug(tableSlug, tables) ?? initialTable;
   const activeSettings = settings as Partial<typeof restaurantSettings> | undefined;
-  const restaurantName = activeSettings?.publicSlug === restaurantSlug || restaurantSettings.publicSlug === restaurantSlug ? activeSettings?.restaurantName ?? restaurantSettings.restaurantName : restaurantSettings.restaurantName;
+  const restaurantName = publicMenu.restaurantName || (activeSettings?.publicSlug === restaurantSlug || restaurantSettings.publicSlug === restaurantSlug ? activeSettings?.restaurantName ?? restaurantSettings.restaurantName : restaurantSettings.restaurantName);
   const tableName = table?.name ?? "";
   const tableArea = table?.area ?? "";
   const subtitle = table ? (tableArea ? `${tableName} • ${tableArea}` : tableName) : "QR de table";
-  const orderableProducts = useMemo(() => menu.products.filter(isCustomerOrderable), [menu.products]);
-  const visibleCategories = useMemo(() => getVisibleCategories(menu.categories), [menu.categories]);
+  const orderableProducts = useMemo(() => publicMenu.products.filter(isCustomerOrderable), [publicMenu.products]);
+  const visibleCategories = useMemo(() => getVisibleCategories(publicMenu.categories), [publicMenu.categories]);
   const visibleProducts = selectedCategoryId === "all" ? orderableProducts : orderableProducts.filter((product) => product.categoryId === selectedCategoryId);
   const itemCount = basket.reduce((sum, line) => sum + line.quantity, 0);
   const basketTotal = basket.reduce((sum, line) => sum + line.product.price * line.quantity, 0);
@@ -195,6 +192,18 @@ export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable }:
     );
   }
 
+  if (publicMenu.status === "suspended" || publicMenu.status === "archived") {
+    return (
+      <AppShell showNav={false}>
+        <PageHeader title={restaurantName} subtitle={subtitle} customer />
+        <section className="rounded-[1.6rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-8 text-center shadow-card">
+          <Heart className="mx-auto mb-5 size-14 text-emerald-800" />
+          <h1 className="text-3xl font-black tracking-[-0.04em] text-slate-950">Ce menu n’est pas disponible pour le moment.</h1>
+        </section>
+      </AppShell>
+    );
+  }
+
   if (confirmedOrder) {
     return (
       <AppShell showNav={false}>
@@ -221,6 +230,7 @@ export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable }:
           <div className="min-w-0">
             <p className="font-bold text-slate-950">{tableName}</p>
             {tableArea ? <p className="text-base font-semibold text-slate-600">{tableArea}</p> : null}
+            {publicMenu.restaurantCity ? <p className="text-base font-semibold text-slate-600">{publicMenu.restaurantCity}</p> : null}
             <p className="mt-2 text-xl font-black tracking-[-0.03em] text-emerald-900">Commandez à votre rythme</p>
           </div>
         </div>
@@ -249,7 +259,8 @@ export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable }:
         </div>
       ) : (
         <section className="rounded-[1.5rem] border border-dashed border-emerald-200 bg-emerald-50/60 p-8 text-center shadow-card">
-          <h2 className="text-2xl font-black tracking-[-0.03em] text-emerald-900">Aucun produit disponible dans cette catégorie</h2>
+          <h2 className="text-2xl font-black tracking-[-0.03em] text-emerald-900">Aucun produit disponible</h2>
+          <p className="mt-2 text-lg font-semibold text-slate-700">Le restaurant mettra bientôt son menu à jour.</p>
         </section>
       )}
       <CustomerCartBar
