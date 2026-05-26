@@ -1,6 +1,6 @@
-import React from 'react';
-import { Alert, SafeAreaView, StyleSheet, Text, View } from 'react-native';
-import { LargeActionButton } from '../components/LargeActionButton';
+import { Alert, SafeAreaView, StyleSheet, Text, View } from "react-native";
+
+import { LargeActionButton } from "../components/LargeActionButton";
 
 export default function HomeScreen() {
   return (
@@ -8,13 +8,19 @@ export default function HomeScreen() {
       <View style={styles.container}>
         <Text style={styles.title}>Accueil Santé</Text>
         <LargeActionButton
-          label="Prendre mes médicaments"
-          onPress={() => Alert.alert('Médicaments', 'Rappel envoyé.')}
+          title="Prendre mes médicaments"
+          subtitle="Voir mes rappels"
+          icon="💊"
+          accessibilityHint="Ouvre les rappels et le suivi des médicaments."
+          onPress={() => Alert.alert("Médicaments", "Rappel envoyé.")}
         />
         <LargeActionButton
-          label="URGENCE"
+          title="URGENCE"
+          subtitle="Appeler de l'aide"
+          icon="☎️"
           variant="danger"
-          onPress={() => Alert.alert('Urgence', 'Appel d’urgence en cours...')}
+          accessibilityHint="Lance un appel d'urgence."
+          onPress={() => Alert.alert("Urgence", "Appel d’urgence en cours...")}
         />
       </View>
     </SafeAreaView>
@@ -22,16 +28,17 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F5F7FB' },
+  safeArea: { flex: 1, backgroundColor: "#F5F7FB" },
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: 'space-evenly',
+    justifyContent: "space-evenly",
+    gap: 20,
   },
   title: {
     fontSize: 36,
-    fontWeight: '800',
-    textAlign: 'center',
-    color: '#1F2937',
+    fontWeight: "800",
+    textAlign: "center",
+    color: "#1F2937",
   },
 });
