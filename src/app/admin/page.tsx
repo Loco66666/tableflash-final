@@ -1,28 +1,21 @@
-"use client";
-
 import Link from "next/link";
-import { ArrowRight, Clock3, Euro, FileText, Store } from "lucide-react";
-import { useState } from "react";
-import { AdminPanel, AdminShell, SimpleModal } from "@/components/admin/AdminUI";
+import { ArrowRight, Clock3, FileText, Store, User } from "lucide-react";
+import { AdminPanel, AdminShell } from "@/components/admin/AdminUI";
+import { requireRole } from "@/lib/auth/require-role";
+import { getAdminStats } from "@/lib/admin/get-admin-stats";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-const kpis = [
-  ["Restaurants actifs", "48", "+6 ce mois-ci", Store],
-  ["Demandes en attente", "5", "+2 depuis hier", FileText],
-  ["Essais en cours", "12", "+3 ce mois-ci", Clock3],
-  ["CA mensuel", "18 650 €", "+12,4% vs mois dernier", Euro],
-] as const;
+export default async function AdminDashboardPage() {
+  await requireRole(["super_admin"]);
+  const supabase = createAdminClient();
+  const stats = await getAdminStats(supabase);
 
-const activities = [
-  "Vous avez approuvé la demande de “Le Bistronome”.",
-  "Nouvelle demande reçue de “Chez Marius”.",
-  "Le restaurant “La Table Verte” a été activé.",
-  "125 scans de QR enregistrés aujourd’hui.",
-  "Un abonnement Premium a été renouvelé.",
-  "Relance envoyée à deux restaurants inactifs.",
-];
-
-export default function AdminDashboardPage() {
-  const [showAllActivities, setShowAllActivities] = useState(false);
+  const kpis = [
+    ["Restaurants actifs", stats.restaurants.active.toString(), `${stats.restaurants.total} au total`, Store],
+    ["Demandes en attente", stats.applications.pending.toString(), `${stats.applications.total} demandes`, FileText],
+    ["Essais en cours", stats.restaurants.trial.toString(), `${stats.trialsEndingSoon.length} à surveiller`, Clock3],
+    ["Comptes propriétaires", stats.users.restaurantOwners.toString(), `${stats.users.restaurantStaff} membres équipe`, User],
+  ] as const;
 
   return (
     <AdminShell>
@@ -32,18 +25,31 @@ export default function AdminDashboardPage() {
         {kpis.map(([t, v, s, I]) => (
           <div key={t} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,.06)]">
             <div className="mb-3 inline-flex rounded-xl bg-emerald-100 p-2 text-emerald-600"><I className="h-4 w-4" /></div>
-            <p className="text-sm text-slate-700">{t}</p><p className="text-3xl font-semibold leading-tight">{v}</p><p className="mt-1 text-sm text-emerald-600">↗ {s}</p>
+            <p className="text-sm text-slate-700">{t}</p><p className="text-3xl font-semibold leading-tight">{v}</p><p className="mt-1 text-sm text-emerald-600">{s}</p>
           </div>
         ))}
       </div>
       <div className="mt-4"><AdminPanel title="Actions rapides"><div className="grid grid-cols-1 gap-3 md:grid-cols-3">{[["Examiner les demandes", "/admin/requests"], ["Gérer les restaurants", "/admin/restaurants"], ["Voir les analytics", "/admin/analytics"]].map(([t, h]) => <Link key={t} href={h} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50">{t}<ArrowRight className="h-4 w-4" /></Link>)}</div></AdminPanel></div>
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <AdminPanel title="Dernières activités" right={<button onClick={() => setShowAllActivities(true)} className="text-sm font-medium text-emerald-600">Voir tout</button>}>
-          <div className="space-y-2 text-sm text-slate-700">{activities.slice(0, 4).map((item) => <p key={item}>{item}</p>)}</div>
+        <AdminPanel title="Dernières activités">
+          {stats.recentEvents.length === 0 ? (
+            <p className="text-sm text-slate-700">Aucune activité récente</p>
+          ) : (
+            <div className="space-y-2 text-sm text-slate-700">{stats.recentEvents.map((event) => <p key={event.id}>{event.message}</p>)}</div>
+          )}
         </AdminPanel>
-        <AdminPanel title="État de la plateforme"><div className="space-y-2 text-sm text-slate-700"><p>Restaurants actifs: <span className="font-semibold text-slate-900">48</span></p><p>En attente d’approbation: <span className="font-semibold text-slate-900">5</span></p><p>Activité QR aujourd’hui: <span className="font-semibold text-slate-900">125</span></p></div></AdminPanel>
+        <AdminPanel title="Essais à surveiller">
+          {stats.trialsEndingSoon.length === 0 ? (
+            <p className="text-sm text-slate-700">Aucun essai à surveiller</p>
+          ) : (
+            <div className="space-y-2 text-sm text-slate-700">
+              {stats.trialsEndingSoon.map((restaurant) => (
+                <p key={restaurant.id}>{restaurant.name} · fin {new Date(restaurant.trial_ends_at ?? "").toLocaleDateString("fr-FR")}</p>
+              ))}
+            </div>
+          )}
+        </AdminPanel>
       </div>
-      {showAllActivities && <SimpleModal title="Toutes les activités" onClose={() => setShowAllActivities(false)}><div className="space-y-2 text-sm text-slate-700">{activities.map((item) => <p key={item}>{item}</p>)}</div></SimpleModal>}
     </AdminShell>
   );
 }
