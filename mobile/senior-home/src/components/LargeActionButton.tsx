@@ -1,41 +1,112 @@
-import React from 'react';
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
 
-type Props = {
-  label: string;
+type LargeActionButtonProps = {
+  title: string;
+  subtitle: string;
+  icon: string;
   onPress: () => void;
-  variant?: 'primary' | 'danger';
+  variant?: "primary" | "danger";
+  accessibilityHint: string;
   style?: ViewStyle;
 };
 
-export function LargeActionButton({ label, onPress, variant = 'primary', style }: Props) {
+const COLORS = {
+  primary: {
+    background: "#0f7a4b",
+    pressed: "#0b5f3a",
+    border: "#074d2f",
+  },
+  danger: {
+    background: "#d7263d",
+    pressed: "#ac1e30",
+    border: "#8f1828",
+  },
+};
+
+export function LargeActionButton({
+  title,
+  subtitle,
+  icon,
+  onPress,
+  variant = "primary",
+  accessibilityHint,
+  style,
+}: LargeActionButtonProps) {
+  const colors = COLORS[variant];
+
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={title}
+      accessibilityHint={accessibilityHint}
       onPress={onPress}
-      style={[styles.base, variant === 'danger' ? styles.danger : styles.primary, style]}
+      style={({ pressed }) => [
+        styles.base,
+        {
+          backgroundColor: pressed ? colors.pressed : colors.background,
+          borderColor: colors.border,
+        },
+        style,
+      ]}
     >
-      <Text style={styles.text}>{label}</Text>
+      <View style={styles.iconCircle}>
+        <Text style={[styles.icon, { color: colors.background }]}>{icon}</Text>
+      </View>
+
+      <View style={styles.textBlock}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    width: '100%',
-    minHeight: 170,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    width: "100%",
+    minHeight: 190,
+    borderRadius: 32,
+    borderWidth: 3,
+    paddingHorizontal: 22,
+    paddingVertical: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 18,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
   },
-  primary: { backgroundColor: '#165DFF' },
-  danger: { backgroundColor: '#D62828' },
-  text: {
-    color: '#FFFFFF',
-    fontSize: 32,
-    fontWeight: '800',
-    textAlign: 'center',
+  iconCircle: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  icon: {
+    fontSize: 52,
+    lineHeight: 60,
+  },
+  textBlock: {
+    alignItems: "center",
+    gap: 8,
+  },
+  title: {
+    color: "#ffffff",
+    fontSize: 34,
+    lineHeight: 40,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  subtitle: {
+    color: "#ffffff",
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: "700",
+    textAlign: "center",
+    opacity: 0.96,
   },
 });
