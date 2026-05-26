@@ -19,3 +19,5 @@
 
 ## Sprint Supabase 5
 - Connect customer QR ordering + realtime updates.
+
+- Sprint Supabase 5: dashboard identity and settings now load from authenticated restaurant membership; menu/orders remain planned for later sprints.

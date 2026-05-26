@@ -66,3 +66,5 @@ Policy attendue pour le login/profile lookup:
 - `profiles_select_own`
 - `using (id = auth.uid())`
 
+
+- Important: `restaurant_owner` / `restaurant_staff` need a `restaurant_members` row linked to their auth user ID to access `/dashboard`.
