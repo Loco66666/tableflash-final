@@ -152,6 +152,31 @@ export type Database = {
         Relationships: [];
       };
 
+      restaurant_members: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          user_id: string;
+          role: AppRole;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          user_id: string;
+          role?: AppRole;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          user_id?: string;
+          role?: AppRole;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+
       restaurant_settings: {
         Row: {
           id: string;
