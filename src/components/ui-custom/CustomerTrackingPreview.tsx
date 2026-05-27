@@ -23,7 +23,7 @@ function getGoogleReviewUrl(settings?: CustomerReviewSettings) {
 
 const activeStepByStatus: Record<Order["status"], number> = {
   new: 0,
-  accepted: 2,
+  accepted: 1,
   payment_pending: 2,
   paid: 2,
   preparing: 3,
@@ -65,18 +65,21 @@ export function CustomerTrackingPreview({
   tableArea = "",
   total = 0,
   order,
+  orderNumber,
   settings,
 }: {
   tableName?: string;
   tableArea?: string;
   total?: number;
   order?: Order;
+  orderNumber?: number | null;
   settings?: CustomerReviewSettings;
 }) {
   const status = order?.status ?? "new";
   const activeStep = activeStepByStatus[status];
   const statusCopy = getStatusCopy(status);
   const googleReviewUrl = getGoogleReviewUrl(settings);
+  const displayOrderNumber = orderNumber ?? order?.orderNumber ?? null;
 
   return (
     <div className="grid gap-6">
@@ -90,13 +93,16 @@ export function CustomerTrackingPreview({
           <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-lg text-slate-600">
             <span className="inline-flex items-center gap-2">
               <Table2 className="size-5" />
-              {tableArea ? `${tableName} • ${tableArea}` : tableName}
+              {tableArea ? `${tableName} · ${tableArea}` : tableName}
             </span>
             <span className="inline-flex items-center gap-2">
               <QrCode className="size-5" />
               {formatEuro(total)}
             </span>
           </p>
+          {displayOrderNumber ? (
+            <p className="mt-2 text-xl font-black text-emerald-900">Commande n°{displayOrderNumber}</p>
+          ) : null}
         </div>
       </SectionCard>
 
@@ -154,7 +160,7 @@ export function CustomerTrackingPreview({
             </a>
           ) : (
             <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-base font-semibold text-emerald-900">
-              L’équipe vous proposera un lien d’avis après le repas.
+              L’équipe vous proposera un lien pour y laisser un avis après le repas.
             </p>
           )}
         </SectionCard>

@@ -1,15 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Cake, CupSoda, Heart, Leaf, Sparkles, Utensils } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CustomerCartBar } from "@/components/ui-custom/CustomerCartBar";
 import { CustomerProductCard } from "@/components/ui-custom/CustomerProductCard";
-import { createPublicOrder } from "@/app/r/[restaurant]/table/[table]/actions";
-import type { Category, Product, TableInfo } from "@/lib/types";
-import { formatEuro } from "@/lib/utils";
+import { CustomerTrackingPreview } from "@/components/ui-custom/CustomerTrackingPreview";
+import { createPublicOrder, getPublicOrderTracking } from "@/app/r/[restaurant]/table/[table]/actions";
+import type { Category, Order, Product, TableInfo } from "@/lib/types";
 
 type BasketLine = {
   product: Product;
@@ -94,6 +94,49 @@ function getEffectiveProductPrice(product: Product) {
   return product.price;
 }
 
+function getTableNumber(tableName: string) {
+  const match = tableName.match(/\d+/);
+
+  return match ? Number(match[0]) : 0;
+}
+
+function buildTrackedOrder({
+  id,
+  orderNumber,
+  status,
+  total,
+  table,
+  restaurantSlug,
+}: {
+  id: string;
+  orderNumber: number | null;
+  status: Order["status"];
+  total: number;
+  table: TableInfo;
+  restaurantSlug: string;
+}): Order {
+  const isPaidStatus = status === "paid" || status === "preparing" || status === "ready" || status === "served";
+
+  return {
+    id,
+    orderNumber: orderNumber ?? undefined,
+    table: getTableNumber(table.name),
+    tableId: table.id,
+    tableSlug: table.slug,
+    tableName: table.name,
+    tableArea: table.area,
+    restaurantSlug,
+    status,
+    items: 0,
+    total,
+    paid: isPaidStatus,
+    paymentStatus: isPaidStatus ? "paid" : "on_site_pending",
+    paymentMethod: "on_site",
+    serviceDate: new Date().toISOString().slice(0, 10),
+    source: "qr",
+  };
+}
+
 export function CustomerMenuContent({
   restaurantSlug,
   tableSlug,
@@ -115,6 +158,7 @@ export function CustomerMenuContent({
   const [confirmedOrderId, setConfirmedOrderId] = useState<string | null>(null);
   const [confirmedOrderNumber, setConfirmedOrderNumber] = useState<number | null>(null);
   const [confirmedOrderTotal, setConfirmedOrderTotal] = useState<number | null>(null);
+  const [trackedOrder, setTrackedOrder] = useState<Order | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const table = initialTable;
@@ -133,6 +177,49 @@ export function CustomerMenuContent({
   const itemCount = basket.reduce((sum, line) => sum + line.quantity, 0);
   const basketTotal = basket.reduce((sum, line) => sum + getEffectiveProductPrice(line.product) * line.quantity, 0);
   const ordersEnabled = publicMenu.ordersEnabled;
+
+  useEffect(() => {
+    if (!confirmedOrderId || !table) return;
+
+    const orderId = confirmedOrderId;
+    const currentTable = table;
+    let cancelled = false;
+
+    async function refreshTracking() {
+      const result = await getPublicOrderTracking({
+        restaurantSlug,
+        tableLabel: tableSlug,
+        orderId,
+      });
+
+      if (cancelled || !result.ok || !result.order) {
+        return;
+      }
+
+      setTrackedOrder(
+        buildTrackedOrder({
+          id: result.order.id,
+          orderNumber: result.order.orderNumber,
+          status: result.order.status,
+          total: result.order.total,
+          table: currentTable,
+          restaurantSlug,
+        }),
+      );
+
+      setConfirmedOrderNumber(result.order.orderNumber ?? null);
+      setConfirmedOrderTotal(result.order.total);
+    }
+
+    refreshTracking();
+
+    const timer = window.setInterval(refreshTracking, 10_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [confirmedOrderId, restaurantSlug, tableSlug, table]);
 
   function addToBasket(product: Product) {
     setValidationMessage("");
@@ -214,6 +301,16 @@ export function CustomerMenuContent({
     setConfirmedOrderId(result.orderId);
     setConfirmedOrderNumber(result.orderNumber ?? null);
     setConfirmedOrderTotal(basketTotal);
+    setTrackedOrder(
+      buildTrackedOrder({
+        id: result.orderId,
+        orderNumber: result.orderNumber ?? null,
+        status: "new",
+        total: basketTotal,
+        table,
+        restaurantSlug,
+      }),
+    );
     setBasket([]);
     setNote("");
     setCustomerName("");
@@ -251,28 +348,21 @@ export function CustomerMenuContent({
     return (
       <AppShell showNav={false}>
         <PageHeader title={restaurantName} subtitle={subtitle} customer />
-        <section className="mb-6 rounded-3xl border border-emerald-100 bg-linear-to-br from-emerald-50 to-white p-5 text-center shadow-card">
-          <span className="mx-auto mb-4 grid size-20 place-items-center rounded-full bg-emerald-700 text-white">
-            <Heart className="size-11" />
-          </span>
-          <h1 className="text-4xl font-black tracking-tighter text-emerald-900">Commande envoyée</h1>
-          <p className="mt-2 text-xl font-bold text-slate-800">{tableName}</p>
-          <p className="mt-1 text-3xl font-black text-emerald-800">{formatEuro(confirmedOrderTotal ?? 0)}</p>
-          <p className="mt-3 text-lg leading-relaxed text-slate-700">Votre commande a bien été transmise au restaurant.</p>
-          <p className="mt-2 text-2xl font-black text-emerald-900">Commande n°{confirmedOrderNumber ?? confirmedOrderId.slice(0, 4).toUpperCase()}</p>          
-          <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-base font-bold text-slate-700 shadow-card">Paiement sur place</p>
-
-          {publicMenu.reviewsEnabled && publicMenu.googleReviewUrl ? (
-            <a
-              href={publicMenu.googleReviewUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex min-h-12 items-center justify-center rounded-2xl border border-emerald-700 px-4 text-base font-black text-emerald-800"
-            >
-              Donner un avis Google après le repas
-            </a>
-          ) : null}
-        </section>
+        <CustomerTrackingPreview
+          tableName={tableName}
+          tableArea={tableArea}
+          total={confirmedOrderTotal ?? 0}
+          order={trackedOrder}
+          orderNumber={confirmedOrderNumber}
+          settings={{
+            googleReviewUrl: publicMenu.googleReviewUrl,
+            reviewsSettings: {
+              enabledAfterMeal: publicMenu.reviewsEnabled,
+              googleReviewUrl: publicMenu.googleReviewUrl,
+              suggestGoogleOnPositive: true,
+            },
+          }}
+        />
       </AppShell>
     );
   }
@@ -293,7 +383,10 @@ export function CustomerMenuContent({
         </div>
       </section>
 
-      <div className="mb-6 flex gap-3 overflow-x-auto pb-1 scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" aria-label="Catégories du menu">
+      <div
+        className="mb-6 flex gap-3 overflow-x-auto pb-1 scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        aria-label="Catégories du menu"
+      >
         {visibleCategories.map((category) => {
           const Icon = getCategoryIcon(category.id);
           const active = selectedCategoryId === category.id;

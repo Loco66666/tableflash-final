@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import type { OrderStatus } from "@/lib/types";
 
 type OrderCartItemPayload = {
   menuItemId: string;
@@ -24,6 +25,25 @@ type CreatePublicOrderResult = {
   orderNumber?: number;
 };
 
+type GetPublicOrderTrackingPayload = {
+  restaurantSlug: string;
+  tableLabel: string;
+  orderId: string;
+};
+
+type PublicOrderTracking = {
+  id: string;
+  orderNumber: number | null;
+  status: OrderStatus;
+  total: number;
+};
+
+type GetPublicOrderTrackingResult = {
+  ok: boolean;
+  message: string;
+  order?: PublicOrderTracking;
+};
+
 type MenuProductForOrder = {
   id: string;
   name: string;
@@ -41,6 +61,14 @@ type CreatedOrder = {
   order_number: number | null;
 };
 
+type TrackedOrderRow = {
+  id: string;
+  order_number: number | null;
+  status: string;
+  payment_status: string;
+  total: number | null;
+};
+
 const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
 
 function normalizeMoney(value: number) {
@@ -55,6 +83,17 @@ function getEffectivePrice(product: MenuProductForOrder) {
   }
 
   return normalizeMoney(Number(product.price ?? 0));
+}
+
+function mapDbStatusToCustomerStatus(status: string, paymentStatus: string): OrderStatus {
+  if (status === "pending") return "new";
+  if (status === "accepted") return paymentStatus === "paid" ? "paid" : "accepted";
+  if (status === "preparing") return "preparing";
+  if (status === "ready") return "ready";
+  if (status === "served") return "served";
+  if (status === "rejected" || status === "cancelled") return "refused";
+
+  return "new";
 }
 
 export async function createPublicOrder(payload: CreatePublicOrderPayload): Promise<CreatePublicOrderResult> {
@@ -152,6 +191,7 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
 
   const missing = normalizedItems.some((item) => {
     const menuItem = byId.get(item.menuItemId);
+
     return !menuItem || !menuItem.is_available;
   });
 
@@ -245,5 +285,74 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
     message: "Votre commande a bien été transmise au restaurant.",
     orderId: order.id,
     orderNumber: order.order_number ?? nextOrderNumber,
+  };
+}
+
+export async function getPublicOrderTracking(
+  payload: GetPublicOrderTrackingPayload,
+): Promise<GetPublicOrderTrackingResult> {
+  if (!payload.orderId) {
+    return {
+      ok: false,
+      message: "Commande introuvable.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  const { data: restaurant, error: restaurantError } = await supabase
+    .from("restaurants")
+    .select("id, status")
+    .eq("slug", payload.restaurantSlug)
+    .maybeSingle();
+
+  if (restaurantError || !restaurant || !["active", "trial"].includes(restaurant.status)) {
+    return {
+      ok: false,
+      message: "Restaurant indisponible.",
+    };
+  }
+
+  const { data: table, error: tableError } = await supabase
+    .from("restaurant_tables")
+    .select("id")
+    .eq("restaurant_id", restaurant.id)
+    .eq("slug", payload.tableLabel)
+    .eq("is_active", true)
+    .returns<{ id: string }[]>()
+    .maybeSingle();
+
+  if (tableError || !table) {
+    return {
+      ok: false,
+      message: "Table indisponible.",
+    };
+  }
+
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select("id, order_number, status, payment_status, total")
+    .eq("id", payload.orderId)
+    .eq("restaurant_id", restaurant.id)
+    .eq("table_id", table.id)
+    .returns<TrackedOrderRow[]>()
+    .maybeSingle();
+
+  if (orderError || !order) {
+    return {
+      ok: false,
+      message: "Commande introuvable.",
+    };
+  }
+
+  return {
+    ok: true,
+    message: "Suivi de commande chargé.",
+    order: {
+      id: order.id,
+      orderNumber: order.order_number,
+      status: mapDbStatusToCustomerStatus(order.status, order.payment_status),
+      total: Number(order.total ?? 0),
+    },
   };
 }
