@@ -1,6 +1,6 @@
 import { Alert, StyleSheet, Text, View } from "react-native";
 
-import { LargeActionButton } from "../components/LargeActionButton";
+import { SeniorActionButton } from "../components/SeniorActionButton";
 
 export function SeniorHomeScreen() {
   const openMedication = () => {
@@ -23,19 +23,20 @@ export function SeniorHomeScreen() {
       </View>
 
       <View style={styles.actions}>
-        <LargeActionButton
+        <SeniorActionButton
           title="Mes médicaments"
           subtitle="Voir mes prises"
           icon="💊"
+          tone="primary"
           accessibilityHint="Ouvre la liste des médicaments et des prises à venir."
           onPress={openMedication}
         />
 
-        <LargeActionButton
+        <SeniorActionButton
           title="Urgence"
           subtitle="Appeler de l'aide"
           icon="☎️"
-          variant="danger"
+          tone="danger"
           accessibilityHint="Demande un appel d'urgence."
           onPress={callEmergency}
         />
