@@ -77,7 +77,7 @@ export function OrdersBoard({
         </div>
       ) : null}
 
-      <div className="mb-6 -mx-1 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mb-6 -mx-1 overflow-x-auto px-1 pb-1 scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="inline-flex min-w-full gap-2 rounded-[1.2rem] border border-slate-200 bg-white p-1.5 shadow-card min-[430px]:grid min-[430px]:grid-cols-4">
           {orderFilters.map((filter) => {
             const active = activeFilter === filter.value;
@@ -89,7 +89,7 @@ export function OrdersBoard({
                 onClick={() => selectFilter(filter.value)}
                 disabled={isPending}
                 className={cn(
-                  "min-h-12 min-w-[9rem] shrink-0 rounded-2xl px-3 text-sm font-semibold whitespace-nowrap transition min-[390px]:text-base min-[430px]:min-w-0 disabled:opacity-60",
+                  "min-h-12 min-w-36 shrink-0 rounded-2xl px-3 text-sm font-semibold whitespace-nowrap transition min-[390px]:text-base min-[430px]:min-w-0 disabled:opacity-60",
                   active ? "bg-emerald-700 text-white shadow-green" : "text-slate-700 active:bg-emerald-50",
                 )}
                 aria-pressed={active}
@@ -107,13 +107,13 @@ export function OrdersBoard({
             <OrderCard
               key={order.id}
               order={order}
-              onStatusChange={updateOrderStatus}
-              onRefuse={refuseOrder}
+              statusChangeAction={updateOrderStatus}
+              refuseAction={refuseOrder}
             />
           ))}
         </div>
       ) : (
-        <section className="rounded-[1.5rem] border border-dashed border-emerald-200 bg-emerald-50/60 p-8 text-center shadow-card">
+        <section className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/60 p-8 text-center shadow-card">
           <h2 className="text-2xl font-black tracking-[-0.03em] text-emerald-900">{emptyLabel}</h2>
           <p className="mt-3 text-lg leading-relaxed text-slate-700">
             Les prochaines commandes apparaîtront ici pendant le service.

@@ -426,6 +426,55 @@ export type Database = {
         Relationships: [];
       };
 
+      restaurant_reviews: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          order_id: string | null;
+          table_id: string | null;
+          customer_name: string | null;
+          rating: number;
+          comment: string | null;
+          status: "pending" | "archived";
+          response: string | null;
+          response_saved: boolean;
+          suggest_google: boolean;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          order_id?: string | null;
+          table_id?: string | null;
+          customer_name?: string | null;
+          rating: number;
+          comment?: string | null;
+          status?: "pending" | "archived";
+          response?: string | null;
+          response_saved?: boolean;
+          suggest_google?: boolean;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          order_id?: string | null;
+          table_id?: string | null;
+          customer_name?: string | null;
+          rating?: number;
+          comment?: string | null;
+          status?: "pending" | "archived";
+          response?: string | null;
+          response_saved?: boolean;
+          suggest_google?: boolean;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+
       admin_events: {
         Row: {
           id: string;
