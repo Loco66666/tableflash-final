@@ -21,6 +21,7 @@ type CreatePublicOrderResult = {
   ok: boolean;
   message: string;
   orderId?: string;
+  orderNumber?: number;
 };
 
 type MenuProductForOrder = {
@@ -31,8 +32,13 @@ type MenuProductForOrder = {
   is_available: boolean;
 };
 
+type LatestOrderNumber = {
+  order_number: number | null;
+};
+
 type CreatedOrder = {
   id: string;
+  order_number: number | null;
 };
 
 const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
@@ -172,6 +178,25 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
 
   const subtotal = normalizeMoney(lines.reduce((sum, line) => sum + line.total, 0));
 
+  const { data: latestOrder, error: latestOrderError } = await supabase
+    .from("orders")
+    .select("order_number")
+    .eq("restaurant_id", restaurant.id)
+    .not("order_number", "is", null)
+    .order("order_number", { ascending: false })
+    .limit(1)
+    .returns<LatestOrderNumber[]>()
+    .maybeSingle();
+
+  if (latestOrderError) {
+    return {
+      ok: false,
+      message: "Impossible de préparer le numéro de commande.",
+    };
+  }
+
+  const nextOrderNumber = Number(latestOrder?.order_number ?? 0) + 1;
+
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
@@ -184,8 +209,9 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
       total: subtotal,
       payment_status: "unpaid",
       status: "pending",
+      order_number: nextOrderNumber,
     })
-    .select("id")
+    .select("id, order_number")
     .returns<CreatedOrder[]>()
     .single();
 
@@ -218,5 +244,6 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
     ok: true,
     message: "Votre commande a bien été transmise au restaurant.",
     orderId: order.id,
+    orderNumber: order.order_number ?? nextOrderNumber,
   };
 }

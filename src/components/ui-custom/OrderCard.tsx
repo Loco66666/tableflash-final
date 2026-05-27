@@ -24,6 +24,14 @@ type OrderCardProps = {
   refuseAction?: (orderId: string) => void;
 };
 
+function getOrderDisplayNumber(order: Order) {
+  if (typeof order.orderNumber === "number" && order.orderNumber > 0) {
+    return `n°${order.orderNumber}`;
+  }
+
+  return `#${order.id.slice(0, 8).toUpperCase()}`;
+}
+
 function renderOrderIcon(status: OrderStatus) {
   switch (status) {
     case "new":
@@ -45,6 +53,7 @@ function renderOrderIcon(status: OrderStatus) {
 
 export function OrderCard({ order, statusChangeAction, refuseAction }: OrderCardProps) {
   const primaryActionLabel = getPrimaryOrderActionLabel(order);
+  const orderDisplayNumber = getOrderDisplayNumber(order);
   const isNew = order.status === "new";
   const isClosed = order.status === "served" || order.status === "refused";
   const [now, setNow] = useState<Date | null>(null);
@@ -88,7 +97,9 @@ export function OrderCard({ order, statusChangeAction, refuseAction }: OrderCard
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-2 min-[390px]:flex-row min-[390px]:items-start min-[390px]:justify-between">
             <div>
-              <h2 className="text-xl font-black tracking-[-0.03em] min-[390px]:text-2xl">Commande #{order.id}</h2>
+              <h2 className="text-xl font-black tracking-tight min-[390px]:text-2xl">
+                Commande {orderDisplayNumber}
+              </h2>
               {timestampLabel ? <p className="mt-1 text-sm font-semibold text-slate-500">{timestampLabel}</p> : null}
             </div>
 
@@ -141,7 +152,7 @@ export function OrderCard({ order, statusChangeAction, refuseAction }: OrderCard
         </div>
       </div>
 
-      <div className="mt-4 text-right text-3xl font-black tracking-[-0.04em] min-[390px]:text-4xl">
+      <div className="mt-4 text-right text-3xl font-black tracking-tight min-[390px]:text-4xl">
         {formatEuro(order.total)}
       </div>
 

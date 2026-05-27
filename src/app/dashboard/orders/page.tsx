@@ -12,6 +12,7 @@ type OrdersPageProps = {
 
 type DbOrder = {
   id: string;
+  order_number: number | null;
   restaurant_id: string;
   table_id: string;
   customer_name: string;
@@ -99,6 +100,7 @@ function buildOrderViewModel({
 
   return {
     id: order.id,
+    orderNumber: order.order_number ?? undefined,
     createdAt: order.created_at ?? undefined,
     table: table ? parseTableNumber(table.name, table.slug) : 0,
     tableId: order.table_id,
@@ -128,8 +130,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
   const { data: ordersData, error: ordersError } = await supabase
     .from("orders")
-    .select("id, restaurant_id, table_id, customer_name, customer_phone, customer_note, status, payment_status, subtotal, total, created_at, updated_at")
-    .eq("restaurant_id", restaurant.id)
+    .select("id, order_number, restaurant_id, table_id, customer_name, customer_phone, customer_note, status, payment_status, subtotal, total, created_at, updated_at")    .eq("restaurant_id", restaurant.id)
     .order("created_at", { ascending: false })
     .returns<DbOrder[]>();
 

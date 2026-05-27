@@ -35,6 +35,7 @@ export type OrderLine = {
 
 export type Order = {
   id: string;
+  orderNumber?: number;
   createdAt?: string;
   createdDate?: string;
   createdTime?: string;

@@ -358,6 +358,7 @@ export type Database = {
           payment_status: string;
           subtotal: number;
           total: number;
+          order_number: number | null;
           created_at: string | null;
           updated_at: string | null;
         };
@@ -372,6 +373,7 @@ export type Database = {
           payment_status?: string;
           subtotal?: number;
           total?: number;
+          order_number?: number | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
@@ -386,6 +388,7 @@ export type Database = {
           payment_status?: string;
           subtotal?: number;
           total?: number;
+          order_number?: number | null;
           created_at?: string | null;
           updated_at?: string | null;
         };

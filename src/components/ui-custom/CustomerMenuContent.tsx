@@ -113,6 +113,7 @@ export function CustomerMenuContent({
   const [basketOpen, setBasketOpen] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
   const [confirmedOrderId, setConfirmedOrderId] = useState<string | null>(null);
+  const [confirmedOrderNumber, setConfirmedOrderNumber] = useState<number | null>(null);
   const [confirmedOrderTotal, setConfirmedOrderTotal] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -211,6 +212,7 @@ export function CustomerMenuContent({
     }
 
     setConfirmedOrderId(result.orderId);
+    setConfirmedOrderNumber(result.orderNumber ?? null);
     setConfirmedOrderTotal(basketTotal);
     setBasket([]);
     setNote("");
@@ -257,7 +259,7 @@ export function CustomerMenuContent({
           <p className="mt-2 text-xl font-bold text-slate-800">{tableName}</p>
           <p className="mt-1 text-3xl font-black text-emerald-800">{formatEuro(confirmedOrderTotal ?? 0)}</p>
           <p className="mt-3 text-lg leading-relaxed text-slate-700">Votre commande a bien été transmise au restaurant.</p>
-          <p className="mt-2 text-base font-bold text-slate-700">Référence : {confirmedOrderId.slice(0, 8).toUpperCase()}</p>
+          <p className="mt-2 text-2xl font-black text-emerald-900">Commande n°{confirmedOrderNumber ?? confirmedOrderId.slice(0, 4).toUpperCase()}</p>          
           <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-base font-bold text-slate-700 shadow-card">Paiement sur place</p>
 
           {publicMenu.reviewsEnabled && publicMenu.googleReviewUrl ? (
