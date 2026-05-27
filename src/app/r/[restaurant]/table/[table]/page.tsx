@@ -17,6 +17,23 @@ type PublicRestaurantMenuData = {
   products: Product[];
 };
 
+type PublicMenuCategory = {
+  id: string;
+  name: string;
+};
+
+type PublicMenuProduct = {
+  id: string;
+  name: string;
+  category_id: string | null;
+  description: string | null;
+  price: number | null;
+  promo_price: number | null;
+  is_available: boolean;
+  is_featured: boolean;
+  image_url: string | null;
+};
+
 async function getPublicRestaurantMenuData(restaurantSlug: string): Promise<PublicRestaurantMenuData | null> {
   const supabase = await createClient();
 
@@ -29,40 +46,70 @@ async function getPublicRestaurantMenuData(restaurantSlug: string): Promise<Publ
   if (restaurantError) return null;
   if (!restaurant) return null;
 
-  const { data: categoriesData } = await supabase
+  if (restaurant.status !== "active" && restaurant.status !== "trial") {
+    return {
+      restaurantName: restaurant.name,
+      restaurantCity: restaurant.city,
+      status: restaurant.status,
+      ordersEnabled: false,
+      categories: [],
+      products: [],
+    };
+  }
+
+  const { data: categoriesData, error: categoriesError } = await supabase
     .from("menu_categories")
     .select("id, name")
     .eq("restaurant_id", restaurant.id)
     .eq("is_active", true)
     .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .returns<PublicMenuCategory[]>();
 
-  const { data: productsData } = await supabase
+  if (categoriesError) return null;
+
+  const { data: productsData, error: productsError } = await supabase
     .from("menu_products")
-    .select("id, name, category_id, description, price_cents, is_available, image_url")
+    .select("id, name, category_id, description, price, promo_price, is_available, is_featured, image_url")
     .eq("restaurant_id", restaurant.id)
     .eq("is_available", true)
     .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .returns<PublicMenuProduct[]>();
 
-  const products = (productsData ?? []).map((item) => ({
+  if (productsError) return null;
+
+  const products: Product[] = (productsData ?? []).map((item) => ({
     id: item.id,
     name: item.name,
     categoryId: item.category_id ?? "uncategorized",
     description: item.description ?? "",
-    price: (item.price_cents ?? 0) / 100,
+    price: Number(item.price ?? 0),
+    promoPrice: item.promo_price === null ? undefined : Number(item.promo_price),
     available: Boolean(item.is_available),
-    visual: item.name,
+    isAvailable: Boolean(item.is_available),
+    featured: Boolean(item.is_featured),
+    promoted: Boolean(item.is_featured),
+    visual: "salad",
     imageUrl: item.image_url ?? undefined,
   }));
 
   const visibleCategoryIds = new Set(products.map((product) => product.categoryId));
+
   const categories: Category[] = (categoriesData ?? [])
     .filter((category) => visibleCategoryIds.has(category.id))
-    .map((category) => ({ id: category.id, name: category.name, icon: "sparkles" }));
+    .map((category) => ({
+      id: category.id,
+      name: category.name,
+      icon: "sparkles",
+    }));
 
   if (visibleCategoryIds.has("uncategorized")) {
-    categories.push({ id: "uncategorized", name: "Sans catégorie", icon: "sparkles" });
+    categories.push({
+      id: "uncategorized",
+      name: "Sans catégorie",
+      icon: "sparkles",
+    });
   }
 
   const { data: settingsData } = await supabase
@@ -70,7 +117,6 @@ async function getPublicRestaurantMenuData(restaurantSlug: string): Promise<Publ
     .select("orders_enabled")
     .eq("restaurant_id", restaurant.id)
     .maybeSingle();
-
 
   return {
     restaurantName: restaurant.name,
