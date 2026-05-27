@@ -67,6 +67,30 @@ function parseTimeToMinutes(value: string | null | undefined) {
   return hour * 60 + minute;
 }
 
+function formatServiceTime(value: string) {
+  const [hour = "00", minute = "00"] = value.split(":");
+
+  return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+}
+
+function formatServiceRange(start: string, end: string) {
+  return `${formatServiceTime(start)} - ${formatServiceTime(end)}`;
+}
+
+function getServiceRanges(settings: DashboardClientData["settings"]) {
+  const ranges: string[] = [];
+
+  if (settings.lunchEnabled) {
+    ranges.push(formatServiceRange(settings.lunchStart, settings.lunchEnd));
+  }
+
+  if (settings.dinnerEnabled) {
+    ranges.push(formatServiceRange(settings.dinnerStart, settings.dinnerEnd));
+  }
+
+  return ranges.join(" · ");
+}
+
 function isWithinTimeRange(nowMinutes: number, start: string, end: string) {
   const startMinutes = parseTimeToMinutes(start);
   const endMinutes = parseTimeToMinutes(end);
@@ -82,13 +106,20 @@ function isWithinTimeRange(nowMinutes: number, start: string, end: string) {
   return nowMinutes >= startMinutes || nowMinutes <= endMinutes;
 }
 
-function getServiceStatus(settings: DashboardClientData["settings"]) {
+function getPendingTasksCount(tasks: DashboardClientData["tasks"]) {
+  return tasks.ordersToAccept + tasks.ordersToCollect + tasks.reviewsToHandle;
+}
+
+function getServiceStatus(settings: DashboardClientData["settings"], tasks: DashboardClientData["tasks"]) {
+  const pendingTasksCount = getPendingTasksCount(tasks);
+  const serviceRanges = getServiceRanges(settings);
+
   if (!settings.ordersEnabled) {
     return {
       isOpen: false,
       title: "Commandes désactivées",
-      subtitle: "Activez les commandes dans les réglages",
-      detail: "Les clients peuvent consulter le menu, mais ne peuvent pas commander.",
+      subtitle: "Les clients peuvent consulter le menu",
+      detail: "Activez les commandes dans les réglages pour recevoir des commandes QR.",
     };
   }
 
@@ -104,8 +135,8 @@ function getServiceStatus(settings: DashboardClientData["settings"]) {
     return {
       isOpen: true,
       title: "Service du midi ouvert",
-      subtitle: `Ouvert jusqu’à ${settings.lunchEnd}`,
-      detail: "Les commandes QR peuvent arriver maintenant.",
+      subtitle: pendingTasksCount > 0 ? `${pendingTasksCount} action à traiter` : "Prêt à recevoir des commandes",
+      detail: `Ouvert jusqu’à ${formatServiceTime(settings.lunchEnd)}.`,
     };
   }
 
@@ -113,16 +144,16 @@ function getServiceStatus(settings: DashboardClientData["settings"]) {
     return {
       isOpen: true,
       title: "Service du soir ouvert",
-      subtitle: `Ouvert jusqu’à ${settings.dinnerEnd}`,
-      detail: "Les commandes QR peuvent arriver maintenant.",
+      subtitle: pendingTasksCount > 0 ? `${pendingTasksCount} action à traiter` : "Prêt à recevoir des commandes",
+      detail: `Ouvert jusqu’à ${formatServiceTime(settings.dinnerEnd)}.`,
     };
   }
 
   return {
     isOpen: false,
     title: "Service fermé",
-    subtitle: "Aucune commande en cours",
-    detail: `Prochains créneaux : ${settings.lunchStart}-${settings.lunchEnd} / ${settings.dinnerStart}-${settings.dinnerEnd}`,
+    subtitle: pendingTasksCount > 0 ? `${pendingTasksCount} action à terminer` : "Aucune action urgente",
+    detail: serviceRanges ? `Prochains services : ${serviceRanges}` : "Aucun créneau configuré.",
   };
 }
 
@@ -148,7 +179,7 @@ function pluralize(value: number, singular: string, plural: string) {
 }
 
 export default function DashboardClient({ data }: { data: DashboardClientData }) {
-  const serviceStatus = getServiceStatus(data.settings);
+  const serviceStatus = getServiceStatus(data.settings, data.tasks);
 
   return (
     <AppShell>
