@@ -7,13 +7,12 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CustomerCartBar } from "@/components/ui-custom/CustomerCartBar";
 import { CustomerProductCard } from "@/components/ui-custom/CustomerProductCard";
-import { CustomerTrackingPreview } from "@/components/ui-custom/CustomerTrackingPreview";
+import { createPublicOrder } from "@/app/r/[restaurant]/table/[table]/actions";
 import { restaurantSettings } from "@/lib/data/seed";
-import { useOrdersStore } from "@/lib/local-store/ordersStore";
 import { useSettingsStore } from "@/lib/local-store/settingsStore";
 import { useTablesStore } from "@/lib/local-store/tablesStore";
 import { findTableBySlug, normalizeTables } from "@/lib/tables";
-import type { Category, Order, Product, TableInfo } from "@/lib/types";
+import type { Category, Product, TableInfo } from "@/lib/types";
 import { formatEuro } from "@/lib/utils";
 
 type BasketLine = {
@@ -57,29 +56,12 @@ function getVisibleCategories(categories: Category[]) {
   return [allCategory, ...sortedCategories];
 }
 
-function getTodayDate() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function getCurrentTime() {
-  return new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-}
-
-function getOrderTableNumber(table: TableInfo) {
-  const match = table.name.match(/\d+/) ?? table.slug.match(/\d+/);
-  return match ? Number(match[0]) : 0;
-}
-
-function createOrderNumber(existingOrders: Order[]) {
-  const numericIds = existingOrders.map((order) => Number.parseInt(order.id, 10)).filter(Number.isFinite);
-  const nextNumber = numericIds.length > 0 ? Math.max(...numericIds) + 1 : existingOrders.length + 1;
-  return String(nextNumber).padStart(4, "0");
-}
 
 type PublicMenuPayload = {
   restaurantName: string;
   restaurantCity: string | null;
   status: "active" | "trial" | "suspended" | "archived";
+  ordersEnabled: boolean;
   categories: Category[];
   products: Product[];
 };
@@ -87,14 +69,16 @@ type PublicMenuPayload = {
 export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable, publicMenu }: { restaurantSlug: string; tableSlug: string; initialTable?: TableInfo; publicMenu: PublicMenuPayload }) {
   const { value: storedTables } = useTablesStore();
   const { value: settings } = useSettingsStore();
-  const { value: orders, setValue: setOrders } = useOrdersStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
   const [basket, setBasket] = useState<BasketLine[]>([]);
   const [note, setNote] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [basketOpen, setBasketOpen] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
   const [confirmedOrderId, setConfirmedOrderId] = useState<string | null>(null);
-  const [confirmedOrderSnapshot, setConfirmedOrderSnapshot] = useState<Order | null>(null);
+  const [confirmedOrderTotal, setConfirmedOrderTotal] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const tables = normalizeTables(storedTables);
   const table = findTableBySlug(tableSlug, tables) ?? initialTable;
@@ -108,7 +92,7 @@ export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable, p
   const visibleProducts = selectedCategoryId === "all" ? orderableProducts : orderableProducts.filter((product) => product.categoryId === selectedCategoryId);
   const itemCount = basket.reduce((sum, line) => sum + line.quantity, 0);
   const basketTotal = basket.reduce((sum, line) => sum + line.product.price * line.quantity, 0);
-  const confirmedOrder = confirmedOrderId ? orders.find((order) => order.id === confirmedOrderId) ?? confirmedOrderSnapshot : null;
+  const ordersEnabled = publicMenu.ordersEnabled;
 
   function addToBasket(product: Product) {
     setValidationMessage("");
@@ -139,42 +123,43 @@ export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable, p
     setBasket((currentBasket) => currentBasket.filter((line) => line.product.id !== productId));
   }
 
-  function confirmOrder() {
+  async function confirmOrder() {
     if (!table || basket.length === 0) {
       setValidationMessage("Ajoutez au moins un produit avant de confirmer.");
       setBasketOpen(true);
       return;
     }
-
-    const orderId = createOrderNumber(orders);
-    const itemTotal = basket.reduce((sum, line) => sum + line.quantity, 0);
-    const nextOrder: Order = {
-      id: orderId,
-      table: getOrderTableNumber(table),
-      tableId: table.id,
-      tableSlug: table.slug,
-      tableName: table.name,
-      tableArea: table.area,
+    if (!customerName.trim()) {
+      setValidationMessage("Le nom du client est obligatoire.");
+      setBasketOpen(true);
+      return;
+    }
+    if (!ordersEnabled) {
+      setValidationMessage("Les commandes sont désactivées pour le moment.");
+      return;
+    }
+    setIsSubmitting(true);
+    const result = await createPublicOrder({
       restaurantSlug,
-      status: "new",
-      items: itemTotal,
-      total: basketTotal,
-      paid: false,
-      paymentStatus: "on_site_pending",
-      paymentMethod: "on_site",
-      customerNote: note.trim() || undefined,
-      serviceDate: getTodayDate(),
-      serviceTime: getCurrentTime(),
-      service: "midi",
-      lines: basket.map((line) => ({ productId: line.product.id, quantity: line.quantity, name: line.product.name, unitPrice: line.product.price })),
-      source: "qr",
-    };
+      tableLabel: table.slug,
+      customerName,
+      customerPhone,
+      customerNote: note,
+      orderType: "dine_in",
+      items: basket.map((line) => ({ menuItemId: line.product.id, quantity: line.quantity })),
+    });
+    setIsSubmitting(false);
+    if (!result.ok || !result.orderId) {
+      setValidationMessage(result.message);
+      return;
+    }
 
-    setOrders((currentOrders) => [nextOrder, ...currentOrders]);
-    setConfirmedOrderId(nextOrder.id);
-    setConfirmedOrderSnapshot(nextOrder);
+    setConfirmedOrderId(result.orderId);
+    setConfirmedOrderTotal(basketTotal);
     setBasket([]);
     setNote("");
+    setCustomerName("");
+    setCustomerPhone("");
     setValidationMessage("");
     setBasketOpen(false);
   }
@@ -204,7 +189,7 @@ export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable, p
     );
   }
 
-  if (confirmedOrder) {
+  if (confirmedOrderId) {
     return (
       <AppShell showNav={false}>
         <PageHeader title={restaurantName} subtitle={subtitle} customer />
@@ -212,11 +197,11 @@ export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable, p
           <span className="mx-auto mb-4 grid size-20 place-items-center rounded-full bg-emerald-700 text-white"><Heart className="size-11" /></span>
           <h1 className="text-4xl font-black tracking-[-0.05em] text-emerald-900">Commande envoyée</h1>
           <p className="mt-2 text-xl font-bold text-slate-800">{tableName}</p>
-          <p className="mt-1 text-3xl font-black text-emerald-800">{formatEuro(confirmedOrder.total)}</p>
-          <p className="mt-3 text-lg leading-relaxed text-slate-700">L’équipe va valider votre commande.</p>
+          <p className="mt-1 text-3xl font-black text-emerald-800">{formatEuro(confirmedOrderTotal ?? 0)}</p>
+          <p className="mt-3 text-lg leading-relaxed text-slate-700">Votre commande a bien été transmise au restaurant.</p>
+          <p className="mt-2 text-base font-bold text-slate-700">Référence: {confirmedOrderId.slice(0, 8).toUpperCase()}</p>
           <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-base font-bold text-slate-700 shadow-card">Paiement sur place</p>
         </section>
-        <CustomerTrackingPreview tableName={tableName} tableArea={tableArea} total={confirmedOrder.total} order={confirmedOrder} settings={settings} />
       </AppShell>
     );
   }
@@ -268,7 +253,11 @@ export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable, p
         total={basketTotal}
         lines={basket}
         note={note}
+        customerName={customerName}
+        customerPhone={customerPhone}
         validationMessage={validationMessage}
+        ordersEnabled={ordersEnabled}
+        isSubmitting={isSubmitting}
         isOpen={basketOpen}
         onOpen={() => setBasketOpen(true)}
         onClose={() => setBasketOpen(false)}
@@ -276,6 +265,8 @@ export function CustomerMenuContent({ restaurantSlug, tableSlug, initialTable, p
         onDecrease={decreaseQuantity}
         onRemove={removeItem}
         onNoteChange={setNote}
+        onCustomerNameChange={setCustomerName}
+        onCustomerPhoneChange={setCustomerPhone}
         onConfirm={confirmOrder}
       />
     </AppShell>

@@ -12,7 +12,11 @@ type CustomerCartBarProps = {
   total: number;
   lines: BasketLine[];
   note: string;
+  customerName: string;
+  customerPhone: string;
   validationMessage?: string;
+  ordersEnabled: boolean;
+  isSubmitting: boolean;
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
@@ -20,6 +24,8 @@ type CustomerCartBarProps = {
   onDecrease: (productId: string) => void;
   onRemove: (productId: string) => void;
   onNoteChange: (note: string) => void;
+  onCustomerNameChange: (value: string) => void;
+  onCustomerPhoneChange: (value: string) => void;
   onConfirm: () => void;
 };
 
@@ -28,7 +34,11 @@ export function CustomerCartBar({
   total,
   lines,
   note,
+  customerName,
+  customerPhone,
   validationMessage,
+  ordersEnabled,
+  isSubmitting,
   isOpen,
   onOpen,
   onClose,
@@ -36,6 +46,8 @@ export function CustomerCartBar({
   onDecrease,
   onRemove,
   onNoteChange,
+  onCustomerNameChange,
+  onCustomerPhoneChange,
   onConfirm,
 }: CustomerCartBarProps) {
   const hasItems = itemCount > 0;
@@ -114,6 +126,26 @@ export function CustomerCartBar({
             )}
 
             <label className="mt-5 grid gap-2 text-base font-black text-slate-800">
+              <span>Nom du client *</span>
+              <input
+                value={customerName}
+                onChange={(event) => onCustomerNameChange(event.target.value)}
+                placeholder="Votre nom"
+                className="min-h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+              />
+            </label>
+
+            <label className="mt-3 grid gap-2 text-base font-black text-slate-800">
+              <span>Téléphone (optionnel)</span>
+              <input
+                value={customerPhone}
+                onChange={(event) => onCustomerPhoneChange(event.target.value)}
+                placeholder="06 12 34 56 78"
+                className="min-h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+              />
+            </label>
+
+            <label className="mt-3 grid gap-2 text-base font-black text-slate-800">
               <span>Note pour l’équipe</span>
               <textarea
                 value={note}
@@ -137,10 +169,12 @@ export function CustomerCartBar({
             <button
               type="button"
               onClick={onConfirm}
+              disabled={!ordersEnabled || isSubmitting}
               className="mt-5 min-h-16 w-full rounded-2xl bg-gradient-to-br from-[var(--tf-primary-600)] to-[var(--tf-primary-900)] px-5 text-lg font-black text-white shadow-green transition active:scale-[0.99]"
             >
-              Confirmer la commande
+              {isSubmitting ? "Envoi en cours…" : "Confirmer la commande"}
             </button>
+            {!ordersEnabled ? <p className="mt-3 text-center text-base font-bold text-red-700">Les commandes sont désactivées pour le moment.</p> : null}
           </section>
         </div>
       ) : null}

@@ -12,6 +12,7 @@ type PublicRestaurantMenuData = {
   restaurantName: string;
   restaurantCity: string | null;
   status: "active" | "trial" | "suspended" | "archived";
+  ordersEnabled: boolean;
   categories: Category[];
   products: Product[];
 };
@@ -64,10 +65,18 @@ async function getPublicRestaurantMenuData(restaurantSlug: string): Promise<Publ
     categories.push({ id: "uncategorized", name: "Sans catégorie", icon: "sparkles" });
   }
 
+  const { data: settingsData } = await supabase
+    .from("restaurant_settings")
+    .select("orders_enabled")
+    .eq("restaurant_id", restaurant.id)
+    .maybeSingle();
+
+
   return {
     restaurantName: restaurant.name,
     restaurantCity: restaurant.city,
     status: restaurant.status,
+    ordersEnabled: settingsData?.orders_enabled ?? true,
     categories,
     products,
   };
