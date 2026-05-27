@@ -1,23 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Copy, ExternalLink, Plus, Printer, QrCode, ReceiptText, TrendingUp, X } from "lucide-react";
+import { createRestaurantTable, toggleRestaurantTable } from "@/app/dashboard/qr/actions";
 import { SectionCard } from "@/components/ui-custom/SectionCard";
 import { TableQrCard } from "@/components/ui-custom/TableQrCard";
-import { orders as seedOrders } from "@/lib/data/seed";
-import { useOrdersStore } from "@/lib/local-store/ordersStore";
-import { useSettingsStore } from "@/lib/local-store/settingsStore";
-import { useTablesStore } from "@/lib/local-store/tablesStore";
-import {
-  createUniqueTableId,
-  createUniqueTableSlug,
-  getCustomerPath,
-  normalizeTableText,
-  normalizeTables,
-  tableZoneOptions,
-} from "@/lib/tables";
 import type { TableInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +17,6 @@ type AddTableForm = {
 };
 
 type AddTableErrors = Partial<Record<"name" | "area", string>>;
-type PrintFormat = "card" | "sheet";
 
 type LinkPanel = {
   title: string;
@@ -42,23 +30,37 @@ type QrPanel = {
   path: string;
 };
 
-const seedQrOrderCount = seedOrders.filter((order) => order.source === "qr").length;
-const initialForm: AddTableForm = { name: "", area: "", isActive: true };
+type PrintFormat = "card" | "sheet";
 
-function getFullCustomerUrl(table: TableInfo, origin: string, publicSlug: string) {
-  const path = getCustomerPath(table, publicSlug);
-  return origin ? `${origin}${path}` : path;
+const initialForm: AddTableForm = {
+  name: "",
+  area: "",
+  isActive: true,
+};
+
+const tableZoneOptions = ["Salle", "Terrasse", "Comptoir", "Étage", "Salon privé", "À emporter"] as const;
+
+function normalizeTableText(value: string) {
+  return value
+    .trim()
+    .toLocaleLowerCase("fr-FR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
-function getQrOrdersCount(orders: typeof seedOrders) {
-  const hasSource = orders.some((order) => "source" in order);
-  if (!hasSource) return seedQrOrderCount;
-  return orders.filter((order) => order.source === "qr").length;
+function getCustomerPath(table: Pick<TableInfo, "slug">, restaurantSlug: string) {
+  return `/r/${restaurantSlug}/table/${table.slug}`;
+}
+
+function getFullCustomerUrl(table: TableInfo, origin: string, restaurantSlug: string) {
+  const path = getCustomerPath(table, restaurantSlug);
+  return origin ? `${origin}${path}` : path;
 }
 
 function QrVisual({ value, compact = false }: { value: string; compact?: boolean }) {
   const cells = useMemo(() => {
     let hash = 0;
+
     for (let index = 0; index < value.length; index += 1) {
       hash = (hash * 31 + value.charCodeAt(index)) % 9973;
     }
@@ -69,6 +71,7 @@ function QrVisual({ value, compact = false }: { value: string; compact?: boolean
       const inTopLeft = row < 3 && column < 3;
       const inTopRight = row < 3 && column > 5;
       const inBottomLeft = row > 5 && column < 3;
+
       return inTopLeft || inTopRight || inBottomLeft || ((hash + row * 7 + column * 11 + row * column) % 4 === 0);
     });
   }, [value]);
@@ -76,7 +79,7 @@ function QrVisual({ value, compact = false }: { value: string; compact?: boolean
   return (
     <div
       className={cn(
-        "mx-auto grid grid-cols-9 gap-1 rounded-[1.5rem] border border-emerald-100 bg-white p-4 shadow-card",
+        "mx-auto grid grid-cols-9 gap-1 rounded-3xl border border-emerald-100 bg-white p-4 shadow-card",
         compact ? "size-36" : "size-52",
       )}
       aria-hidden="true"
@@ -145,34 +148,39 @@ function CustomerMenuLink({ path, link, className }: { path: string; link: strin
   );
 }
 
-export function TableQrManager() {
+export function TableQrManager({
+  restaurantSlug,
+  initialTables,
+  qrOrdersCount,
+}: {
+  restaurantSlug: string;
+  initialTables: TableInfo[];
+  qrOrdersCount: number;
+}) {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const { value: storedTables, setValue: setTables } = useTablesStore();
-  const { value: orders } = useOrdersStore();
-  const { value: settings } = useSettingsStore();
+  const [isPending, startTransition] = useTransition();
   const [addPanelOpen, setAddPanelOpen] = useState(false);
   const [form, setForm] = useState<AddTableForm>(initialForm);
   const [errors, setErrors] = useState<AddTableErrors>({});
+  const [actionError, setActionError] = useState("");
   const [copiedTableId, setCopiedTableId] = useState<string | null>(null);
   const [manualLink, setManualLink] = useState<LinkPanel | null>(null);
   const [qrPanel, setQrPanel] = useState<QrPanel | null>(null);
   const [printPanelOpen, setPrintPanelOpen] = useState(false);
-  const [selectedPrintIds, setSelectedPrintIds] = useState<string[]>(() => normalizeTables(storedTables).filter((table) => table.isActive).map((table) => table.id));
+  const [selectedPrintIds, setSelectedPrintIds] = useState<string[]>(() => initialTables.filter((table) => table.isActive).map((table) => table.id));
   const [printFormat, setPrintFormat] = useState<PrintFormat>("card");
   const [origin, setOrigin] = useState("");
 
-  const publicSlug = settings.publicSlug?.trim() || "bistrot-des-halles";
-  const tables = useMemo(() => normalizeTables(storedTables), [storedTables]);
+  const tables = initialTables;
   const activeTables = useMemo(() => tables.filter((table) => table.isActive), [tables]);
   const activePrintIds = useMemo(() => new Set(activeTables.map((table) => table.id)), [activeTables]);
   const selectedActivePrintIds = selectedPrintIds.filter((tableId) => activePrintIds.has(tableId));
   const scanCount = useMemo(() => tables.reduce((total, table) => total + table.scans, 0), [tables]);
-  const qrOrdersCount = useMemo(() => getQrOrdersCount(orders), [orders]);
   const selectedPrintTables = activeTables.filter((table) => selectedPrintIds.includes(table.id));
 
   useEffect(() => {
     const originTimer = window.setTimeout(() => setOrigin(window.location.origin), 0);
-
     return () => window.clearTimeout(originTimer);
   }, []);
 
@@ -190,45 +198,72 @@ export function TableQrManager() {
   function resetAddPanel() {
     setForm(initialForm);
     setErrors({});
+    setActionError("");
     setAddPanelOpen(false);
   }
 
   function submitTable(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
     const trimmedName = form.name.trim();
     const trimmedArea = form.area.trim();
     const nextErrors: AddTableErrors = {};
 
     if (!trimmedName) nextErrors.name = "Le nom de la table est requis.";
-    if (!trimmedArea) nextErrors.area = "Choisissez une zone";
+    if (!trimmedArea) nextErrors.area = "Choisissez une zone.";
+
     if (tables.some((table) => normalizeTableText(table.name) === normalizeTableText(trimmedName))) {
       nextErrors.name = "Une table porte déjà ce nom.";
     }
 
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
 
-    const slug = createUniqueTableSlug(trimmedName, tables.map((table) => table.slug));
-    const id = createUniqueTableId(slug, tables.map((table) => table.id));
-    const nextTable: TableInfo = {
-      id,
-      slug,
-      name: trimmedName,
-      area: trimmedArea,
-      isActive: form.isActive,
-      scans: 0,
-    };
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
 
-    setTables((currentTables) => [...normalizeTables(currentTables), nextTable]);
-    resetAddPanel();
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+
+          await createRestaurantTable({
+            name: trimmedName,
+            zone: trimmedArea,
+            isActive: form.isActive,
+          });
+
+          resetAddPanel();
+          router.refresh();
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Création impossible.");
+        }
+      })();
+    });
   }
 
-  function toggleTable(tableId: string) {
-    setTables((currentTables) => normalizeTables(currentTables).map((table) => (table.id === tableId ? { ...table, isActive: !table.isActive } : table)));
+  function toggleTable(table: TableInfo) {
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+
+          await toggleRestaurantTable({
+            tableId: table.id,
+            isActive: !table.isActive,
+          });
+
+          router.refresh();
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Mise à jour impossible.");
+        }
+      })();
+    });
   }
 
   async function copyLink(table: TableInfo, explicitLink?: string) {
-    const link = explicitLink ?? getFullCustomerUrl(table, origin || window.location.origin, publicSlug);
+    const link = explicitLink ?? getFullCustomerUrl(table, origin || window.location.origin, restaurantSlug);
+
     if (navigator.clipboard?.writeText) {
       try {
         await navigator.clipboard.writeText(link);
@@ -236,18 +271,32 @@ export function TableQrManager() {
         window.setTimeout(() => setCopiedTableId(null), 1800);
         return;
       } catch {
-        setManualLink({ title: `Lien ${table.name}`, link, path: getCustomerPath(table, publicSlug) });
+        setManualLink({
+          title: `Lien ${table.name}`,
+          link,
+          path: getCustomerPath(table, restaurantSlug),
+        });
         return;
       }
     }
-    setManualLink({ title: `Lien ${table.name}`, link, path: getCustomerPath(table, publicSlug) });
+
+    setManualLink({
+      title: `Lien ${table.name}`,
+      link,
+      path: getCustomerPath(table, restaurantSlug),
+    });
   }
 
   function viewQr(table: TableInfo) {
-    setQrPanel({ table, link: getFullCustomerUrl(table, origin || window.location.origin, publicSlug), path: getCustomerPath(table, publicSlug) });
+    setQrPanel({
+      table,
+      link: getFullCustomerUrl(table, origin || window.location.origin, restaurantSlug),
+      path: getCustomerPath(table, restaurantSlug),
+    });
   }
+
   function openCustomerMenu(table: TableInfo) {
-    const path = getCustomerPath(table, publicSlug);
+    const path = getCustomerPath(table, restaurantSlug);
     window.open(path, "_blank", "noopener,noreferrer");
   }
 
@@ -266,8 +315,15 @@ export function TableQrManager() {
 
   return (
     <>
-      <h1 className="mb-5 text-4xl font-black tracking-[-0.05em]">QR par table</h1>
-      <SectionCard className="mb-5 grid grid-cols-3 gap-2 border-emerald-100 bg-gradient-to-br from-emerald-50 to-white text-center">
+      {actionError ? (
+        <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+          {actionError}
+        </div>
+      ) : null}
+
+      <h1 className="mb-5 text-4xl font-black tracking-tighter">QR par table</h1>
+
+      <SectionCard className="mb-5 grid grid-cols-3 gap-2 border-emerald-100 bg-linear-to-br from-emerald-50 to-white text-center">
         <div>
           <QrCode className="mx-auto mb-2 size-8 text-emerald-800" />
           <strong className="text-3xl font-black text-emerald-800">{activeTables.length}</strong>
@@ -288,7 +344,8 @@ export function TableQrManager() {
       <button
         type="button"
         onClick={() => setAddPanelOpen(true)}
-        className="mb-6 min-h-16 rounded-[1.1rem] bg-gradient-to-br from-emerald-600 to-emerald-900 px-4 text-xl font-black text-white shadow-green"
+        disabled={isPending}
+        className="mb-6 min-h-16 rounded-[1.1rem] bg-linear-to-br from-emerald-600 to-emerald-900 px-4 text-xl font-black text-white shadow-green disabled:opacity-60"
       >
         <span className="inline-flex items-center gap-3">
           <Plus className="size-8 rounded-full bg-white p-1 text-emerald-800" /> Ajouter une table
@@ -299,7 +356,14 @@ export function TableQrManager() {
         <div className="grid gap-4">
           {tables.map((table) => (
             <div key={table.id} className="grid gap-2">
-              <TableQrCard table={table} onCopyLink={copyLink} onToggleActive={toggleTable} onViewQr={viewQr} onOpenCustomerMenu={openCustomerMenu} />
+              <TableQrCard
+                table={table}
+                onCopyLink={copyLink}
+                onToggleActive={() => toggleTable(table)}
+                onViewQr={viewQr}
+                onOpenCustomerMenu={openCustomerMenu}
+              />
+
               {copiedTableId === table.id ? (
                 <p className="rounded-full bg-emerald-50 px-4 py-2 text-center text-sm font-bold text-emerald-800" role="status">
                   Lien copié
@@ -309,7 +373,7 @@ export function TableQrManager() {
           ))}
         </div>
       ) : (
-        <section className="rounded-[1.5rem] border border-dashed border-emerald-200 bg-emerald-50/60 p-8 text-center shadow-card">
+        <section className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/60 p-8 text-center shadow-card">
           <h2 className="text-2xl font-black tracking-[-0.03em] text-emerald-900">Aucune table créée</h2>
           <p className="mt-3 text-lg leading-relaxed text-slate-700">Ajoutez une table pour générer son QR.</p>
         </section>
@@ -318,7 +382,8 @@ export function TableQrManager() {
       <button
         type="button"
         onClick={openPrintPanel}
-        className="mt-6 min-h-16 rounded-[1.1rem] border border-emerald-800 px-4 text-xl font-black text-emerald-800"
+        disabled={isPending}
+        className="mt-6 min-h-16 rounded-[1.1rem] border border-emerald-800 px-4 text-xl font-black text-emerald-800 disabled:opacity-60"
       >
         <span className="inline-flex items-center gap-3">
           <Printer className="size-7" /> Préparer impression
@@ -336,6 +401,7 @@ export function TableQrManager() {
                 className="min-h-14 rounded-2xl border border-slate-200 px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
               />
             </Field>
+
             <Field label="Zone" error={errors.area}>
               <select
                 value={form.area}
@@ -351,8 +417,10 @@ export function TableQrManager() {
                 ))}
               </select>
             </Field>
+
             <Toggle label="QR actif" checked={form.isActive} onChange={(isActive) => setForm({ ...form, isActive })} />
-            <button type="submit" className="min-h-14 rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green">
+
+            <button type="submit" disabled={isPending} className="min-h-14 rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green disabled:opacity-60">
               Enregistrer la table
             </button>
           </form>
@@ -376,9 +444,12 @@ export function TableQrManager() {
                 {qrPanel.table.isActive ? "QR actif" : "Désactivé"}
               </span>
             </div>
+
             <p className="text-lg font-semibold text-slate-600">{qrPanel.table.area}</p>
+
             <CustomerMenuLink path={qrPanel.path} link={qrPanel.link} />
             <QrVisual value={qrPanel.link} />
+
             <button
               type="button"
               onClick={() => void copyLink(qrPanel.table, qrPanel.link)}
@@ -388,6 +459,7 @@ export function TableQrManager() {
                 <Copy className="size-5" /> Copier lien
               </span>
             </button>
+
             <Link href={qrPanel.path} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 text-lg font-black text-white shadow-green">
               <ExternalLink className="size-5" /> Ouvrir le menu client
             </Link>
@@ -399,6 +471,7 @@ export function TableQrManager() {
         <Panel title="Préparer impression" onClose={() => setPrintPanelOpen(false)}>
           <div className="grid gap-5">
             <p className="text-base leading-relaxed text-slate-700">Sélectionnez les tables actives, vérifiez les liens clients, puis lancez l’impression.</p>
+
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -408,6 +481,7 @@ export function TableQrManager() {
               >
                 Fiche table
               </button>
+
               <button
                 type="button"
                 onClick={() => setPrintFormat("sheet")}
@@ -422,13 +496,14 @@ export function TableQrManager() {
               {activeTables.length > 0 ? (
                 activeTables.map((table) => {
                   const selected = selectedPrintIds.includes(table.id);
-                  const path = getCustomerPath(table, publicSlug);
-                  const link = getFullCustomerUrl(table, origin, publicSlug);
+                  const path = getCustomerPath(table, restaurantSlug);
+                  const link = getFullCustomerUrl(table, origin, restaurantSlug);
+
                   return (
                     <article
                       key={table.id}
                       className={cn(
-                        "grid gap-4 rounded-[1.35rem] border bg-white p-4 shadow-card transition",
+                        "grid gap-4 rounded-3xl border bg-white p-4 shadow-card transition",
                         selected ? "border-emerald-700 ring-4 ring-emerald-50" : "border-slate-200",
                       )}
                     >
@@ -441,6 +516,7 @@ export function TableQrManager() {
                           <Check className="size-5" />
                         </span>
                       </button>
+
                       {selected ? (
                         <div className={cn("grid gap-4", printFormat === "sheet" ? "sm:grid-cols-[9rem_1fr] sm:items-center" : "")}>
                           <QrVisual value={link} compact />
