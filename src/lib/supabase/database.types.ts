@@ -303,6 +303,100 @@ export type Database = {
         Relationships: [];
       };
 
+
+
+      orders: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          table_label: string;
+          customer_name: string;
+          customer_phone: string | null;
+          customer_note: string | null;
+          status: string;
+          order_type: "dine_in" | "takeaway";
+          subtotal_cents: number;
+          total_cents: number;
+          currency: string;
+          payment_method: string;
+          payment_status: string;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          table_label: string;
+          customer_name: string;
+          customer_phone?: string | null;
+          customer_note?: string | null;
+          status?: string;
+          order_type?: "dine_in" | "takeaway";
+          subtotal_cents?: number;
+          total_cents?: number;
+          currency?: string;
+          payment_method?: string;
+          payment_status?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          table_label?: string;
+          customer_name?: string;
+          customer_phone?: string | null;
+          customer_note?: string | null;
+          status?: string;
+          order_type?: "dine_in" | "takeaway";
+          subtotal_cents?: number;
+          total_cents?: number;
+          currency?: string;
+          payment_method?: string;
+          payment_status?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+
+      order_items: {
+        Row: {
+          id: string;
+          order_id: string;
+          restaurant_id: string;
+          menu_item_id: string | null;
+          name: string;
+          unit_price_cents: number;
+          quantity: number;
+          total_cents: number;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          restaurant_id: string;
+          menu_item_id?: string | null;
+          name: string;
+          unit_price_cents?: number;
+          quantity?: number;
+          total_cents?: number;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          restaurant_id?: string;
+          menu_item_id?: string | null;
+          name?: string;
+          unit_price_cents?: number;
+          quantity?: number;
+          total_cents?: number;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+
       admin_events: {
         Row: {
           id: string;
