@@ -1,6 +1,3 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
 import {
   Check,
   ClipboardList,
@@ -19,78 +16,169 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { ActionCard } from "@/components/ui-custom/ActionCard";
 import { SectionCard } from "@/components/ui-custom/SectionCard";
 import { StatCard } from "@/components/ui-custom/StatCard";
-import { orders, products, reviews, tables } from "@/lib/data/seed";
-import { getDashboardMetrics } from "@/lib/dashboardMetrics";
-import { normalizeSettings, useSettingsStore } from "@/lib/local-store/settingsStore";
-import { getCurrentServiceStatus } from "@/lib/serviceStatus";
 
-type DashboardClientProps = {
-  restaurantName: string;
-  restaurantCity: string | null;
-  restaurantStatus: string;
-  restaurantPlan: string;
-  restaurantEmail: string | null;
-  restaurantPhone: string | null;
+export type DashboardClientData = {
+  restaurant: {
+    name: string;
+    city: string | null;
+    status: string;
+    plan: string;
+    email: string | null;
+    phone: string | null;
+  };
+  settings: {
+    lunchEnabled: boolean;
+    lunchStart: string;
+    lunchEnd: string;
+    dinnerEnabled: boolean;
+    dinnerStart: string;
+    dinnerEnd: string;
+    ordersEnabled: boolean;
+    qrEnabled: boolean;
+    reviewsEnabled: boolean;
+    onSitePaymentEnabled: boolean;
+  };
+  tasks: {
+    ordersToAccept: number;
+    ordersToCollect: number;
+    reviewsToHandle: number;
+    unavailableProducts: number;
+  };
+  today: {
+    ordersCount: number;
+    estimatedSales: string;
+    averageRating: string;
+    reviewsCount: number;
+    activeTablesCount: number;
+  };
 };
 
-export default function DashboardClient({ restaurantName, restaurantCity, restaurantStatus, restaurantPlan, restaurantEmail, restaurantPhone }: DashboardClientProps) {
-  const { value: storedSettings, hydrated } = useSettingsStore();
-  const [currentDate, setCurrentDate] = useState<Date | null>(null);
-  const settings = useMemo(() => normalizeSettings(storedSettings), [storedSettings]);
-  const serviceStatus = useMemo(() => getCurrentServiceStatus(settings, hydrated ? currentDate : null), [settings, hydrated, currentDate]);
-  const serviceCardTitle = serviceStatus.isOpen ? serviceStatus.subtitle : serviceStatus.title;
-  const serviceCardDetail = serviceStatus.isOpen ? serviceStatus.title : serviceStatus.subtitle;
-  const metrics = useMemo(
-    () =>
-      getDashboardMetrics({ // Analytics in this sprint remain MVP placeholders until orders are connected to Supabase.
-        
-        orders,
-        products,
-        reviews,
-        settings: {
-          ...settings,
-          serviceOpen: serviceStatus.isOpen,
-          serviceLabel: serviceStatus.title,
-          onSitePaymentEnabled: settings.ordersSettings.onSitePaymentEnabled,
-        },
-        tables,
-      }),
-    [settings, serviceStatus],
-  );
+function parseTimeToMinutes(value: string | null | undefined) {
+  if (!value) return null;
 
-  useEffect(() => {
-    if (!hydrated) return;
+  const [hourText, minuteText] = value.split(":");
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
 
-    const updateCurrentDate = () => setCurrentDate(new Date());
-    const timeoutId = window.setTimeout(updateCurrentDate, 0);
-    const intervalId = window.setInterval(updateCurrentDate, 60_000);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+    return null;
+  }
 
-    return () => {
-      window.clearTimeout(timeoutId);
-      window.clearInterval(intervalId);
+  return hour * 60 + minute;
+}
+
+function isWithinTimeRange(nowMinutes: number, start: string, end: string) {
+  const startMinutes = parseTimeToMinutes(start);
+  const endMinutes = parseTimeToMinutes(end);
+
+  if (startMinutes === null || endMinutes === null) {
+    return false;
+  }
+
+  if (startMinutes <= endMinutes) {
+    return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
+  }
+
+  return nowMinutes >= startMinutes || nowMinutes <= endMinutes;
+}
+
+function getServiceStatus(settings: DashboardClientData["settings"]) {
+  if (!settings.ordersEnabled) {
+    return {
+      isOpen: false,
+      title: "Commandes désactivées",
+      subtitle: "Activez les commandes dans les réglages",
+      detail: "Les clients peuvent consulter le menu, mais ne peuvent pas commander.",
     };
-  }, [hydrated]);
+  }
+
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const lunchOpen =
+    settings.lunchEnabled && isWithinTimeRange(nowMinutes, settings.lunchStart, settings.lunchEnd);
+  const dinnerOpen =
+    settings.dinnerEnabled && isWithinTimeRange(nowMinutes, settings.dinnerStart, settings.dinnerEnd);
+
+  if (lunchOpen) {
+    return {
+      isOpen: true,
+      title: "Service du midi ouvert",
+      subtitle: `Ouvert jusqu’à ${settings.lunchEnd}`,
+      detail: "Les commandes QR peuvent arriver maintenant.",
+    };
+  }
+
+  if (dinnerOpen) {
+    return {
+      isOpen: true,
+      title: "Service du soir ouvert",
+      subtitle: `Ouvert jusqu’à ${settings.dinnerEnd}`,
+      detail: "Les commandes QR peuvent arriver maintenant.",
+    };
+  }
+
+  return {
+    isOpen: false,
+    title: "Service fermé",
+    subtitle: "Aucune commande en cours",
+    detail: `Prochains créneaux : ${settings.lunchStart}-${settings.lunchEnd} / ${settings.dinnerStart}-${settings.dinnerEnd}`,
+  };
+}
+
+function getRestaurantStatusLabel(status: string) {
+  return {
+    trial: "Essai",
+    active: "Actif",
+    suspended: "Suspendu",
+    archived: "Archivé",
+  }[status] ?? status;
+}
+
+function getPlanLabel(plan: string) {
+  return {
+    trial: "Essai",
+    standard: "Standard",
+    premium: "Premium",
+  }[plan] ?? plan;
+}
+
+function pluralize(value: number, singular: string, plural: string) {
+  return value > 1 ? plural : singular;
+}
+
+export default function DashboardClient({ data }: { data: DashboardClientData }) {
+  const serviceStatus = getServiceStatus(data.settings);
 
   return (
     <AppShell>
-      <PageHeader title={restaurantName} subtitle={restaurantCity ?? serviceStatus.title} />
+      <PageHeader title={data.restaurant.name} subtitle={data.restaurant.city ?? serviceStatus.title} />
 
-      <SectionCard className="mb-7 flex items-center gap-5 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-[0_18px_34px_rgba(0,111,56,0.12)] min-[390px]:p-6">
-        <span className="grid size-20 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-900 text-white shadow-green min-[390px]:size-24">
+      <SectionCard className="mb-7 flex items-center gap-5 border-emerald-200 bg-linear-to-br from-emerald-50 to-white p-5 shadow-[0_18px_34px_rgba(0,111,56,0.12)] min-[390px]:p-6">
+        <span className="grid size-20 shrink-0 place-items-center rounded-full bg-linear-to-br from-emerald-500 to-emerald-900 text-white shadow-green min-[390px]:size-24">
           <Check className="size-12 min-[390px]:size-14" />
         </span>
+
         <div className="min-w-0">
-          <h2 className="text-2xl font-black tracking-[-0.03em] text-emerald-800 min-[390px]:text-3xl">
-            {serviceCardTitle}
+          <h2 className="text-2xl font-black tracking-tight text-emerald-800 min-[390px]:text-3xl">
+            {serviceStatus.title}
           </h2>
+
           <p className="mt-4 flex items-center gap-3 text-base leading-tight text-slate-700 min-[390px]:text-lg">
             <QrCode className="size-6 shrink-0 text-emerald-800" />
-            <span>{serviceCardDetail}</span>
+            <span>{serviceStatus.subtitle}</span>
           </p>
-          <p className="mt-2 text-sm font-semibold text-slate-700">Statut: {restaurantStatus} · Offre: {restaurantPlan}</p>
-          {restaurantEmail ? <p className="mt-1 text-sm text-slate-600">{restaurantEmail}</p> : null}
-          {restaurantPhone ? <p className="mt-1 text-sm text-slate-600">{restaurantPhone}</p> : null}
-          {metrics.service.onSitePaymentEnabled ? (
+
+          <p className="mt-2 text-sm font-semibold text-slate-700">{serviceStatus.detail}</p>
+
+          <p className="mt-3 text-sm font-semibold text-slate-700">
+            Statut : {getRestaurantStatusLabel(data.restaurant.status)} · Offre : {getPlanLabel(data.restaurant.plan)}
+          </p>
+
+          {data.restaurant.email ? <p className="mt-1 text-sm text-slate-600">{data.restaurant.email}</p> : null}
+          {data.restaurant.phone ? <p className="mt-1 text-sm text-slate-600">{data.restaurant.phone}</p> : null}
+
+          {data.settings.onSitePaymentEnabled ? (
             <p className="mt-3 flex items-center gap-3 text-base leading-tight text-slate-700 min-[390px]:text-lg">
               <CreditCard className="size-6 shrink-0 text-emerald-800" />
               <span>Paiement sur place</span>
@@ -100,50 +188,71 @@ export default function DashboardClient({ restaurantName, restaurantCity, restau
       </SectionCard>
 
       <section className="mb-7">
-        <h2 className="mb-4 text-2xl font-black tracking-[-0.03em]">À faire maintenant</h2>
+        <h2 className="mb-4 text-2xl font-black tracking-tight">À faire maintenant</h2>
+
         <div className="grid gap-3">
           <ActionCard
             href="/dashboard/orders?filter=a-traiter"
             icon={ShoppingBasket}
-            count={String(metrics.tasks.ordersToAccept.count)}
-            title={metrics.tasks.ordersToAccept.label}
+            count={String(data.tasks.ordersToAccept)}
+            title={`${pluralize(data.tasks.ordersToAccept, "commande à accepter", "commandes à accepter")}`}
             tone="orange"
           />
+
           <ActionCard
-            href="/dashboard/orders?filter=a-encaisser"
+            href="/dashboard/orders?filter=a-traiter"
             icon={WalletCards}
-            count={String(metrics.tasks.ordersToCollect.count)}
-            title={metrics.tasks.ordersToCollect.label}
+            count={String(data.tasks.ordersToCollect)}
+            title={`${pluralize(data.tasks.ordersToCollect, "commande à encaisser", "commandes à encaisser")}`}
           />
+
           <ActionCard
             href="/dashboard/reviews"
             icon={Star}
-            count={String(metrics.tasks.reviewsToHandle.count)}
-            title={metrics.tasks.reviewsToHandle.label}
+            count={String(data.tasks.reviewsToHandle)}
+            title={`${pluralize(data.tasks.reviewsToHandle, "avis à traiter", "avis à traiter")}`}
             tone="yellow"
           />
+
           <ActionCard
             href="/dashboard/menu?filter=rupture"
             icon={PackageOpen}
-            count={String(metrics.tasks.unavailableProducts.count)}
-            title={metrics.tasks.unavailableProducts.label}
+            count={String(data.tasks.unavailableProducts)}
+            title={`${pluralize(data.tasks.unavailableProducts, "produit indisponible", "produits indisponibles")}`}
             tone="red"
           />
         </div>
       </section>
 
       <section className="mb-6 md:mb-7">
-        <h2 className="mb-3 text-2xl font-black tracking-[-0.03em] min-[390px]:mb-4">Aujourd’hui</h2>
+        <h2 className="mb-3 text-2xl font-black tracking-tight min-[390px]:mb-4">Aujourd’hui</h2>
+
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <StatCard icon={ShoppingBasket} value={String(metrics.today.ordersCount)} label={metrics.today.ordersLabel} />
-          <StatCard icon={CreditCard} value={metrics.today.estimatedSales} label="ventes estimées" />
-          <StatCard icon={Star} value={metrics.today.averageRating} label="avis clients" />
-          <StatCard icon={Table2} value={String(metrics.today.activeTablesCount)} label={metrics.today.activeTablesLabel} />
+          <StatCard
+            icon={ShoppingBasket}
+            value={String(data.today.ordersCount)}
+            label={`${pluralize(data.today.ordersCount, "commande", "commandes")}`}
+          />
+
+          <StatCard icon={CreditCard} value={data.today.estimatedSales} label="ventes estimées" />
+
+          <StatCard
+            icon={Star}
+            value={data.today.averageRating}
+            label={data.today.reviewsCount > 0 ? `${data.today.reviewsCount} avis aujourd’hui` : "avis clients"}
+          />
+
+          <StatCard
+            icon={Table2}
+            value={String(data.today.activeTablesCount)}
+            label={`${pluralize(data.today.activeTablesCount, "QR actif", "QR actifs")}`}
+          />
         </div>
       </section>
 
       <section className="pb-2">
-        <h2 className="mb-3 text-2xl font-black tracking-[-0.03em] min-[390px]:mb-4">Actions rapides</h2>
+        <h2 className="mb-3 text-2xl font-black tracking-tight min-[390px]:mb-4">Actions rapides</h2>
+
         <div className="grid grid-cols-3 gap-2 min-[390px]:gap-3">
           <ActionCard href="/dashboard/orders" icon={ClipboardList} title="Voir les commandes" variant="tile" />
           <ActionCard href="/dashboard/menu?action=add-product" icon={Plus} title="Ajouter un produit" variant="tile" />

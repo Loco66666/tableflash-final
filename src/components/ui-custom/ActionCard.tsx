@@ -34,8 +34,11 @@ export function ActionCard({
         <span className={`grid size-10 shrink-0 place-items-center rounded-full ${toneClass} sm:size-12`}>
           <Icon className="size-5 stroke-[1.9] sm:size-6" />
         </span>
-        <span className="mt-3 flex items-end justify-between gap-1.5 sm:gap-2">
-          <span className="text-balance text-sm font-semibold leading-tight text-slate-950 sm:text-base">{title}</span>
+
+        <span className="mt-3 flex items-end justify-between gap-2">
+          <span className="text-balance text-sm font-semibold leading-tight text-slate-950 sm:text-base">
+            {title}
+          </span>
           <ChevronRight className="size-5 shrink-0 text-slate-500" />
         </span>
       </Link>
@@ -50,10 +53,12 @@ export function ActionCard({
       <span className={`grid size-12 shrink-0 place-items-center rounded-full ${toneClass}`}>
         <Icon className="size-7" />
       </span>
+
       <span className="min-w-0 flex-1 text-lg font-semibold leading-tight text-slate-950">
         {count ? <strong className="mr-2 text-emerald-800">{count}</strong> : null}
         {title}
       </span>
+
       <ChevronRight className={cn("size-6 shrink-0 text-slate-500")} />
     </Link>
   );
