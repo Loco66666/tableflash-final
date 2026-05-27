@@ -27,6 +27,7 @@ type MenuProductForOrder = {
   id: string;
   name: string;
   price: number | null;
+  promo_price: number | null;
   is_available: boolean;
 };
 
@@ -38,6 +39,16 @@ const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
 
 function normalizeMoney(value: number) {
   return Math.round(value * 100) / 100;
+}
+
+function getEffectivePrice(product: MenuProductForOrder) {
+  const promoPrice = Number(product.promo_price ?? 0);
+
+  if (promoPrice > 0) {
+    return normalizeMoney(promoPrice);
+  }
+
+  return normalizeMoney(Number(product.price ?? 0));
 }
 
 export async function createPublicOrder(payload: CreatePublicOrderPayload): Promise<CreatePublicOrderResult> {
@@ -79,14 +90,14 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
     };
   }
 
-const { data: table, error: tableError } = await supabase
-  .from("restaurant_tables")
-  .select("id")
-  .eq("restaurant_id", restaurant.id)
-  .eq("slug", payload.tableLabel)
-  .eq("is_active", true)
-  .returns<{ id: string }[]>()
-  .maybeSingle();
+  const { data: table, error: tableError } = await supabase
+    .from("restaurant_tables")
+    .select("id")
+    .eq("restaurant_id", restaurant.id)
+    .eq("slug", payload.tableLabel)
+    .eq("is_active", true)
+    .returns<{ id: string }[]>()
+    .maybeSingle();
 
   if (tableError || !table) {
     return {
@@ -119,7 +130,7 @@ const { data: table, error: tableError } = await supabase
 
   const { data: menuItems, error: menuItemsError } = await supabase
     .from("menu_products")
-    .select("id, name, price, is_available")
+    .select("id, name, price, promo_price, is_available")
     .eq("restaurant_id", restaurant.id)
     .in("id", ids)
     .returns<MenuProductForOrder[]>();
@@ -147,7 +158,7 @@ const { data: table, error: tableError } = await supabase
 
   const lines = normalizedItems.map((item) => {
     const menuItem = byId.get(item.menuItemId)!;
-    const unitPrice = normalizeMoney(Number(menuItem.price ?? 0));
+    const unitPrice = getEffectivePrice(menuItem);
     const total = normalizeMoney(unitPrice * item.quantity);
 
     return {
@@ -189,8 +200,8 @@ const { data: table, error: tableError } = await supabase
     order_id: order.id,
     product_id: line.product_id,
     product_name: line.product_name,
-    quantity: line.quantity,
     unit_price: line.unit_price,
+    quantity: line.quantity,
     total: line.total,
   }));
 
