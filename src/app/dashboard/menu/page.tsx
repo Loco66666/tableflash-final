@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { MenuManager } from "@/components/ui-custom/MenuManager";
 import { getCurrentRestaurantContext } from "@/lib/restaurant/get-current-restaurant";
 import { createClient } from "@/lib/supabase/server";
-import type { Category, Product } from "@/lib/types";
+import type { Product } from "@/lib/types";
 
 export default async function MenuPage() {
   const { restaurant } = await getCurrentRestaurantContext();
@@ -45,10 +45,12 @@ export default async function MenuPage() {
     throw new Error("Chargement des produits impossible.");
   }
 
-  const categories: Category[] = (categoriesData ?? []).map((category) => ({
+  const categories = (categoriesData ?? []).map((category) => ({
     id: category.id,
     name: category.name,
     icon: "sparkles",
+    isActive: category.is_active,
+    sortOrder: category.sort_order ?? 0,
   }));
 
   const products: Product[] = (productsData ?? []).map((product) => ({

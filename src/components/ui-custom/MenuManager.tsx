@@ -1,38 +1,73 @@
 ﻿"use client";
 
-import { FormEvent, useMemo, useState, useTransition } from "react";
-import { FolderPlus, Plus, Search, Trash2, X } from "lucide-react";
+import { useRef, useMemo, useState, useTransition } from "react";
+import type { ChangeEvent, FormEvent, ReactNode } from "react";
+import {
+  Camera,
+  FolderCog,
+  FolderPlus,
+  ImageIcon,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { ProductCard } from "@/components/ui-custom/ProductCard";
 import type { Category, Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   createMenuCategory,
   createMenuProduct,
+  deleteMenuCategory,
   deleteMenuProduct,
   toggleMenuProductAvailability,
+  updateMenuCategory,
   updateMenuProduct,
+  uploadMenuProductImage,
 } from "@/app/dashboard/menu/actions";
+
+type MenuCategory = Category & {
+  isActive?: boolean;
+  sortOrder?: number;
+};
 
 type ProductFormState = {
   name: string;
   categoryId: string;
   price: string;
+  promoPrice: string;
   description: string;
   available: boolean;
+  featured: boolean;
   imageUrl: string;
 };
 
-type ProductFormErrors = Partial<Record<"name" | "categoryId" | "price", string>>;
+type ProductFormErrors = Partial<Record<"name" | "categoryId" | "price" | "promoPrice", string>>;
 
-type PanelMode = "add-product" | "edit-product" | "add-category" | null;
+type CategoryFormState = {
+  id: string | null;
+  name: string;
+  isActive: boolean;
+};
+
+type PanelMode = "add-product" | "edit-product" | "add-category" | "manage-categories" | null;
 
 const emptyProductForm: ProductFormState = {
   name: "",
   categoryId: "",
   price: "",
+  promoPrice: "",
   description: "",
   available: true,
+  featured: false,
   imageUrl: "",
+};
+
+const emptyCategoryForm: CategoryFormState = {
+  id: null,
+  name: "",
+  isActive: true,
 };
 
 function normalizeText(value: string) {
@@ -46,6 +81,7 @@ function normalizeText(value: string) {
 function parsePrice(value: string) {
   const normalizedValue = value.replace(/\s/g, "").replace(",", ".");
   const parsedValue = Number(normalizedValue);
+
   return Number.isFinite(parsedValue) ? parsedValue : Number.NaN;
 }
 
@@ -61,8 +97,11 @@ function getProductForm(product: Product): ProductFormState {
     name: product.name ?? "",
     categoryId: product.categoryId ?? "",
     price: formatPriceInput(product.price),
+    promoPrice:
+      typeof product.promoPrice === "number" && product.promoPrice > 0 ? formatPriceInput(product.promoPrice) : "",
     description: product.description ?? "",
     available: typeof product.available === "boolean" ? product.available : true,
+    featured: Boolean(product.featured ?? product.promoted),
     imageUrl: product.imageUrl ?? product.imageDataUrl ?? "",
   };
 }
@@ -72,7 +111,7 @@ function Panel({
   onClose,
   title,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   onClose: () => void;
   title: string;
 }) {
@@ -85,9 +124,10 @@ function Panel({
     >
       <section className="max-h-[92dvh] w-full max-w-160 overflow-y-auto rounded-[1.6rem] bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
         <div className="mb-5 flex items-center justify-between gap-4">
-          <h2 id="menu-panel-title" className="text-2xl font-black tracking-[-0.04em] text-slate-950">
+          <h2 id="menu-panel-title" className="text-2xl font-black tracking-tight text-slate-950">
             {title}
           </h2>
+
           <button
             type="button"
             onClick={onClose}
@@ -97,6 +137,7 @@ function Panel({
             <X className="size-6" />
           </button>
         </div>
+
         {children}
       </section>
     </div>
@@ -107,15 +148,18 @@ function Field({
   children,
   error,
   label,
+  helper,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   error?: string;
   label: string;
+  helper?: string;
 }) {
   return (
     <label className="grid gap-2 text-base font-black text-slate-800">
       <span>{label}</span>
       {children}
+      {helper ? <span className="text-sm font-semibold text-slate-500">{helper}</span> : null}
       {error ? <span className="text-sm font-semibold text-red-600">{error}</span> : null}
     </label>
   );
@@ -137,11 +181,13 @@ function Toggle({
       type="button"
       onClick={() => onChange(!checked)}
       className="flex min-h-16 items-center justify-between gap-4 rounded-2xl bg-white px-4 text-left shadow-card"
+      aria-pressed={checked}
     >
       <span>
         <span className="block text-lg font-black text-slate-900">{label}</span>
         <span className="mt-1 block text-sm font-semibold text-slate-500">{sublabel}</span>
       </span>
+
       <span className={cn("flex h-8 w-14 items-center rounded-full p-1 transition", checked ? "bg-emerald-700" : "bg-slate-300")}>
         <span className={cn("size-6 rounded-full bg-white shadow transition", checked && "translate-x-6")} />
       </span>
@@ -153,33 +199,46 @@ export function MenuManager({
   initialCategories,
   initialProducts,
 }: {
-  initialCategories: Category[];
+  initialCategories: MenuCategory[];
   initialProducts: Product[];
 }) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(emptyProductForm);
   const [productErrors, setProductErrors] = useState<ProductFormErrors>({});
-  const [categoryName, setCategoryName] = useState("");
+  const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm);
   const [categoryError, setCategoryError] = useState("");
   const [actionError, setActionError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
 
-  const categories = useMemo(
-    () => [{ id: "all", name: "Tous", icon: "sparkles" }, ...initialCategories],
+  const menuCategories = useMemo(
+    () =>
+      initialCategories.map((category) => ({
+        ...category,
+        isActive: category.isActive ?? true,
+      })),
     [initialCategories],
   );
 
-  const menuCategories = useMemo(
-    () => categories.filter((category) => category.id !== "all"),
-    [categories],
+  const activeCategories = useMemo(
+    () => menuCategories.filter((category) => category.isActive !== false),
+    [menuCategories],
+  );
+
+  const filterCategories = useMemo(
+    () => [{ id: "all", name: "Tous", icon: "sparkles", isActive: true }, ...activeCategories],
+    [activeCategories],
   );
 
   const categoryById = useMemo(
-    () => new Map(categories.map((category) => [category.id, category])),
-    [categories],
+    () => new Map(menuCategories.map((category) => [category.id, category])),
+    [menuCategories],
   );
 
   const products = useMemo(
@@ -204,7 +263,7 @@ export function MenuManager({
 
       const matchesCategory =
         selectedCategoryId === "all" ||
-        (selectedCategoryId === "rupture" ? !isAvailable : product.categoryId === selectedCategoryId);
+        (selectedCategoryId === "unavailable" ? !isAvailable : product.categoryId === selectedCategoryId);
 
       return matchesSearch && matchesCategory;
     });
@@ -212,9 +271,10 @@ export function MenuManager({
 
   function openAddProduct() {
     setEditingProductId(null);
-    setProductForm({ ...emptyProductForm, categoryId: menuCategories[0]?.id ?? "" });
+    setProductForm({ ...emptyProductForm, categoryId: activeCategories[0]?.id ?? "" });
     setProductErrors({});
     setActionError("");
+    setActionMessage("");
     setPanelMode("add-product");
   }
 
@@ -223,7 +283,24 @@ export function MenuManager({
     setProductForm(getProductForm(product));
     setProductErrors({});
     setActionError("");
+    setActionMessage("");
     setPanelMode("edit-product");
+  }
+
+  function openAddCategory() {
+    setCategoryForm(emptyCategoryForm);
+    setCategoryError("");
+    setActionError("");
+    setActionMessage("");
+    setPanelMode("add-category");
+  }
+
+  function openManageCategories() {
+    setCategoryForm(emptyCategoryForm);
+    setCategoryError("");
+    setActionError("");
+    setActionMessage("");
+    setPanelMode("manage-categories");
   }
 
   function closePanel() {
@@ -232,11 +309,14 @@ export function MenuManager({
     setProductErrors({});
     setCategoryError("");
     setActionError("");
+    setActionMessage("");
+    setIsUploadingImage(false);
   }
 
   function validateProductForm() {
     const nextErrors: ProductFormErrors = {};
     const price = parsePrice(productForm.price);
+    const promoPrice = productForm.promoPrice.trim() ? parsePrice(productForm.promoPrice) : null;
 
     if (!productForm.name.trim()) nextErrors.name = "Le nom est requis.";
     if (!productForm.categoryId) nextErrors.categoryId = "La catégorie est requise.";
@@ -244,50 +324,92 @@ export function MenuManager({
       nextErrors.price = "Indiquez un prix positif.";
     }
 
+    if (promoPrice !== null && (!Number.isFinite(promoPrice) || promoPrice <= 0)) {
+      nextErrors.promoPrice = "Indiquez un prix promo valide.";
+    }
+
+    if (promoPrice !== null && Number.isFinite(price) && promoPrice >= price) {
+      nextErrors.promoPrice = "Le prix promo doit être inférieur au prix normal.";
+    }
+
     setProductErrors(nextErrors);
 
     return {
       valid: Object.keys(nextErrors).length === 0,
       price,
+      promoPrice,
     };
+  }
+
+  async function uploadSelectedImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setIsUploadingImage(true);
+    setActionError("");
+    setActionMessage("");
+
+    try {
+      const result = await uploadMenuProductImage(formData);
+      setProductForm((currentForm) => ({
+        ...currentForm,
+        imageUrl: result.imageUrl,
+      }));
+      setActionMessage("Photo ajoutée au produit.");
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Upload impossible.");
+    } finally {
+      setIsUploadingImage(false);
+      event.target.value = "";
+    }
   }
 
   function saveProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const { valid, price } = validateProductForm();
+    const { valid, price, promoPrice } = validateProductForm();
+
     if (!valid) return;
 
-    startTransition(async () => {
-      try {
-        setActionError("");
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+          setActionMessage("");
 
-        const payload = {
-          name: productForm.name,
-          categoryId: productForm.categoryId,
-          price,
-          description: productForm.description,
-          available: productForm.available,
-          imageUrl: productForm.imageUrl,
-        };
+          const payload = {
+            name: productForm.name,
+            categoryId: productForm.categoryId,
+            price,
+            promoPrice,
+            description: productForm.description,
+            available: productForm.available,
+            featured: productForm.featured,
+            imageUrl: productForm.imageUrl,
+          };
 
-        if (panelMode === "edit-product" && editingProductId) {
-          await updateMenuProduct({ productId: editingProductId, ...payload });
-        } else {
-          await createMenuProduct(payload);
+          if (panelMode === "edit-product" && editingProductId) {
+            await updateMenuProduct({ productId: editingProductId, ...payload });
+          } else {
+            await createMenuProduct(payload);
+          }
+
+          closePanel();
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Action impossible.");
         }
-
-        closePanel();
-      } catch (error) {
-        setActionError(error instanceof Error ? error.message : "Action impossible.");
-      }
+      })();
     });
   }
 
   function saveCategory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const trimmedName = categoryName.trim();
+    const trimmedName = categoryForm.name.trim();
 
     if (!trimmedName) {
       setCategoryError("Le nom est requis.");
@@ -295,7 +417,8 @@ export function MenuManager({
     }
 
     const duplicate = menuCategories.some(
-      (category) => normalizeText(category.name) === normalizeText(trimmedName),
+      (category) =>
+        category.id !== categoryForm.id && normalizeText(category.name) === normalizeText(trimmedName),
     );
 
     if (duplicate) {
@@ -303,42 +426,127 @@ export function MenuManager({
       return;
     }
 
-    startTransition(async () => {
-      try {
-        setActionError("");
-        await createMenuCategory({ name: trimmedName });
-        setCategoryName("");
-        closePanel();
-      } catch (error) {
-        setCategoryError(error instanceof Error ? error.message : "Création impossible.");
-      }
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+          setActionMessage("");
+
+          if (categoryForm.id) {
+            await updateMenuCategory({
+              categoryId: categoryForm.id,
+              name: trimmedName,
+              isActive: categoryForm.isActive,
+            });
+          } else {
+            await createMenuCategory({ name: trimmedName });
+          }
+
+          setCategoryForm(emptyCategoryForm);
+
+          if (panelMode === "add-category") {
+            closePanel();
+          }
+        } catch (error) {
+          setCategoryError(error instanceof Error ? error.message : "Action impossible.");
+        }
+      })();
+    });
+  }
+
+  function editCategory(category: MenuCategory) {
+    setCategoryForm({
+      id: category.id,
+      name: category.name,
+      isActive: category.isActive !== false,
+    });
+    setCategoryError("");
+    setActionError("");
+    setActionMessage("");
+  }
+
+  function toggleCategory(category: MenuCategory) {
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+          setActionMessage("");
+
+          await updateMenuCategory({
+            categoryId: category.id,
+            name: category.name,
+            isActive: !(category.isActive !== false),
+          });
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Mise à jour impossible.");
+        }
+      })();
+    });
+  }
+
+  function removeCategory(category: MenuCategory) {
+    const confirmed = window.confirm(
+      `Supprimer la catégorie "${category.name}" ?\n\nSi elle contient des produits, la suppression sera refusée.`,
+    );
+
+    if (!confirmed) return;
+
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+          setActionMessage("");
+          await deleteMenuCategory({ categoryId: category.id });
+          setCategoryForm(emptyCategoryForm);
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Suppression impossible.");
+        }
+      })();
     });
   }
 
   function toggleAvailability(product: Product) {
     const nextAvailable = !(typeof product.available === "boolean" ? product.available : true);
 
-    startTransition(async () => {
-      try {
-        setActionError("");
-        await toggleMenuProductAvailability({
-          productId: product.id,
-          available: nextAvailable,
-        });
-      } catch (error) {
-        setActionError(error instanceof Error ? error.message : "Mise à jour impossible.");
-      }
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+          setActionMessage("");
+
+          await toggleMenuProductAvailability({
+            productId: product.id,
+            available: nextAvailable,
+          });
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Mise à jour impossible.");
+        }
+      })();
     });
   }
 
-  function deleteProduct(productId: string) {
-    startTransition(async () => {
-      try {
-        setActionError("");
-        await deleteMenuProduct({ productId });
-      } catch (error) {
-        setActionError(error instanceof Error ? error.message : "Suppression impossible.");
-      }
+  function deleteProduct(product: Product) {
+    const confirmed = window.confirm(
+      `Supprimer "${product.name}" ?\n\nSi ce produit a déjà été commandé, il sera rendu indisponible au lieu d’être supprimé.`,
+    );
+
+    if (!confirmed) return;
+
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+          setActionMessage("");
+
+          const result = await deleteMenuProduct({ productId: product.id });
+
+          if (result.message) {
+            setActionMessage(result.message);
+          }
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Suppression impossible.");
+        }
+      })();
     });
   }
 
@@ -350,11 +558,17 @@ export function MenuManager({
         </div>
       ) : null}
 
+      {actionMessage ? (
+        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+          {actionMessage}
+        </div>
+      ) : null}
+
       <div className="grid gap-4">
         <button
           type="button"
           onClick={openAddProduct}
-          disabled={isPending || menuCategories.length === 0}
+          disabled={isPending || activeCategories.length === 0}
           className="min-h-20 rounded-[1.2rem] bg-linear-to-br from-emerald-600 to-emerald-900 text-xl font-black text-white shadow-green disabled:opacity-60"
         >
           <span className="inline-flex items-center gap-4">
@@ -363,29 +577,36 @@ export function MenuManager({
           </span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            setCategoryName("");
-            setCategoryError("");
-            setActionError("");
-            setPanelMode("add-category");
-          }}
-          disabled={isPending}
-          className="min-h-16 rounded-[1.2rem] border border-slate-200 bg-white text-xl font-black text-emerald-800 shadow-card disabled:opacity-60"
-        >
-          <span className="inline-flex items-center gap-4">
-            <FolderPlus className="size-8" />
-            Ajouter une catégorie
-          </span>
-        </button>
+        <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
+          <button
+            type="button"
+            onClick={openAddCategory}
+            disabled={isPending}
+            className="min-h-16 rounded-[1.2rem] border border-slate-200 bg-white text-lg font-black text-emerald-800 shadow-card disabled:opacity-60"
+          >
+            <span className="inline-flex items-center gap-3">
+              <FolderPlus className="size-7" />
+              Ajouter catégorie
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={openManageCategories}
+            disabled={isPending || menuCategories.length === 0}
+            className="min-h-16 rounded-[1.2rem] border border-slate-200 bg-white text-lg font-black text-emerald-800 shadow-card disabled:opacity-60"
+          >
+            <span className="inline-flex items-center gap-3">
+              <FolderCog className="size-7" />
+              Gérer catégories
+            </span>
+          </button>
+        </div>
       </div>
 
-      {menuCategories.length === 0 ? (
+      {activeCategories.length === 0 ? (
         <section className="mt-6 rounded-[1.35rem] border border-dashed border-emerald-200 bg-emerald-50/70 p-6 text-center">
-          <h2 className="text-2xl font-black tracking-[-0.04em] text-emerald-900">
-            Commencez par créer une catégorie
-          </h2>
+          <h2 className="text-2xl font-black tracking-tight text-emerald-900">Commencez par créer une catégorie</h2>
           <p className="mt-2 text-base font-semibold text-slate-600">
             Ajoutez vos premières catégories et plats pour préparer votre menu QR.
           </p>
@@ -404,7 +625,7 @@ export function MenuManager({
       </label>
 
       <div className="scrollbar-none mb-6 -mx-1 flex gap-3 overflow-x-auto px-1 pb-2 pr-6 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        {categories.map((category) => (
+        {filterCategories.map((category) => (
           <button
             key={category.id}
             type="button"
@@ -422,10 +643,10 @@ export function MenuManager({
 
         <button
           type="button"
-          onClick={() => setSelectedCategoryId("rupture")}
+          onClick={() => setSelectedCategoryId("unavailable")}
           className={cn(
             "min-h-12 shrink-0 rounded-2xl px-5 text-lg font-semibold",
-            selectedCategoryId === "rupture"
+            selectedCategoryId === "unavailable"
               ? "bg-emerald-700 text-white shadow-green"
               : "border border-slate-200 bg-white text-slate-700 shadow-card",
           )}
@@ -447,13 +668,13 @@ export function MenuManager({
                   onClick={() => toggleAvailability(product)}
                   className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-card disabled:opacity-60"
                 >
-                  {product.available ? "Rendre indisponible" : "Rendre disponible"}
+                  {product.available ? "Rendre indisponible" : "Remettre disponible"}
                 </button>
 
                 <button
                   type="button"
                   disabled={isPending}
-                  onClick={() => deleteProduct(product.id)}
+                  onClick={() => deleteProduct(product)}
                   className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 shadow-card disabled:opacity-60"
                 >
                   <Trash2 className="size-4" />
@@ -464,9 +685,7 @@ export function MenuManager({
           ))
         ) : (
           <section className="rounded-[1.35rem] border border-dashed border-emerald-200 bg-emerald-50/70 p-6 text-center">
-            <h2 className="text-2xl font-black tracking-[-0.04em] text-emerald-900">
-              Aucun produit trouvé
-            </h2>
+            <h2 className="text-2xl font-black tracking-tight text-emerald-900">Aucun produit trouvé</h2>
             <p className="mt-2 text-base font-semibold text-slate-600">
               Modifiez la recherche ou ajoutez un produit.
             </p>
@@ -495,7 +714,7 @@ export function MenuManager({
                 className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
               >
                 <option value="">Choisir une catégorie</option>
-                {menuCategories.map((category) => (
+                {activeCategories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
                   </option>
@@ -503,14 +722,27 @@ export function MenuManager({
               </select>
             </Field>
 
-            <Field label="Prix" error={productErrors.price}>
-              <input
-                inputMode="decimal"
-                value={productForm.price}
-                onChange={(event) => setProductForm({ ...productForm, price: event.target.value })}
-                className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
-              />
-            </Field>
+            <div className="grid gap-3">
+          <Field label="Prix" error={productErrors.price} helper="Prix affiché au client">
+                <input
+                  inputMode="decimal"
+                  value={productForm.price}
+                  onChange={(event) => setProductForm({ ...productForm, price: event.target.value })}
+                  placeholder="12,90"
+                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                />
+              </Field>
+
+              <Field label="Prix promo" error={productErrors.promoPrice} helper="Optionnel, doit être inférieur au prix normal">
+                <input
+                  inputMode="decimal"
+                  value={productForm.promoPrice}
+                  onChange={(event) => setProductForm({ ...productForm, promoPrice: event.target.value })}
+                  placeholder="9,90"
+                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                />
+              </Field>
+            </div>
 
             <Field label="Description">
               <textarea
@@ -521,14 +753,90 @@ export function MenuManager({
               />
             </Field>
 
-            <Field label="URL d’image">
+            <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <div>
+                <p className="text-base font-black text-slate-800">Photo du produit</p>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  Ajoutez une photo depuis le téléphone ou prenez une photo directement.
+                </p>
+              </div>
+
+              {productForm.imageUrl ? (
+                <div className="grid max-h-56 place-items-center overflow-hidden rounded-2xl border border-emerald-100 bg-white p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={productForm.imageUrl}
+                    alt="Photo du produit"
+                    className="max-h-52 w-full rounded-xl object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-slate-300 bg-white text-center">
+                  <span className="grid gap-2 text-sm font-bold text-slate-500">
+                    <ImageIcon className="mx-auto size-8" />
+                    Aucune photo
+                  </span>
+                </div>
+              )}
+
               <input
-                value={productForm.imageUrl}
-                onChange={(event) => setProductForm({ ...productForm, imageUrl: event.target.value })}
-                className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
-                placeholder="https://..."
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={uploadSelectedImage}
               />
-            </Field>
+
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={uploadSelectedImage}
+              />
+
+              <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingImage || isPending}
+                  className="min-h-12 rounded-2xl border border-slate-200 bg-white px-4 text-base font-black text-emerald-800 disabled:opacity-60"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Upload className="size-5" />
+                    Choisir une photo
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={isUploadingImage || isPending}
+                  className="min-h-12 rounded-2xl border border-slate-200 bg-white px-4 text-base font-black text-emerald-800 disabled:opacity-60"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Camera className="size-5" />
+                    Prendre une photo
+                  </span>
+                </button>
+              </div>
+
+              {productForm.imageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setProductForm({ ...productForm, imageUrl: "" })}
+                  disabled={isUploadingImage || isPending}
+                  className="min-h-11 rounded-2xl border border-red-200 bg-red-50 px-4 text-base font-black text-red-700 disabled:opacity-60"
+                >
+                  Supprimer la photo
+                </button>
+              ) : null}
+
+              {isUploadingImage ? (
+                <p className="text-center text-sm font-bold text-emerald-800">Upload de la photo en cours...</p>
+              ) : null}
+            </div>
 
             <div className="grid gap-3 rounded-2xl bg-slate-50 p-3">
               <Toggle
@@ -537,12 +845,19 @@ export function MenuManager({
                 checked={productForm.available}
                 onChange={(checked) => setProductForm({ ...productForm, available: checked })}
               />
+
+              <Toggle
+                label="Produit recommandé"
+                sublabel={productForm.featured ? "Mis en avant sur le menu client" : "Affichage normal"}
+                checked={productForm.featured}
+                onChange={(checked) => setProductForm({ ...productForm, featured: checked })}
+              />
             </div>
 
             <div className="sticky bottom-0 z-10 -mx-1 grid gap-2 border-t border-slate-200 bg-white/95 px-1 pt-3 backdrop-blur">
               <button
                 type="submit"
-                disabled={isPending}
+                disabled={isPending || isUploadingImage}
                 className="min-h-12 rounded-2xl bg-emerald-700 px-5 text-base font-black text-white shadow-green disabled:opacity-60"
               >
                 {panelMode === "add-product" ? "Enregistrer le produit" : "Enregistrer les changements"}
@@ -565,9 +880,9 @@ export function MenuManager({
           <form className="grid gap-4" onSubmit={saveCategory}>
             <Field label="Nom de la catégorie" error={categoryError}>
               <input
-                value={categoryName}
+                value={categoryForm.name}
                 onChange={(event) => {
-                  setCategoryName(event.target.value);
+                  setCategoryForm({ ...categoryForm, name: event.target.value });
                   setCategoryError("");
                 }}
                 className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
@@ -590,6 +905,103 @@ export function MenuManager({
               Annuler
             </button>
           </form>
+        </Panel>
+      ) : null}
+
+      {panelMode === "manage-categories" ? (
+        <Panel title="Gérer les catégories" onClose={closePanel}>
+          <div className="grid gap-5">
+            <form className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3" onSubmit={saveCategory}>
+              <Field
+                label={categoryForm.id ? "Modifier la catégorie" : "Nouvelle catégorie"}
+                error={categoryError}
+              >
+                <input
+                  value={categoryForm.name}
+                  onChange={(event) => {
+                    setCategoryForm({ ...categoryForm, name: event.target.value });
+                    setCategoryError("");
+                  }}
+                  placeholder="Exemple : Burgers, Desserts, Boissons..."
+                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                />
+              </Field>
+
+              {categoryForm.id ? (
+                <Toggle
+                  label="Catégorie active"
+                  sublabel={categoryForm.isActive ? "Visible dans les menus" : "Masquée des menus"}
+                  checked={categoryForm.isActive}
+                  onChange={(checked) => setCategoryForm({ ...categoryForm, isActive: checked })}
+                />
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={isPending}
+                className="min-h-12 rounded-2xl bg-emerald-700 px-5 text-base font-black text-white shadow-green disabled:opacity-60"
+              >
+                {categoryForm.id ? "Enregistrer la catégorie" : "Ajouter la catégorie"}
+              </button>
+
+              {categoryForm.id ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryForm(emptyCategoryForm);
+                    setCategoryError("");
+                  }}
+                  className="min-h-11 rounded-2xl border border-slate-200 bg-white px-5 text-base font-bold text-slate-700"
+                >
+                  Annuler la modification
+                </button>
+              ) : null}
+            </form>
+
+            <div className="grid gap-3">
+              {menuCategories.map((category) => (
+                <article
+                  key={category.id}
+                  className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-card"
+                >
+                  <div>
+                    <h3 className="text-xl font-black text-slate-950">{category.name}</h3>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                      {category.isActive === false ? "Catégorie masquée" : "Catégorie active"}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-3">
+                    <button
+                      type="button"
+                      onClick={() => editCategory(category)}
+                      className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700"
+                    >
+                      Modifier
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory(category)}
+                      disabled={isPending}
+                      className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 disabled:opacity-60"
+                    >
+                      {category.isActive === false ? "Réactiver" : "Masquer"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => removeCategory(category)}
+                      disabled={isPending}
+                      className="min-h-11 rounded-xl border border-red-200 bg-red-50 px-3 text-sm font-black text-red-700 disabled:opacity-60"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
         </Panel>
       ) : null}
     </>
