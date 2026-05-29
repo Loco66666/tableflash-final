@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Archive, ChevronRight, MessageCircle, Star, ThumbsUp } from "lucide-react";
+import { Archive, ChevronRight, Star, ThumbsUp } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SectionCard } from "@/components/ui-custom/SectionCard";
 import { StatCard } from "@/components/ui-custom/StatCard";
-import { archiveReview, saveReviewResponse } from "@/app/dashboard/reviews/actions";
+import { archiveReview } from "@/app/dashboard/reviews/actions";
 import { getCurrentRestaurantContext } from "@/lib/restaurant/get-current-restaurant";
 import { createClient } from "@/lib/supabase/server";
 
@@ -98,9 +98,7 @@ function RatingStars({ rating }: { rating: ReviewRating }) {
         <Star
           key={index}
           className={
-            index < rating
-              ? "size-5 fill-emerald-700 stroke-emerald-700"
-              : "size-5 fill-slate-200 stroke-slate-200"
+            index < rating ? "size-5 fill-emerald-700 stroke-emerald-700" : "size-5 fill-slate-200 stroke-slate-200"
           }
         />
       ))}
@@ -109,33 +107,26 @@ function RatingStars({ rating }: { rating: ReviewRating }) {
 }
 
 function ReviewPanel({
-  googleReviewUrl,
   review,
   table,
 }: {
-  googleReviewUrl: string;
   review: RestaurantReviewRow;
   table?: RestaurantTableRow;
 }) {
   const rating = clampRating(review.rating);
   const customerName = review.customer_name?.trim() || "Client";
   const tableNumber = parseTableNumber(table);
-  const shouldSuggestGoogle = rating >= 4 || review.suggest_google;
 
   return (
     <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card">
       <div className="flex items-start justify-between gap-4">
         <div>
           <RatingStars rating={rating} />
-          <h3 className="mt-3 text-2xl font-black tracking-[-0.03em] text-slate-950">
-            Avis de {customerName}
-          </h3>
+          <h3 className="mt-3 text-2xl font-black tracking-[-0.03em] text-slate-950">Avis de {customerName}</h3>
           <p className="mt-1 text-sm font-semibold text-slate-500">{formatReviewAge(review.created_at)}</p>
         </div>
 
-        <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-black text-emerald-800">
-          {rating}/5
-        </span>
+        <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-black text-emerald-800">{rating}/5</span>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-slate-600">
@@ -146,92 +137,33 @@ function ReviewPanel({
           </span>
         ) : null}
 
-        {review.order_id ? (
-          <span className="rounded-full bg-slate-100 px-3 py-1.5">Commande liée</span>
-        ) : null}
+        {review.order_id ? <span className="rounded-full bg-slate-100 px-3 py-1.5">Commande liée</span> : null}
+
+        {rating >= 4 ? (
+          <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-800">Avis positif</span>
+        ) : (
+          <span className="rounded-full bg-amber-50 px-3 py-1.5 text-amber-800">À surveiller</span>
+        )}
       </div>
 
       {review.comment ? (
-        <p className="mt-4 rounded-2xl bg-emerald-50 p-4 text-lg leading-relaxed text-slate-800">
-          {review.comment}
-        </p>
+        <p className="mt-4 rounded-2xl bg-emerald-50 p-4 text-lg leading-relaxed text-slate-800">{review.comment}</p>
       ) : (
         <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-lg leading-relaxed text-slate-500">
           Aucun commentaire écrit.
         </p>
       )}
 
-      {review.response_saved && review.response ? (
-        <div className="mt-4 rounded-2xl border border-emerald-100 bg-white p-4">
-          <p className="text-sm font-black uppercase tracking-[0.12em] text-emerald-800">
-            Réponse enregistrée
-          </p>
-          <p className="mt-2 text-base leading-relaxed text-slate-700">{review.response}</p>
-        </div>
-      ) : null}
-
-      <div className="mt-5 grid gap-3">
-        <details className="rounded-2xl border border-slate-200 bg-white p-4">
-          <summary className="cursor-pointer text-base font-black text-emerald-800">
-            Répondre à l’avis
-          </summary>
-
-          <form action={saveReviewResponse} className="mt-4 grid gap-3">
-            <input type="hidden" name="reviewId" value={review.id} />
-
-            <label className="grid gap-2 text-base font-bold text-slate-800">
-              Votre réponse
-              <textarea
-                name="response"
-                defaultValue={review.response ?? ""}
-                rows={4}
-                className="min-h-32 w-full resize-none rounded-2xl border border-slate-200 bg-white p-4 text-lg outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
-                placeholder="Merci pour votre retour, au plaisir de vous revoir..."
-                required
-              />
-            </label>
-
-            <button
-              type="submit"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-4 text-base font-black text-white shadow-green"
-            >
-              <MessageCircle className="size-5" />
-              Enregistrer la réponse
-            </button>
-          </form>
-        </details>
-
-        {shouldSuggestGoogle ? (
-          googleReviewUrl ? (
-            <a
-              href={googleReviewUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-emerald-700 px-4 text-base font-black text-emerald-800"
-            >
-              Proposer de laisser un avis Google
-            </a>
-          ) : (
-            <Link
-              href="/dashboard/settings"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-emerald-700 px-4 text-base font-black text-emerald-800"
-            >
-              Ajouter le lien Google Avis
-            </Link>
-          )
-        ) : null}
-
-        <form action={archiveReview}>
-          <input type="hidden" name="reviewId" value={review.id} />
-          <button
-            type="submit"
-            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 text-base font-bold text-slate-700"
-          >
-            <Archive className="size-5" />
-            Archiver
-          </button>
-        </form>
-      </div>
+      <form action={archiveReview} className="mt-5">
+        <input type="hidden" name="reviewId" value={review.id} />
+        <button
+          type="submit"
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 text-base font-bold text-slate-700"
+        >
+          <Archive className="size-5" />
+          Archiver
+        </button>
+      </form>
     </article>
   );
 }
@@ -284,9 +216,16 @@ export default async function ReviewsPage() {
   }
 
   const tablesById = new Map((tablesData ?? []).map((table) => [table.id, table]));
-  const sortedReviews = [...activeReviews].sort(
-    (first, second) => Number(second.rating >= 4) - Number(first.rating >= 4),
-  );
+  const sortedReviews = [...activeReviews].sort((first, second) => {
+    const firstPositive = first.rating >= 4 ? 1 : 0;
+    const secondPositive = second.rating >= 4 ? 1 : 0;
+
+    if (firstPositive !== secondPositive) {
+      return secondPositive - firstPositive;
+    }
+
+    return new Date(second.created_at ?? 0).getTime() - new Date(first.created_at ?? 0).getTime();
+  });
 
   const positiveReviewsCount = activeReviews.filter((review) => review.rating >= 4).length;
   const averageRating = formatAverageRating(activeReviews);
@@ -353,7 +292,6 @@ export default async function ReviewsPage() {
               key={review.id}
               review={review}
               table={review.table_id ? tablesById.get(review.table_id) : undefined}
-              googleReviewUrl={googleReviewUrl}
             />
           ))}
         </div>

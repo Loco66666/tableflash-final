@@ -29,7 +29,13 @@ type SubmitReviewResult = {
 };
 
 function getGoogleReviewUrl(settings?: CustomerReviewSettings) {
-  return settings?.reviewsSettings?.googleReviewUrl || settings?.googleReviewUrl || settings?.googleReviewsUrl || settings?.reviewUrl || "";
+  return (
+    settings?.reviewsSettings?.googleReviewUrl ||
+    settings?.googleReviewUrl ||
+    settings?.googleReviewsUrl ||
+    settings?.reviewUrl ||
+    ""
+  );
 }
 
 function getReviewsEnabled(settings?: CustomerReviewSettings) {
@@ -135,7 +141,8 @@ export function CustomerTrackingPreview({
   const reviewsEnabled = getReviewsEnabled(settings);
   const suggestGoogleOnPositive = getSuggestGoogleOnPositive(settings);
   const displayOrderNumber = orderNumber ?? order?.orderNumber ?? null;
-  const canReview = status === "served" && reviewsEnabled;
+  const isServed = status === "served";
+  const canReview = isServed && reviewsEnabled;
   const shouldShowGoogleButton = reviewSubmitted && reviewSuggestGoogle && suggestGoogleOnPositive && Boolean(googleReviewUrl);
 
   async function submitReview() {
@@ -168,12 +175,15 @@ export function CustomerTrackingPreview({
   return (
     <div className="grid gap-6">
       <SectionCard className="flex items-center gap-4">
-        <span className="grid size-16 place-items-center rounded-full bg-linear-to-br from-emerald-600 to-emerald-900 text-white">
+        <span className="grid size-16 shrink-0 place-items-center rounded-full bg-linear-to-br from-emerald-600 to-emerald-900 text-white">
           <Check className="size-9" />
         </span>
 
         <div className="min-w-0">
-          <h2 className="text-2xl font-black text-emerald-800">Commande envoyée</h2>
+          <h2 className="text-2xl font-black text-emerald-800">
+            {displayOrderNumber ? `Commande n°${displayOrderNumber}` : "Commande en cours"}
+          </h2>
+
           <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-lg text-slate-600">
             <span className="inline-flex items-center gap-2">
               <Table2 className="size-5" />
@@ -184,45 +194,58 @@ export function CustomerTrackingPreview({
               {formatEuro(total)}
             </span>
           </p>
-          {displayOrderNumber ? (
-            <p className="mt-2 text-xl font-black text-emerald-900">Commande n°{displayOrderNumber}</p>
-          ) : null}
         </div>
       </SectionCard>
 
-      <section className="rounded-3xl border border-emerald-100 bg-linear-to-br from-emerald-50 to-white p-5 text-center shadow-card">
-        <span className="mx-auto mb-4 grid size-24 place-items-center rounded-full bg-emerald-100 text-emerald-800">
-          <ChefHat className="size-14" />
-        </span>
+      {isServed ? (
+        <section className="rounded-3xl border border-emerald-100 bg-linear-to-br from-emerald-50 to-white p-6 text-center shadow-card">
+          <span className="mx-auto mb-4 grid size-20 place-items-center rounded-full bg-emerald-100 text-emerald-800">
+            <ChefHat className="size-12" />
+          </span>
 
-        <h2 className="text-3xl font-black leading-tight text-emerald-800">{statusCopy.title}</h2>
-        <p className="mt-3 text-lg text-slate-600">{statusCopy.message}</p>
+          <h2 className="text-3xl font-black leading-tight text-emerald-800">Commande servie</h2>
+          <p className="mt-3 text-lg font-semibold text-slate-600">Bon appétit.</p>
+        </section>
+      ) : (
+        <section className="rounded-3xl border border-emerald-100 bg-linear-to-br from-emerald-50 to-white p-5 text-center shadow-card">
+          <span className="mx-auto mb-4 grid size-24 place-items-center rounded-full bg-emerald-100 text-emerald-800">
+            <ChefHat className="size-14" />
+          </span>
 
-        <div className="mt-7 grid grid-cols-5 gap-1">
-          {steps.map((step, index) => {
-            const Icon = step.icon;
-            const isActive = index === activeStep;
-            const isDone = index <= activeStep;
+          <h2 className="text-3xl font-black leading-tight text-emerald-800">{statusCopy.title}</h2>
+          <p className="mt-3 text-lg text-slate-600">{statusCopy.message}</p>
 
-            return (
-              <div key={step.label} className="text-center">
-                <span
-                  className={
-                    (isActive ? "ring-2 ring-emerald-700 " : "") +
-                    (isDone ? "bg-emerald-700 text-white" : "bg-white text-slate-400") +
-                    " mx-auto grid size-12 place-items-center rounded-full border border-emerald-100"
-                  }
-                >
-                  <Icon className="size-6" />
-                </span>
-                <p className={(isActive ? "text-emerald-800" : "text-slate-600") + " mt-2 text-xs font-medium leading-tight"}>
-                  {step.label}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+          <div className="mt-7 grid grid-cols-5 gap-1">
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              const isActive = index === activeStep;
+              const isDone = index <= activeStep;
+
+              return (
+                <div key={step.label} className="text-center">
+                  <span
+                    className={
+                      (isActive ? "ring-2 ring-emerald-700 " : "") +
+                      (isDone ? "bg-emerald-700 text-white" : "bg-white text-slate-400") +
+                      " mx-auto grid size-12 place-items-center rounded-full border border-emerald-100"
+                    }
+                  >
+                    <Icon className="size-6" />
+                  </span>
+                  <p
+                    className={
+                      (isActive ? "text-emerald-800" : "text-slate-600") +
+                      " mt-2 text-xs font-medium leading-tight"
+                    }
+                  >
+                    {step.label}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div>
         <h2 className="mb-4 text-2xl font-black tracking-tight">Après le repas</h2>
@@ -304,7 +327,7 @@ export function CustomerTrackingPreview({
               {shouldShowGoogleButton ? (
                 <div className="grid gap-3 rounded-2xl border border-emerald-100 bg-white p-4 text-center">
                   <p className="text-lg font-black text-slate-950">
-                    Vous pouvez aussi aider le restaurant sur Google.
+                    Vous pouvez aussi partager votre avis sur Google.
                   </p>
 
                   <a
@@ -313,7 +336,7 @@ export function CustomerTrackingPreview({
                     rel="noreferrer"
                     className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green"
                   >
-                    Publier aussi sur Google
+                    Partager sur Google
                   </a>
                 </div>
               ) : null}

@@ -41,12 +41,17 @@ export function OrdersBoard({
 
   function updateOrderStatus(orderId: string, nextStatus: OrderStatus) {
     const previousOrders = orders;
+    const shouldMoveToClosedFilter = nextStatus === "served" || nextStatus === "refused";
 
     setOrders((currentOrders) =>
       normalizeOrders(currentOrders).map((order) =>
         order.id === orderId ? applyOrderStatusTransition(order, nextStatus) : order,
       ),
     );
+
+    if (shouldMoveToClosedFilter) {
+      setActiveFilter("terminees");
+    }
 
     startTransition(async () => {
       try {
@@ -56,6 +61,10 @@ export function OrdersBoard({
           orderId,
           nextStatus,
         });
+
+        if (shouldMoveToClosedFilter) {
+          router.replace("/dashboard/orders?filter=terminees", { scroll: false });
+        }
 
         router.refresh();
       } catch (error) {

@@ -19,7 +19,7 @@ const statusLabels = {
   paid: "Payée",
   preparing: "En préparation",
   ready: "Prête",
-  served: "Servie",
+  served: "Terminée",
   refused: "Refusée",
 } satisfies Record<OrderStatus, string>;
 
@@ -76,7 +76,10 @@ export function normalizeOrderFilterSlug(value: string | string[] | undefined): 
   const filterValue = Array.isArray(value) ? value[0] : value;
 
   if (filterValue === "a-encaisser") return "a-traiter";
-  if (filterValue === "en-preparation" || filterValue === "pretes" || filterValue === "terminees") return filterValue;
+  if (filterValue === "en-preparation" || filterValue === "pretes" || filterValue === "terminees") {
+    return filterValue;
+  }
+
   return "a-traiter";
 }
 
@@ -119,16 +122,16 @@ export function getNextOrderStatus(order: Order): OrderStatus | null {
 export function getPrimaryOrderActionLabel(order: Order) {
   switch (order.status) {
     case "new":
-      return "Accepter";
+      return "Accepter la commande";
     case "accepted":
     case "payment_pending":
       return "Marquer payée";
     case "paid":
-      return canStartOrderPreparation(order) ? "Lancer préparation" : null;
+      return canStartOrderPreparation(order) ? "Lancer la préparation" : null;
     case "preparing":
       return "Marquer prête";
     case "ready":
-      return "Servie";
+      return "Terminer la commande";
     case "served":
     case "refused":
       return null;
@@ -138,21 +141,70 @@ export function getPrimaryOrderActionLabel(order: Order) {
 export function applyOrderStatusTransition(order: Order, nextStatus: OrderStatus): Order {
   switch (nextStatus) {
     case "new":
-      return { ...order, status: "new", paid: false, paymentStatus: "on_site_pending", paymentMethod: "on_site" };
+      return {
+        ...order,
+        status: "new",
+        paid: false,
+        paymentStatus: "on_site_pending",
+        paymentMethod: "on_site",
+      };
+
     case "accepted":
     case "payment_pending":
-      return { ...order, status: "payment_pending", paid: false, paymentStatus: "on_site_pending", paymentMethod: "on_site" };
+      return {
+        ...order,
+        status: "payment_pending",
+        paid: false,
+        paymentStatus: "on_site_pending",
+        paymentMethod: "on_site",
+      };
+
     case "paid":
-      return { ...order, status: "paid", paid: true, paymentStatus: "paid", paymentMethod: "on_site" };
+      return {
+        ...order,
+        status: "paid",
+        paid: true,
+        paymentStatus: "paid",
+        paymentMethod: "on_site",
+      };
+
     case "preparing":
       if (!canStartOrderPreparation(order)) return order;
-      return { ...order, status: "preparing", paid: true, paymentStatus: "paid", paymentMethod: "on_site" };
+
+      return {
+        ...order,
+        status: "preparing",
+        paid: true,
+        paymentStatus: "paid",
+        paymentMethod: "on_site",
+      };
+
     case "ready":
-      return { ...order, status: "ready", paid: true, paymentStatus: "paid", paymentMethod: "on_site" };
+      return {
+        ...order,
+        status: "ready",
+        paid: true,
+        paymentStatus: "paid",
+        paymentMethod: "on_site",
+      };
+
     case "served":
-      return { ...order, status: "served", paid: true, paymentStatus: "paid", paymentMethod: "on_site" };
+      return {
+        ...order,
+        status: "served",
+        paid: true,
+        paymentStatus: "paid",
+        paymentMethod: "on_site",
+      };
+
     case "refused":
-      return { ...order, status: "refused", paid: false, paymentStatus: "cancelled", paymentMethod: "on_site" };
+      return {
+        ...order,
+        status: "refused",
+        paid: false,
+        paymentStatus: "cancelled",
+        paymentMethod: "on_site",
+      };
   }
 }
 
@@ -161,23 +213,50 @@ export function normalizeOrders(orders: Order[]) {
     const legacyStatus = order.status as OrderStatus | "to_accept";
 
     if (legacyStatus === "to_accept") {
-      return { ...order, status: "new" as const, paid: false, paymentStatus: "on_site_pending" as const, paymentMethod: "on_site" as const };
+      return {
+        ...order,
+        status: "new" as const,
+        paid: false,
+        paymentStatus: "on_site_pending" as const,
+        paymentMethod: "on_site" as const,
+      };
     }
 
     if (order.status === "refused") {
-      return { ...order, paid: false, paymentStatus: order.paymentStatus ?? "cancelled", paymentMethod: order.paymentMethod ?? "on_site" };
+      return {
+        ...order,
+        paid: false,
+        paymentStatus: order.paymentStatus ?? "cancelled",
+        paymentMethod: order.paymentMethod ?? "on_site",
+      };
     }
 
     if (order.status === "new") {
-      return { ...order, paid: false, paymentStatus: order.paymentStatus ?? "on_site_pending", paymentMethod: order.paymentMethod ?? "on_site" };
+      return {
+        ...order,
+        paid: false,
+        paymentStatus: order.paymentStatus ?? "on_site_pending",
+        paymentMethod: order.paymentMethod ?? "on_site",
+      };
     }
 
     if (order.status === "accepted" || order.status === "payment_pending") {
-      return { ...order, status: "payment_pending" as const, paid: false, paymentStatus: "on_site_pending" as const, paymentMethod: order.paymentMethod ?? "on_site" };
+      return {
+        ...order,
+        status: "payment_pending" as const,
+        paid: false,
+        paymentStatus: "on_site_pending" as const,
+        paymentMethod: order.paymentMethod ?? "on_site",
+      };
     }
 
     if (order.status === "paid" || order.status === "preparing" || order.status === "ready" || order.status === "served") {
-      return { ...order, paid: true, paymentStatus: "paid" as const, paymentMethod: order.paymentMethod ?? "on_site" };
+      return {
+        ...order,
+        paid: true,
+        paymentStatus: "paid" as const,
+        paymentMethod: order.paymentMethod ?? "on_site",
+      };
     }
 
     return {
@@ -188,7 +267,10 @@ export function normalizeOrders(orders: Order[]) {
   });
 }
 
-const shortMonthFormatter = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" });
+const shortMonthFormatter = new Intl.DateTimeFormat("fr-FR", {
+  day: "2-digit",
+  month: "short",
+});
 
 function parseOrderDate(order: Order) {
   if (order.createdAt) {
@@ -198,9 +280,12 @@ function parseOrderDate(order: Order) {
 
   const explicitDate = order.createdDate ?? order.serviceDate;
   const explicitTime = order.createdTime ?? order.serviceTime;
+
   if (!explicitDate) return null;
+
   const dateText = explicitTime ? `${explicitDate}T${explicitTime}` : `${explicitDate}T00:00`;
   const parsed = new Date(dateText);
+
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
@@ -211,15 +296,22 @@ function getDateLabel(target: Date, reference: Date) {
 
   if (dayDiff === 0) return "Aujourd’hui";
   if (dayDiff === -1) return "Hier";
+
   return shortMonthFormatter.format(target).replace(".", "");
 }
 
 export function getOrderTimestampLabel(order: Order, now = new Date()) {
   if (order.timeLabel) return order.timeLabel;
+
   const orderDate = parseOrderDate(order);
   if (!orderDate) return null;
+
   const dateLabel = getDateLabel(orderDate, now);
-  const timeLabel = orderDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const timeLabel = orderDate.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   return `${dateLabel} • ${timeLabel}`;
 }
 
@@ -236,17 +328,20 @@ export function getWaitingLabel(order: Order, now = new Date()) {
   if (order.status === "preparing") return `En préparation depuis ${elapsedMinutes} min`;
   if (order.status === "new" || order.status === "payment_pending") return `À traiter depuis ${elapsedMinutes} min`;
   if (order.status === "paid" || order.status === "ready") return `Attente : ${elapsedMinutes} min`;
+
   return null;
 }
 
 export function getWaitingToneClass(minutes: number) {
   if (minutes >= 20) return "text-amber-700";
   if (minutes >= 10) return "text-amber-600";
+
   return "text-slate-500";
 }
 
 export function getElapsedMinutes(order: Order, now = new Date()) {
   const orderDate = parseOrderDate(order);
   if (!orderDate) return null;
+
   return Math.max(0, Math.floor((now.getTime() - orderDate.getTime()) / 60_000));
 }
