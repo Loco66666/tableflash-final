@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { ChevronRight, HelpCircle, Settings, Star, TrendingUp } from "lucide-react";
+import { ChevronRight, HelpCircle, LogOut, Settings, Star, TrendingUp } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SectionCard } from "@/components/ui-custom/SectionCard";
@@ -42,31 +42,74 @@ const links: Array<{
   },
 ];
 
+function ShortcutContent({
+  item,
+  danger = false,
+}: {
+  item: {
+    label: string;
+    subtitle: string;
+    icon: LucideIcon;
+    tone: string;
+  };
+  danger?: boolean;
+}) {
+  const Icon = item.icon;
+
+  return (
+    <SectionCard className="flex min-h-24 items-center gap-4 p-5">
+      <span className={`grid size-14 shrink-0 place-items-center rounded-full ${item.tone}`}>
+        <Icon className="size-8" />
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span
+          className={
+            danger
+              ? "block text-2xl font-black tracking-tight text-red-700"
+              : "block text-2xl font-black tracking-tight text-slate-950"
+          }
+        >
+          {item.label}
+        </span>
+        <span className="mt-1 block text-lg leading-snug text-slate-600">{item.subtitle}</span>
+      </span>
+
+      <ChevronRight className="size-7 shrink-0 text-slate-500" aria-hidden="true" />
+    </SectionCard>
+  );
+}
+
 export default function MorePage() {
+  const logoutItem = {
+    href: "/logout",
+    label: "Déconnexion",
+    subtitle: "Quitter le compte restaurateur",
+    icon: LogOut,
+    tone: "bg-red-50 text-red-600",
+  };
+
   return (
     <AppShell>
       <PageHeader title="Plus" subtitle="Raccourcis du restaurant" />
 
       <section className="grid min-w-0 grid-cols-1 gap-4" aria-label="Raccourcis Plus">
-        {links.map((item) => {
-          const Icon = item.icon;
+        {links.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="block min-w-0 rounded-[1.4rem] transition active:scale-[0.99]"
+          >
+            <ShortcutContent item={item} />
+          </Link>
+        ))}
 
-          return (
-            <Link key={item.href} href={item.href} className="block min-w-0 rounded-[1.4rem] transition active:scale-[0.99]">
-              <SectionCard className="flex min-h-24 items-center gap-4 p-5">
-                <span className={`grid size-14 shrink-0 place-items-center rounded-full ${item.tone}`}>
-                  <Icon className="size-8" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-2xl font-black leading-tight tracking-[-0.03em] text-slate-950">{item.label}</span>
-                  <span className="mt-1 block text-lg leading-snug text-slate-600">{item.subtitle}</span>
-                </span>
-                <ChevronRight className="size-7 shrink-0 text-slate-500" aria-hidden="true" />
-              </SectionCard>
-            </Link>
-          );
-        })}
-
+        <a
+          href={logoutItem.href}
+          className="block min-w-0 rounded-[1.4rem] transition active:scale-[0.99]"
+        >
+          <ShortcutContent item={logoutItem} danger />
+        </a>
       </section>
     </AppShell>
   );

@@ -31,13 +31,6 @@ export async function getCurrentUser() {
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data.user) {
-    if (process.env.NODE_ENV === "development") {
-      console.error("[auth] getCurrentUser failed", {
-        errorCode: error?.code,
-        errorMessage: error?.message,
-      });
-    }
-
     return null;
   }
 
@@ -120,10 +113,12 @@ export async function getCurrentProfileResult(userId?: string): Promise<ProfileL
   }
 
   const supabase = await createClient();
+
   return lookupProfileByUserId(supabase, user.id, user.email);
 }
 
 export async function getCurrentProfile(userId?: string): Promise<CurrentProfile | null> {
   const result = await getCurrentProfileResult(userId);
+
   return result.ok ? result.profile : null;
 }

@@ -57,7 +57,7 @@ type PublicRestaurantSettings = {
   reviews_enabled: boolean | null;
 };
 
-function getProductVisual(name: string): string {
+function getProductVisual(name: string): Product["visual"] {
   const normalizedName = name
     .toLocaleLowerCase("fr-FR")
     .normalize("NFD")
@@ -218,6 +218,7 @@ async function getPublicRestaurantMenuData({
 
 export default async function CustomerMenuPage({ params }: CustomerMenuPageProps) {
   const { restaurant, table } = await params;
+
   const result = await getPublicRestaurantMenuData({
     restaurantSlug: restaurant,
     tableSlug: table,
