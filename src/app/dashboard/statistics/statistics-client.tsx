@@ -178,7 +178,7 @@ function orderMatchesFilter(order: StatisticsOrder, filter: StatisticsFilter, no
 }
 
 function isRevenueOrder(order: StatisticsOrder) {
-  return order.status !== "rejected" && order.status !== "cancelled";
+  return order.status !== "rejected" && order.status !== "cancelled" && order.status !== "refused";
 }
 
 function getOrderHours(filter: StatisticsFilter) {
@@ -222,7 +222,9 @@ function getProductVisual(productName: string): TopProduct["visual"] {
     .replace(/[\u0300-\u036f]/g, "");
 
   if (name.includes("burger") || name.includes("kebab") || name.includes("sandwich")) return "burger";
-  if (name.includes("dessert") || name.includes("tarte") || name.includes("gateau") || name.includes("glace")) return "dessert";
+  if (name.includes("dessert") || name.includes("tarte") || name.includes("gateau") || name.includes("glace")) {
+    return "dessert";
+  }
   if (name.includes("salade") || name.includes("veggie") || name.includes("vege")) return "salad";
 
   return "dish";
@@ -302,7 +304,7 @@ function buildInsights(model: {
 
   if (model.orderCount > 0) {
     insights.push(`${model.orderCount} commande${model.orderCount > 1 ? "s" : ""} sur la période sélectionnée.`);
-    insights.push(`Chiffre d’affaires estimé : ${formatEuroWhole(model.salesTotal)}.`);
+    insights.push(`Total commandes : ${formatEuroWhole(model.salesTotal)}.`);
   }
 
   if (model.averageBasket > 0) {
@@ -316,7 +318,7 @@ function buildInsights(model: {
 
   const bestTable = model.activeTables[0];
   if (bestTable) {
-    insights.push(`${bestTable.name} est la table la plus active.`);
+    insights.push(`${bestTable.name} est la table la plus utilisée.`);
   }
 
   if (model.reviewsCount > 0) {
@@ -447,7 +449,8 @@ export default function StatisticsClient({ data }: { data: StatisticsClientData 
       <SectionCard className="mb-4 border border-emerald-100 bg-linear-to-br from-emerald-50 via-white to-emerald-50/30 p-4 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">{periodLabel}</p>
         <p className="mt-1 text-lg font-black tracking-tight text-slate-950">
-          {statistics.orderCount} commande{statistics.orderCount > 1 ? "s" : ""} · {formatEuroWhole(statistics.salesTotal)} de chiffre d’affaires
+          {statistics.orderCount} commande{statistics.orderCount > 1 ? "s" : ""} · Total commandes :{" "}
+          {formatEuroWhole(statistics.salesTotal)}
         </p>
         <p className="mt-1 text-sm font-medium text-slate-600">{peakLabel}</p>
       </SectionCard>
@@ -457,14 +460,14 @@ export default function StatisticsClient({ data }: { data: StatisticsClientData 
           icon={ShoppingBasket}
           value={statistics.orderCount.toLocaleString("fr-FR")}
           label="Commandes"
-          helper={hasActivity ? `${statistics.filteredOrders.length} suivies` : "Aucune activité"}
+          helper={hasActivity ? "Sur la période sélectionnée" : "Aucune activité"}
         />
 
         <KpiCard
           icon={Euro}
           value={formatEuroWhole(statistics.salesTotal)}
-          label="Chiffre d’affaires"
-          helper={hasActivity ? "Commandes non refusées" : "Aucune vente"}
+          label="Total commandes"
+          helper={hasActivity ? "Hors commandes refusées" : "Aucune commande"}
         />
 
         <KpiCard
@@ -478,7 +481,7 @@ export default function StatisticsClient({ data }: { data: StatisticsClientData 
           icon={Star}
           value={`${formatRating(statistics.averageRating)}/5`}
           label="Note clients"
-          helper={statistics.reviewsCount > 0 ? `${statistics.reviewsCount} avis reçus` : "Pas encore d’avis"}
+          helper={statistics.reviewsCount > 0 ? `${statistics.reviewsCount} avis reçu${statistics.reviewsCount > 1 ? "s" : ""}` : "Pas encore d’avis"}
         />
       </div>
 
@@ -532,7 +535,7 @@ export default function StatisticsClient({ data }: { data: StatisticsClientData 
       </SectionCard>
 
       <SectionCard className="mb-4 p-4">
-        <h2 className="mb-3 text-lg font-black tracking-tight">Tables actives</h2>
+        <h2 className="mb-3 text-lg font-black tracking-tight">Tables utilisées</h2>
 
         {statistics.activeTables.length > 0 ? (
           <div className="space-y-3">
@@ -547,14 +550,14 @@ export default function StatisticsClient({ data }: { data: StatisticsClientData 
                   </div>
 
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
-                    <Flame className="size-3" /> Active
+                    <Flame className="size-3" /> Utilisée
                   </span>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <EmptyState title="Aucune activité pour cette période" subtitle="Les commandes apparaîtront ici pendant le service." />
+          <EmptyState title="Aucune table utilisée" subtitle="Les tables avec commandes apparaîtront ici." />
         )}
       </SectionCard>
 
@@ -655,7 +658,10 @@ function ActivityChart({ points, hasActivity }: { points: ChartPoint[]; hasActiv
             </div>
           </div>
 
-          <div className="absolute inset-x-0 bottom-2 grid text-xs font-medium text-slate-600" style={{ gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))` }}>
+          <div
+            className="absolute inset-x-0 bottom-2 grid text-xs font-medium text-slate-600"
+            style={{ gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))` }}
+          >
             {points.map((point, index) => (
               <span key={`${point.label}-${index}-x`} className="text-center">
                 {point.label}
