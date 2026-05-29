@@ -31,6 +31,22 @@ type GetPublicOrderTrackingPayload = {
   orderId: string;
 };
 
+type SubmitPublicReviewPayload = {
+  restaurantSlug: string;
+  tableLabel: string;
+  orderId: string;
+  rating: number;
+  comment?: string;
+};
+
+type SubmitPublicReviewResult = {
+  ok: boolean;
+  message: string;
+  alreadySubmitted?: boolean;
+  suggestGoogle?: boolean;
+  googleReviewUrl?: string;
+};
+
 type PublicOrderTracking = {
   id: string;
   orderNumber: number | null;
@@ -69,6 +85,30 @@ type TrackedOrderRow = {
   total: number | null;
 };
 
+type PublicRestaurantForReview = {
+  id: string;
+  status: string;
+  google_review_url: string | null;
+};
+
+type PublicTableForReview = {
+  id: string;
+};
+
+type PublicOrderForReview = {
+  id: string;
+  restaurant_id: string;
+  table_id: string | null;
+  customer_name: string | null;
+  status: string;
+};
+
+type ExistingReviewRow = {
+  id: string;
+  rating: number;
+  suggest_google: boolean;
+};
+
 const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
 
 function normalizeMoney(value: number) {
@@ -83,6 +123,14 @@ function getEffectivePrice(product: MenuProductForOrder) {
   }
 
   return normalizeMoney(Number(product.price ?? 0));
+}
+
+function clampRating(value: number) {
+  if (!Number.isFinite(value)) return 5;
+  if (value <= 1) return 1;
+  if (value >= 5) return 5;
+
+  return Math.round(value);
 }
 
 function mapDbStatusToCustomerStatus(status: string, paymentStatus: string): OrderStatus {
@@ -354,5 +402,154 @@ export async function getPublicOrderTracking(
       status: mapDbStatusToCustomerStatus(order.status, order.payment_status),
       total: Number(order.total ?? 0),
     },
+  };
+}
+
+export async function submitPublicReview(payload: SubmitPublicReviewPayload): Promise<SubmitPublicReviewResult> {
+  if (!payload.orderId) {
+    return {
+      ok: false,
+      message: "Commande introuvable.",
+    };
+  }
+
+  const rating = clampRating(payload.rating);
+  const comment = payload.comment?.trim() || null;
+  const suggestGoogle = rating >= 4;
+
+  const supabase = await createClient();
+
+  const { data: restaurant, error: restaurantError } = await supabase
+    .from("restaurants")
+    .select("id, status, google_review_url")
+    .eq("slug", payload.restaurantSlug)
+    .returns<PublicRestaurantForReview[]>()
+    .maybeSingle();
+
+  if (restaurantError || !restaurant || !["active", "trial"].includes(restaurant.status)) {
+    return {
+      ok: false,
+      message: "Restaurant indisponible.",
+    };
+  }
+
+  const { data: settings, error: settingsError } = await supabase
+    .from("restaurant_settings")
+    .select("reviews_enabled")
+    .eq("restaurant_id", restaurant.id)
+    .maybeSingle();
+
+  if (settingsError) {
+    return {
+      ok: false,
+      message: "Impossible de vérifier les paramètres d’avis.",
+    };
+  }
+
+  if (settings?.reviews_enabled === false) {
+    return {
+      ok: false,
+      message: "Les avis sont désactivés pour le moment.",
+    };
+  }
+
+  const { data: table, error: tableError } = await supabase
+    .from("restaurant_tables")
+    .select("id")
+    .eq("restaurant_id", restaurant.id)
+    .eq("slug", payload.tableLabel)
+    .eq("is_active", true)
+    .returns<PublicTableForReview[]>()
+    .maybeSingle();
+
+  if (tableError || !table) {
+    return {
+      ok: false,
+      message: "Table indisponible.",
+    };
+  }
+
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select("id, restaurant_id, table_id, customer_name, status")
+    .eq("id", payload.orderId)
+    .eq("restaurant_id", restaurant.id)
+    .eq("table_id", table.id)
+    .returns<PublicOrderForReview[]>()
+    .maybeSingle();
+
+  if (orderError || !order) {
+    return {
+      ok: false,
+      message: "Commande introuvable.",
+    };
+  }
+
+  if (order.status !== "served") {
+    return {
+      ok: false,
+      message: "Vous pourrez laisser un avis après le service.",
+    };
+  }
+
+  const { data: existingReview, error: existingReviewError } = await supabase
+    .from("restaurant_reviews")
+    .select("id, rating, suggest_google")
+    .eq("restaurant_id", restaurant.id)
+    .eq("order_id", order.id)
+    .limit(1)
+    .returns<ExistingReviewRow[]>()
+    .maybeSingle();
+
+  if (existingReviewError) {
+    return {
+      ok: false,
+      message: "Impossible de vérifier votre avis.",
+    };
+  }
+
+  if (existingReview) {
+    return {
+      ok: true,
+      message: "Votre avis a déjà été transmis. Merci !",
+      alreadySubmitted: true,
+      suggestGoogle: existingReview.suggest_google || existingReview.rating >= 4,
+      googleReviewUrl: restaurant.google_review_url ?? "",
+    };
+  }
+
+  const { error: reviewError } = await supabase.from("restaurant_reviews").insert({
+    restaurant_id: restaurant.id,
+    order_id: order.id,
+    table_id: table.id,
+    customer_name: order.customer_name || "Client",
+    rating,
+    comment,
+    status: "pending",
+    response: null,
+    response_saved: false,
+    suggest_google: suggestGoogle,
+  });
+
+  if (reviewError) {
+    console.error("[public/reviews] submit review failed", {
+      restaurantId: restaurant.id,
+      orderId: order.id,
+      tableId: table.id,
+      errorCode: reviewError.code,
+      errorMessage: reviewError.message,
+    });
+
+    return {
+      ok: false,
+      message: "Impossible d’envoyer votre avis pour le moment.",
+    };
+  }
+
+  return {
+    ok: true,
+    message: "Merci, votre avis a été transmis au restaurant.",
+    suggestGoogle,
+    googleReviewUrl: restaurant.google_review_url ?? "",
   };
 }

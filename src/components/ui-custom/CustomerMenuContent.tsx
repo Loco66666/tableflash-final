@@ -8,7 +8,11 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { CustomerCartBar } from "@/components/ui-custom/CustomerCartBar";
 import { CustomerProductCard } from "@/components/ui-custom/CustomerProductCard";
 import { CustomerTrackingPreview } from "@/components/ui-custom/CustomerTrackingPreview";
-import { createPublicOrder, getPublicOrderTracking } from "@/app/r/[restaurant]/table/[table]/actions";
+import {
+  createPublicOrder,
+  getPublicOrderTracking,
+  submitPublicReview,
+} from "@/app/r/[restaurant]/table/[table]/actions";
 import type { Category, Order, Product, TableInfo } from "@/lib/types";
 
 type BasketLine = {
@@ -319,6 +323,23 @@ export function CustomerMenuContent({
     setBasketOpen(false);
   }
 
+  async function sendCustomerReview(input: { rating: number; comment: string }) {
+    if (!confirmedOrderId) {
+      return {
+        ok: false,
+        message: "Commande introuvable.",
+      };
+    }
+
+    return submitPublicReview({
+      restaurantSlug,
+      tableLabel: tableSlug,
+      orderId: confirmedOrderId,
+      rating: input.rating,
+      comment: input.comment,
+    });
+  }
+
   if (!table) {
     return (
       <AppShell showNav={false}>
@@ -338,7 +359,9 @@ export function CustomerMenuContent({
         <PageHeader title={restaurantName} subtitle={subtitle} customer />
         <section className="rounded-3xl border border-emerald-100 bg-linear-to-br from-emerald-50 to-white p-8 text-center shadow-card">
           <Heart className="mx-auto mb-5 size-14 text-emerald-800" />
-          <h1 className="text-3xl font-black tracking-tight text-slate-950">Ce menu n’est pas disponible pour le moment.</h1>
+          <h1 className="text-3xl font-black tracking-tight text-slate-950">
+            Ce menu n’est pas disponible pour le moment.
+          </h1>
         </section>
       </AppShell>
     );
@@ -354,6 +377,7 @@ export function CustomerMenuContent({
           total={confirmedOrderTotal ?? 0}
           order={trackedOrder}
           orderNumber={confirmedOrderNumber}
+          submitReviewAction={sendCustomerReview}
           settings={{
             googleReviewUrl: publicMenu.googleReviewUrl,
             reviewsSettings: {
@@ -377,7 +401,9 @@ export function CustomerMenuContent({
           <div className="min-w-0">
             <p className="font-bold text-slate-950">{tableName}</p>
             {tableArea ? <p className="text-base font-semibold text-slate-600">{tableArea}</p> : null}
-            {publicMenu.restaurantCity ? <p className="text-base font-semibold text-slate-600">{publicMenu.restaurantCity}</p> : null}
+            {publicMenu.restaurantCity ? (
+              <p className="text-base font-semibold text-slate-600">{publicMenu.restaurantCity}</p>
+            ) : null}
             <p className="mt-2 text-xl font-black tracking-tight text-emerald-900">Commandez à votre rythme</p>
           </div>
         </div>
