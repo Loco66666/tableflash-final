@@ -16,6 +16,7 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
+import QRCode from "react-qr-code";
 import {
   createRestaurantTable,
   deleteRestaurantTable,
@@ -57,12 +58,27 @@ const initialForm: TableForm = {
 
 const tableZoneOptions = ["Salle", "Terrasse", "Comptoir", "Étage", "Salon privé", "À emporter"] as const;
 
+const defaultQrTexts = {
+  main: "Scannez le QR code ci-dessous pour consulter le menu et passer commande.",
+  payment: "Paiement uniquement sur place ou auprès de votre serveur(se).",
+  help: "Besoin d’aide ? Notre équipe reste à votre disposition.",
+  footer: "Propulsé par TableFlash",
+};
+
 function normalizeTableText(value: string) {
   return value
     .trim()
     .toLocaleLowerCase("fr-FR")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
+}
+
+function formatRestaurantNameFromSlug(slug: string) {
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toLocaleUpperCase("fr-FR") + part.slice(1))
+    .join(" ");
 }
 
 function getCustomerPath(table: Pick<TableInfo, "slug">, restaurantSlug: string) {
@@ -75,37 +91,71 @@ function getFullCustomerUrl(table: TableInfo, origin: string, restaurantSlug: st
   return origin ? `${origin}${path}` : path;
 }
 
-function QrVisual({ value, compact = false }: { value: string; compact?: boolean }) {
-  const cells = useMemo(() => {
-    let hash = 0;
-
-    for (let index = 0; index < value.length; index += 1) {
-      hash = (hash * 31 + value.charCodeAt(index)) % 9973;
-    }
-
-    return Array.from({ length: 81 }, (_, index) => {
-      const row = Math.floor(index / 9);
-      const column = index % 9;
-      const inTopLeft = row < 3 && column < 3;
-      const inTopRight = row < 3 && column > 5;
-      const inBottomLeft = row > 5 && column < 3;
-
-      return inTopLeft || inTopRight || inBottomLeft || ((hash + row * 7 + column * 11 + row * column) % 4 === 0);
-    });
-  }, [value]);
-
+function RealQrCode({ value, size = 220 }: { value: string; size?: number }) {
   return (
-    <div
-      className={cn(
-        "mx-auto grid grid-cols-9 gap-1 rounded-3xl border border-emerald-100 bg-white p-4 shadow-card",
-        compact ? "size-36" : "size-52",
-      )}
-      aria-hidden="true"
-    >
-      {cells.map((filled, index) => (
-        <span key={index} className={cn("rounded-[0.22rem]", filled ? "bg-emerald-900" : "bg-emerald-50")} />
-      ))}
+    <div className="mx-auto rounded-3xl bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)] ring-1 ring-emerald-100">
+      <div className="rounded-xl bg-white p-3">
+        <QRCode
+          value={value}
+          size={size}
+          level="H"
+          bgColor="#ffffff"
+          fgColor="#064e3b"
+          style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+        />
+      </div>
     </div>
+  );
+}
+
+function PrintableQrCard({
+  restaurantName,
+  table,
+  link,
+  compact = false,
+}: {
+  restaurantName: string;
+  table: TableInfo;
+  link: string;
+  compact?: boolean;
+}) {
+  return (
+    <article
+      className={cn(
+        "tf-print-card mx-auto grid bg-white text-slate-950",
+        compact
+          ? "gap-3 rounded-3xl border border-emerald-100 p-5 shadow-card"
+          : "min-h-[148mm] w-full max-w-[105mm] content-between gap-5 rounded-4xl border border-emerald-100 p-7 shadow-[0_20px_70px_rgba(15,23,42,0.12)]",
+      )}
+    >
+      <header className="grid gap-2 text-center">
+        <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-700">Bienvenue chez</p>
+        <h3 className={cn("font-black tracking-tight text-slate-950", compact ? "text-2xl" : "text-3xl")}>
+          {restaurantName}
+        </h3>
+        <div className="mx-auto mt-2 inline-flex min-h-11 items-center rounded-full bg-emerald-900 px-6 text-lg font-black text-white">
+          {table.name}
+        </div>
+        <p className="text-sm font-semibold text-slate-500">{table.area}</p>
+      </header>
+
+      <section className="grid gap-4 text-center">
+        <p className={cn("mx-auto max-w-[18rem] font-bold leading-relaxed text-slate-700", compact ? "text-base" : "text-lg")}>
+          {defaultQrTexts.main}
+        </p>
+
+        <RealQrCode value={link} size={compact ? 150 : 230} />
+
+        <p className="mx-auto max-w-[18rem] rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-black leading-relaxed text-emerald-900">
+          {defaultQrTexts.payment}
+        </p>
+      </section>
+
+      <footer className="grid gap-2 text-center">
+        <p className="text-sm font-semibold leading-relaxed text-slate-500">{defaultQrTexts.help}</p>
+        <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-700">{defaultQrTexts.footer}</p>
+      </footer>
+    </article>
   );
 }
 
@@ -144,7 +194,7 @@ function Panel({ title, children, onClose }: { title: string; children: ReactNod
       aria-labelledby="qr-panel-title"
     >
       <section className="max-h-[88dvh] w-full overflow-y-auto rounded-[1.7rem] bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.28)] sm:max-w-xl">
-        <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="tf-no-print mb-5 flex items-start justify-between gap-4">
           <h2 id="qr-panel-title" className="text-2xl font-black tracking-tight text-slate-950">
             {title}
           </h2>
@@ -175,10 +225,7 @@ function CustomerMenuLink({ path, link, className }: { path: string; link: strin
         <ExternalLink className="size-5" /> Ouvrir le menu client
       </Link>
 
-      <Link
-        href={path}
-        className="break-all text-center text-sm font-semibold text-emerald-900 underline decoration-emerald-300 underline-offset-4"
-      >
+      <Link href={path} className="break-all text-center text-sm font-semibold text-emerald-900 underline decoration-emerald-300 underline-offset-4">
         {link}
       </Link>
     </div>
@@ -213,6 +260,7 @@ export function TableQrManager({
   const [origin, setOrigin] = useState("");
 
   const tables = initialTables;
+  const restaurantName = useMemo(() => formatRestaurantNameFromSlug(restaurantSlug), [restaurantSlug]);
   const activeTables = useMemo(() => tables.filter((table) => table.isActive), [tables]);
   const activePrintIds = useMemo(() => new Set(activeTables.map((table) => table.id)), [activeTables]);
   const selectedActivePrintIds = selectedPrintIds.filter((tableId) => activePrintIds.has(tableId));
@@ -452,6 +500,51 @@ export function TableQrManager({
 
   return (
     <>
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A6 portrait;
+            margin: 0;
+          }
+
+          body * {
+            visibility: hidden;
+          }
+
+          .tf-qr-print-area,
+          .tf-qr-print-area * {
+            visibility: visible;
+          }
+
+          .tf-qr-print-area {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            background: white;
+          }
+
+          .tf-print-card {
+            break-after: page;
+            page-break-after: always;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            border: 0 !important;
+            max-width: none !important;
+            width: 105mm !important;
+            min-height: 148mm !important;
+          }
+
+          .tf-print-card:last-child {
+            break-after: auto;
+            page-break-after: auto;
+          }
+
+          .tf-no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       {actionError ? (
         <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
           {actionError}
@@ -656,8 +749,9 @@ export function TableQrManager({
 
             <p className="text-lg font-semibold text-slate-600">{qrPanel.table.area}</p>
 
+            <RealQrCode value={qrPanel.link} />
+
             {qrPanel.table.isActive ? <CustomerMenuLink path={qrPanel.path} link={qrPanel.link} /> : null}
-            <QrVisual value={qrPanel.link} />
 
             <button
               type="button"
@@ -688,103 +782,120 @@ export function TableQrManager({
       {printPanelOpen ? (
         <Panel title="Préparer impression" onClose={() => setPrintPanelOpen(false)}>
           <div className="grid gap-5">
-            <p className="text-base leading-relaxed text-slate-700">
-              Sélectionnez les tables actives, vérifiez les liens clients, puis lancez l’impression.
-            </p>
+            <div className="tf-no-print grid gap-5">
+              <p className="text-base leading-relaxed text-slate-700">
+                Sélectionnez les tables actives, vérifiez les liens clients, puis lancez l’impression.
+              </p>
 
-            <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPrintFormat("card")}
+                  className={cn(
+                    "min-h-12 rounded-2xl border px-3 font-bold",
+                    printFormat === "card" ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-200 text-slate-700",
+                  )}
+                  aria-pressed={printFormat === "card"}
+                >
+                  Fiche A6
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPrintFormat("sheet")}
+                  className={cn(
+                    "min-h-12 rounded-2xl border px-3 font-bold",
+                    printFormat === "sheet" ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-200 text-slate-700",
+                  )}
+                  aria-pressed={printFormat === "sheet"}
+                >
+                  Planche QR
+                </button>
+              </div>
+
+              <section className="grid gap-3" aria-label="Tables actives à imprimer">
+                {activeTables.length > 0 ? (
+                  activeTables.map((table) => {
+                    const selected = selectedPrintIds.includes(table.id);
+
+                    return (
+                      <article
+                        key={table.id}
+                        className={cn(
+                          "grid gap-4 rounded-3xl border bg-white p-4 shadow-card transition",
+                          selected ? "border-emerald-700 ring-4 ring-emerald-50" : "border-slate-200",
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => togglePrintTable(table.id)}
+                          className="flex min-h-14 items-center justify-between gap-3 text-left"
+                          aria-pressed={selected}
+                        >
+                          <span>
+                            <strong className="block text-xl text-slate-950">{table.name}</strong>
+                            <span className="text-sm font-semibold text-slate-600">{table.area}</span>
+                          </span>
+
+                          <span
+                            className={cn(
+                              "grid size-8 shrink-0 place-items-center rounded-full border",
+                              selected ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-300 text-transparent",
+                            )}
+                          >
+                            <Check className="size-5" />
+                          </span>
+                        </button>
+                      </article>
+                    );
+                  })
+                ) : (
+                  <p className="rounded-2xl bg-emerald-50 p-4 text-center text-base font-semibold text-emerald-900">
+                    Activez au moins une table pour préparer l’impression.
+                  </p>
+                )}
+              </section>
+
+              {selectedPrintTables.length > 0 ? (
+                <p className="rounded-2xl bg-emerald-50 p-4 text-center text-base font-black text-emerald-900">
+                  {selectedPrintTables.length} table{selectedPrintTables.length > 1 ? "s" : ""} sélectionnée
+                  {selectedPrintTables.length > 1 ? "s" : ""}
+                </p>
+              ) : null}
+
               <button
                 type="button"
-                onClick={() => setPrintFormat("card")}
-                className={cn(
-                  "min-h-12 rounded-2xl border px-3 font-bold",
-                  printFormat === "card" ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-200 text-slate-700",
-                )}
-                aria-pressed={printFormat === "card"}
+                onClick={printSelection}
+                disabled={selectedActivePrintIds.length === 0}
+                className="min-h-14 rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green disabled:bg-slate-300 disabled:shadow-none"
               >
-                Fiche table
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPrintFormat("sheet")}
-                className={cn(
-                  "min-h-12 rounded-2xl border px-3 font-bold",
-                  printFormat === "sheet" ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-200 text-slate-700",
-                )}
-                aria-pressed={printFormat === "sheet"}
-              >
-                Planche QR
+                Imprimer la sélection
               </button>
             </div>
 
-            <section className="grid gap-3" aria-label="Tables actives à imprimer">
-              {activeTables.length > 0 ? (
-                activeTables.map((table) => {
-                  const selected = selectedPrintIds.includes(table.id);
-                  const path = getCustomerPath(table, restaurantSlug);
+            {selectedPrintTables.length > 0 ? (
+              <section
+                className={cn(
+                  "tf-qr-print-area grid gap-5",
+                  printFormat === "sheet" ? "sm:grid-cols-2" : "",
+                )}
+                aria-label="Aperçu impression QR"
+              >
+                {selectedPrintTables.map((table) => {
                   const link = getFullCustomerUrl(table, origin, restaurantSlug);
 
                   return (
-                    <article
+                    <PrintableQrCard
                       key={table.id}
-                      className={cn(
-                        "grid gap-4 rounded-3xl border bg-white p-4 shadow-card transition",
-                        selected ? "border-emerald-700 ring-4 ring-emerald-50" : "border-slate-200",
-                      )}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => togglePrintTable(table.id)}
-                        className="flex min-h-14 items-center justify-between gap-3 text-left"
-                        aria-pressed={selected}
-                      >
-                        <span>
-                          <strong className="block text-xl text-slate-950">{table.name}</strong>
-                          <span className="text-sm font-semibold text-slate-600">{table.area}</span>
-                        </span>
-
-                        <span
-                          className={cn(
-                            "grid size-8 shrink-0 place-items-center rounded-full border",
-                            selected ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-300 text-transparent",
-                          )}
-                        >
-                          <Check className="size-5" />
-                        </span>
-                      </button>
-
-                      {selected ? (
-                        <div className={cn("grid gap-4", printFormat === "sheet" ? "sm:grid-cols-[9rem_1fr] sm:items-center" : "")}>
-                          <QrVisual value={link} compact />
-                          <CustomerMenuLink path={path} link={link} />
-                        </div>
-                      ) : null}
-                    </article>
+                      restaurantName={restaurantName}
+                      table={table}
+                      link={link}
+                      compact={printFormat === "sheet"}
+                    />
                   );
-                })
-              ) : (
-                <p className="rounded-2xl bg-emerald-50 p-4 text-center text-base font-semibold text-emerald-900">
-                  Activez au moins une table pour préparer l’impression.
-                </p>
-              )}
-            </section>
-
-            {selectedPrintTables.length > 0 ? (
-              <p className="rounded-2xl bg-emerald-50 p-4 text-center text-base font-black text-emerald-900">
-                {selectedPrintTables.length} table{selectedPrintTables.length > 1 ? "s" : ""} sélectionnée
-                {selectedPrintTables.length > 1 ? "s" : ""}
-              </p>
+                })}
+              </section>
             ) : null}
-
-            <button
-              type="button"
-              onClick={printSelection}
-              disabled={selectedActivePrintIds.length === 0}
-              className="min-h-14 rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green disabled:bg-slate-300 disabled:shadow-none"
-            >
-              Imprimer la sélection
-            </button>
           </div>
         </Panel>
       ) : null}
