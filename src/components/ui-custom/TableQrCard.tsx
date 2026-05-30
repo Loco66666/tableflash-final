@@ -1,7 +1,12 @@
 import { Edit3, ExternalLink, Link2, Power, QrCode } from "lucide-react";
-import type { TableInfo } from "@/lib/types";
 import { StatusBadge } from "@/components/ui-custom/StatusBadge";
-import { getTableDisplayNumber } from "@/lib/tables";
+import type { TableInfo } from "@/lib/types";
+
+function getTableDisplayNumber(table: Pick<TableInfo, "name" | "slug">) {
+  const match = table.name.match(/\d+/) ?? table.slug.match(/\d+/);
+
+  return match ? match[0] : "QR";
+}
 
 export function TableQrCard({
   table,
