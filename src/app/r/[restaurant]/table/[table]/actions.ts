@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { OrderStatus } from "@/lib/types";
 
 type OrderCartItemPayload = {
@@ -193,7 +193,7 @@ function normalizeCartItems(items: OrderCartItemPayload[]) {
 }
 
 async function getPublicRestaurantForOrder(restaurantSlug: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const slug = cleanId(restaurantSlug);
 
   if (!slug) {
@@ -215,7 +215,7 @@ async function getPublicRestaurantForOrder(restaurantSlug: string) {
 }
 
 async function getPublicRestaurantForReview(restaurantSlug: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const slug = cleanId(restaurantSlug);
 
   if (!slug) {
@@ -237,7 +237,7 @@ async function getPublicRestaurantForReview(restaurantSlug: string) {
 }
 
 async function getPublicTable(restaurantId: string, tableLabel: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const tableSlug = cleanId(tableLabel);
 
   if (!tableSlug) {
@@ -289,7 +289,7 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
     return { ok: false, message: "Ajoutez au moins un produit avant de confirmer." };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const restaurant = await getPublicRestaurantForOrder(payload.restaurantSlug);
 
@@ -401,6 +401,13 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
     .single();
 
   if (orderError || !order) {
+    console.error("[public/orders] order insert failed", {
+      restaurantId: restaurant.id,
+      tableId: table.id,
+      errorCode: orderError?.code,
+      errorMessage: orderError?.message,
+    });
+
     return {
       ok: false,
       message: "Impossible d'envoyer la commande pour le moment.",
@@ -453,7 +460,7 @@ export async function getPublicOrderTracking(
     };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const restaurant = await getPublicRestaurantForOrder(payload.restaurantSlug);
 
@@ -522,7 +529,7 @@ export async function submitPublicReview(payload: SubmitPublicReviewPayload): Pr
     };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const restaurant = await getPublicRestaurantForReview(payload.restaurantSlug);
 
