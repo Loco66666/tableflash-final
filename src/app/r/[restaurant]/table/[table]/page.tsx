@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { CustomerMenuContent } from "@/components/ui-custom/CustomerMenuContent";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Category, Product, TableInfo } from "@/lib/types";
-import { createClient } from "@/lib/supabase/server";
 
 type CustomerMenuPageProps = {
   params: Promise<{ restaurant: string; table: string }>;
@@ -57,6 +57,10 @@ type PublicRestaurantSettings = {
   reviews_enabled: boolean | null;
 };
 
+function cleanSlug(value: string) {
+  return value.trim();
+}
+
 function getProductVisual(name: string): Product["visual"] {
   const normalizedName = name
     .toLocaleLowerCase("fr-FR")
@@ -85,12 +89,18 @@ async function getPublicRestaurantMenuData({
   restaurantSlug: string;
   tableSlug: string;
 }): Promise<{ publicMenu: PublicRestaurantMenuData; table: TableInfo } | null> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
+  const cleanedRestaurantSlug = cleanSlug(restaurantSlug);
+  const cleanedTableSlug = cleanSlug(tableSlug);
+
+  if (!cleanedRestaurantSlug || !cleanedTableSlug) {
+    return null;
+  }
 
   const { data: restaurant, error: restaurantError } = await supabase
     .from("restaurants")
     .select("id, name, city, status, google_review_url")
-    .eq("slug", restaurantSlug)
+    .eq("slug", cleanedRestaurantSlug)
     .returns<PublicRestaurant[]>()
     .maybeSingle();
 
@@ -102,7 +112,7 @@ async function getPublicRestaurantMenuData({
     .from("restaurant_tables")
     .select("id, name, slug, zone, is_active, scans_count")
     .eq("restaurant_id", restaurant.id)
-    .eq("slug", tableSlug)
+    .eq("slug", cleanedTableSlug)
     .returns<PublicRestaurantTable[]>()
     .maybeSingle();
 
@@ -161,12 +171,16 @@ async function getPublicRestaurantMenuData({
     return null;
   }
 
-  const { data: settingsData } = await supabase
+  const { data: settingsData, error: settingsError } = await supabase
     .from("restaurant_settings")
     .select("orders_enabled, reviews_enabled")
     .eq("restaurant_id", restaurant.id)
     .returns<PublicRestaurantSettings[]>()
     .maybeSingle();
+
+  if (settingsError) {
+    return null;
+  }
 
   const products: Product[] = (productsData ?? []).map((item) => ({
     id: item.id,
