@@ -31,6 +31,10 @@ function parseOptionalPromoPrice(price?: number | null) {
   return Math.round(price * 100) / 100;
 }
 
+function cleanId(value: string) {
+  return value.trim();
+}
+
 function getImageExtension(file: File) {
   const nameExtension = file.name.split(".").pop()?.toLowerCase();
 
@@ -48,6 +52,11 @@ function getImageExtension(file: File) {
   return "jpeg";
 }
 
+function revalidateMenuPaths(restaurantSlug: string) {
+  revalidatePath("/dashboard/menu");
+  revalidatePath(`/r/${restaurantSlug}`);
+}
+
 async function ensureCategoryBelongsToRestaurant(categoryId: string, restaurantId: string) {
   const supabase = await createClient();
 
@@ -60,6 +69,21 @@ async function ensureCategoryBelongsToRestaurant(categoryId: string, restaurantI
 
   if (error || !data) {
     throw new Error("Catégorie introuvable.");
+  }
+}
+
+async function ensureProductBelongsToRestaurant(productId: string, restaurantId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("menu_products")
+    .select("id")
+    .eq("id", productId)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error("Produit introuvable.");
   }
 }
 
@@ -182,8 +206,7 @@ export async function createMenuCategory(input: { name: string }) {
     throw new Error("Création de la catégorie impossible.");
   }
 
-  revalidatePath("/dashboard/menu");
-  revalidatePath(`/r/${restaurant.slug}`);
+  revalidateMenuPaths(restaurant.slug);
 
   return { ok: true };
 }
@@ -196,9 +219,10 @@ export async function updateMenuCategory(input: {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
 
+  const categoryId = cleanId(input.categoryId);
   const name = input.name.trim();
 
-  if (!input.categoryId) {
+  if (!categoryId) {
     throw new Error("Catégorie introuvable.");
   }
 
@@ -206,10 +230,12 @@ export async function updateMenuCategory(input: {
     throw new Error("Le nom de la catégorie est requis.");
   }
 
+  await ensureCategoryBelongsToRestaurant(categoryId, restaurant.id);
+
   await assertUniqueCategoryName({
     restaurantId: restaurant.id,
     name,
-    ignoredCategoryId: input.categoryId,
+    ignoredCategoryId: categoryId,
   });
 
   const { error } = await supabase
@@ -219,15 +245,14 @@ export async function updateMenuCategory(input: {
       is_active: input.isActive,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", input.categoryId)
+    .eq("id", categoryId)
     .eq("restaurant_id", restaurant.id);
 
   if (error) {
     throw new Error("Modification de la catégorie impossible.");
   }
 
-  revalidatePath("/dashboard/menu");
-  revalidatePath(`/r/${restaurant.slug}`);
+  revalidateMenuPaths(restaurant.slug);
 
   return { ok: true };
 }
@@ -236,11 +261,19 @@ export async function deleteMenuCategory(input: { categoryId: string }) {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
 
+  const categoryId = cleanId(input.categoryId);
+
+  if (!categoryId) {
+    throw new Error("Catégorie introuvable.");
+  }
+
+  await ensureCategoryBelongsToRestaurant(categoryId, restaurant.id);
+
   const { count, error: countError } = await supabase
     .from("menu_products")
     .select("id", { count: "exact", head: true })
     .eq("restaurant_id", restaurant.id)
-    .eq("category_id", input.categoryId);
+    .eq("category_id", categoryId);
 
   if (countError) {
     throw new Error("Vérification des produits impossible.");
@@ -253,15 +286,14 @@ export async function deleteMenuCategory(input: { categoryId: string }) {
   const { error } = await supabase
     .from("menu_categories")
     .delete()
-    .eq("id", input.categoryId)
+    .eq("id", categoryId)
     .eq("restaurant_id", restaurant.id);
 
   if (error) {
     throw new Error("Suppression de la catégorie impossible.");
   }
 
-  revalidatePath("/dashboard/menu");
-  revalidatePath(`/r/${restaurant.slug}`);
+  revalidateMenuPaths(restaurant.slug);
 
   return { ok: true };
 }
@@ -280,7 +312,7 @@ export async function createMenuProduct(input: {
   const supabase = await createClient();
 
   const name = input.name.trim();
-  const categoryId = input.categoryId.trim();
+  const categoryId = cleanId(input.categoryId);
   const description = input.description?.trim() || null;
   const imageUrl = input.imageUrl?.trim() || null;
 
@@ -327,8 +359,7 @@ export async function createMenuProduct(input: {
     throw new Error("Création du produit impossible.");
   }
 
-  revalidatePath("/dashboard/menu");
-  revalidatePath(`/r/${restaurant.slug}`);
+  revalidateMenuPaths(restaurant.slug);
 
   return { ok: true };
 }
@@ -347,10 +378,15 @@ export async function updateMenuProduct(input: {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
 
+  const productId = cleanId(input.productId);
   const name = input.name.trim();
-  const categoryId = input.categoryId.trim();
+  const categoryId = cleanId(input.categoryId);
   const description = input.description?.trim() || null;
   const imageUrl = input.imageUrl?.trim() || null;
+
+  if (!productId) {
+    throw new Error("Produit introuvable.");
+  }
 
   if (!name) {
     throw new Error("Le nom du produit est requis.");
@@ -360,6 +396,7 @@ export async function updateMenuProduct(input: {
     throw new Error("La catégorie est requise.");
   }
 
+  await ensureProductBelongsToRestaurant(productId, restaurant.id);
   await ensureCategoryBelongsToRestaurant(categoryId, restaurant.id);
 
   const price = parsePositivePrice(input.price);
@@ -382,15 +419,14 @@ export async function updateMenuProduct(input: {
       is_featured: input.featured ?? false,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", input.productId)
+    .eq("id", productId)
     .eq("restaurant_id", restaurant.id);
 
   if (error) {
     throw new Error("Modification du produit impossible.");
   }
 
-  revalidatePath("/dashboard/menu");
-  revalidatePath(`/r/${restaurant.slug}`);
+  revalidateMenuPaths(restaurant.slug);
 
   return { ok: true };
 }
@@ -399,10 +435,18 @@ export async function deleteMenuProduct(input: { productId: string }) {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
 
+  const productId = cleanId(input.productId);
+
+  if (!productId) {
+    throw new Error("Produit introuvable.");
+  }
+
+  await ensureProductBelongsToRestaurant(productId, restaurant.id);
+
   const { count, error: countError } = await supabase
     .from("order_items")
     .select("id", { count: "exact", head: true })
-    .eq("product_id", input.productId);
+    .eq("product_id", productId);
 
   if (countError) {
     throw new Error("Vérification des commandes impossible.");
@@ -415,15 +459,14 @@ export async function deleteMenuProduct(input: { productId: string }) {
         is_available: false,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", input.productId)
+      .eq("id", productId)
       .eq("restaurant_id", restaurant.id);
 
     if (disableError) {
       throw new Error("Produit déjà commandé. Désactivation impossible.");
     }
 
-    revalidatePath("/dashboard/menu");
-    revalidatePath(`/r/${restaurant.slug}`);
+    revalidateMenuPaths(restaurant.slug);
 
     return {
       ok: true,
@@ -435,15 +478,14 @@ export async function deleteMenuProduct(input: { productId: string }) {
   const { error } = await supabase
     .from("menu_products")
     .delete()
-    .eq("id", input.productId)
+    .eq("id", productId)
     .eq("restaurant_id", restaurant.id);
 
   if (error) {
     throw new Error("Suppression du produit impossible.");
   }
 
-  revalidatePath("/dashboard/menu");
-  revalidatePath(`/r/${restaurant.slug}`);
+  revalidateMenuPaths(restaurant.slug);
 
   return {
     ok: true,
@@ -459,21 +501,28 @@ export async function toggleMenuProductAvailability(input: {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
 
+  const productId = cleanId(input.productId);
+
+  if (!productId) {
+    throw new Error("Produit introuvable.");
+  }
+
+  await ensureProductBelongsToRestaurant(productId, restaurant.id);
+
   const { error } = await supabase
     .from("menu_products")
     .update({
       is_available: input.available,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", input.productId)
+    .eq("id", productId)
     .eq("restaurant_id", restaurant.id);
 
   if (error) {
     throw new Error("Mise à jour de la disponibilité impossible.");
   }
 
-  revalidatePath("/dashboard/menu");
-  revalidatePath(`/r/${restaurant.slug}`);
+  revalidateMenuPaths(restaurant.slug);
 
   return { ok: true };
 }
