@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { getCurrentRestaurantContext } from "@/lib/restaurant/get-current-restaurant";
+import { createClient } from "@/lib/supabase/server";
 
 type SettingsPayload = {
   lunch_enabled: boolean;
@@ -29,7 +29,15 @@ type RestaurantPayload = {
   slug: string;
 };
 
+const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
+
 function cleanNullableText(value: string | null | undefined) {
+  const trimmedValue = value?.trim() ?? "";
+
+  return trimmedValue ? trimmedValue : null;
+}
+
+function cleanNullableTime(value: string | null | undefined) {
   const trimmedValue = value?.trim() ?? "";
 
   return trimmedValue ? trimmedValue : null;
@@ -48,6 +56,9 @@ function normalizeSlug(value: string) {
 function validateRestaurantPayload(payload: RestaurantPayload) {
   const name = payload.name.trim();
   const slug = normalizeSlug(payload.slug);
+  const email = cleanNullableText(payload.email);
+  const googleReviewUrl = cleanNullableText(payload.google_review_url);
+  const publicBaseUrl = cleanNullableText(payload.public_base_url);
 
   if (!name) {
     throw new Error("Le nom du restaurant est obligatoire.");
@@ -57,15 +68,15 @@ function validateRestaurantPayload(payload: RestaurantPayload) {
     throw new Error("Le slug public est obligatoire.");
   }
 
-  if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email.trim())) {
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error("Adresse email invalide.");
   }
 
-  if (payload.google_review_url && !/^https?:\/\/.+\..+/.test(payload.google_review_url.trim())) {
+  if (googleReviewUrl && !/^https?:\/\/.+\..+/.test(googleReviewUrl)) {
     throw new Error("Lien Google Avis invalide.");
   }
 
-  if (payload.public_base_url && !/^https?:\/\/.+\..+/.test(payload.public_base_url.trim())) {
+  if (publicBaseUrl && !/^https?:\/\/.+\..+/.test(publicBaseUrl)) {
     throw new Error("Lien du site web invalide.");
   }
 
@@ -74,10 +85,10 @@ function validateRestaurantPayload(payload: RestaurantPayload) {
     slug,
     city: cleanNullableText(payload.city),
     phone: cleanNullableText(payload.phone),
-    email: cleanNullableText(payload.email),
+    email,
     cuisine_type: cleanNullableText(payload.cuisine_type),
-    google_review_url: cleanNullableText(payload.google_review_url),
-    public_base_url: cleanNullableText(payload.public_base_url),
+    google_review_url: googleReviewUrl,
+    public_base_url: publicBaseUrl,
     address: cleanNullableText(payload.address),
   };
 }
@@ -86,23 +97,49 @@ function validateTimePair(start: string | null, end: string | null, label: strin
   if (Boolean(start) !== Boolean(end)) {
     throw new Error(`Renseignez le début et la fin du service ${label}.`);
   }
+
+  if (start && !TIME_REGEX.test(start)) {
+    throw new Error(`L'heure de début du service ${label} est invalide.`);
+  }
+
+  if (end && !TIME_REGEX.test(end)) {
+    throw new Error(`L'heure de fin du service ${label} est invalide.`);
+  }
+}
+
+function revalidateSettingsPaths(currentSlug: string, nextSlug?: string) {
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/qr");
+  revalidatePath("/dashboard/reviews");
+  revalidatePath("/dashboard/statistics");
+  revalidatePath(`/r/${currentSlug}`);
+
+  if (nextSlug && nextSlug !== currentSlug) {
+    revalidatePath(`/r/${nextSlug}`);
+  }
 }
 
 export async function updateRestaurantSettings(payload: SettingsPayload): Promise<void> {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
 
-  validateTimePair(payload.lunch_start, payload.lunch_end, "midi");
-  validateTimePair(payload.dinner_start, payload.dinner_end, "soir");
+  const lunchStart = cleanNullableTime(payload.lunch_start);
+  const lunchEnd = cleanNullableTime(payload.lunch_end);
+  const dinnerStart = cleanNullableTime(payload.dinner_start);
+  const dinnerEnd = cleanNullableTime(payload.dinner_end);
+
+  validateTimePair(lunchStart, lunchEnd, "midi");
+  validateTimePair(dinnerStart, dinnerEnd, "soir");
 
   const nextPayload = {
     restaurant_id: restaurant.id,
     lunch_enabled: payload.lunch_enabled,
-    lunch_start: payload.lunch_start,
-    lunch_end: payload.lunch_end,
+    lunch_start: lunchStart,
+    lunch_end: lunchEnd,
     dinner_enabled: payload.dinner_enabled,
-    dinner_start: payload.dinner_start,
-    dinner_end: payload.dinner_end,
+    dinner_start: dinnerStart,
+    dinner_end: dinnerEnd,
     orders_enabled: payload.orders_enabled,
     require_payment_before_preparation: payload.require_payment_before_preparation,
     qr_enabled: payload.qr_enabled,
@@ -124,11 +161,7 @@ export async function updateRestaurantSettings(payload: SettingsPayload): Promis
     throw new Error("Sauvegarde des réglages impossible.");
   }
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/qr");
-  revalidatePath("/dashboard/reviews");
-  revalidatePath("/dashboard/statistics");
+  revalidateSettingsPaths(restaurant.slug);
 }
 
 export async function updateRestaurantProfile(payload: RestaurantPayload): Promise<void> {
@@ -178,8 +211,5 @@ export async function updateRestaurantProfile(payload: RestaurantPayload): Promi
     throw new Error("Sauvegarde du restaurant impossible.");
   }
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/qr");
-  revalidatePath("/dashboard/statistics");
+  revalidateSettingsPaths(restaurant.slug, nextPayload.slug);
 }
