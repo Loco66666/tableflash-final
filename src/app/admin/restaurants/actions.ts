@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/require-role";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 import type { RestaurantStatus, SubscriptionPlan } from "@/lib/supabase/types";
 
 type CreateRestaurantWithOwnerInput = {
@@ -25,6 +26,9 @@ type CreatedRestaurantRow = {
   id: string;
   slug: string;
 };
+
+type AdminEventInsert = Database["public"]["Tables"]["admin_events"]["Insert"];
+type AdminEventMetadata = AdminEventInsert["metadata"];
 
 function normalizeText(value: string) {
   return value
@@ -65,35 +69,71 @@ async function createUniqueRestaurantSlug(name: string) {
   const supabase = createAdminClient();
   const baseSlug = createSlugBase(name);
 
-  const { data, error } = await supabase.from("restaurants").select("slug").returns<{ slug: string }[]>();
+  let candidateSlug = baseSlug;
+  let index = 2;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("restaurants")
+      .select("id")
+      .eq("slug", candidateSlug)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[admin/restaurants] slug lookup failed", {
+        slug: candidateSlug,
+        errorCode: error.code,
+        errorMessage: error.message,
+      });
+
+      throw new Error("Vérification du nom public impossible.");
+    }
+
+    if (!data) {
+      return candidateSlug;
+    }
+
+    candidateSlug = `${baseSlug}-${index}`;
+    index += 1;
+  }
+}
+
+async function insertAdminEvent(input: {
+  actorId: string;
+  restaurantId: string;
+  eventType: string;
+  message: string;
+  metadata?: AdminEventMetadata;
+}) {
+  const supabase = createAdminClient();
+
+  const { error } = await supabase.from("admin_events").insert({
+    actor_id: input.actorId,
+    restaurant_id: input.restaurantId,
+    event_type: input.eventType,
+    message: input.message,
+    metadata: input.metadata ?? {},
+  });
 
   if (error) {
-    console.error("[admin/restaurants] slug lookup failed", {
+    console.error("[admin/restaurants] admin event insert failed", {
+      restaurantId: input.restaurantId,
+      eventType: input.eventType,
       errorCode: error.code,
       errorMessage: error.message,
     });
-
-    throw new Error("Vérification du nom public impossible.");
   }
-
-  const existingSlugs = new Set((data ?? []).map((restaurant) => restaurant.slug));
-
-  if (!existingSlugs.has(baseSlug)) {
-    return baseSlug;
-  }
-
-  let index = 2;
-
-  while (existingSlugs.has(`${baseSlug}-${index}`)) {
-    index += 1;
-  }
-
-  return `${baseSlug}-${index}`;
 }
 
 async function updateRestaurantStatus(restaurantId: string, status: RestaurantStatus) {
   const { profile } = await requireRole(["super_admin"]);
   const supabase = createAdminClient();
+
+  const cleanedRestaurantId = restaurantId.trim();
+
+  if (!cleanedRestaurantId) {
+    throw new Error("Restaurant introuvable.");
+  }
 
   const { error } = await supabase
     .from("restaurants")
@@ -101,11 +141,11 @@ async function updateRestaurantStatus(restaurantId: string, status: RestaurantSt
       status,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", restaurantId);
+    .eq("id", cleanedRestaurantId);
 
   if (error) {
     console.error("[admin/restaurants] status update failed", {
-      restaurantId,
+      restaurantId: cleanedRestaurantId,
       status,
       errorCode: error.code,
       errorMessage: error.message,
@@ -114,16 +154,16 @@ async function updateRestaurantStatus(restaurantId: string, status: RestaurantSt
     throw new Error("Mise à jour du statut impossible.");
   }
 
-  await supabase.from("admin_events").insert({
-    actor_id: profile.id,
-    restaurant_id: restaurantId,
-    event_type: "restaurant_status_updated",
+  await insertAdminEvent({
+    actorId: profile.id,
+    restaurantId: cleanedRestaurantId,
+    eventType: "restaurant_status_updated",
     message: `Statut restaurant mis à jour : ${status}`,
     metadata: { status },
   });
 
   revalidatePath("/admin/restaurants");
-  revalidatePath(`/admin/restaurants/${restaurantId}`);
+  revalidatePath(`/admin/restaurants/${cleanedRestaurantId}`);
 }
 
 export async function createRestaurantWithOwner(input: CreateRestaurantWithOwnerInput) {
@@ -145,7 +185,7 @@ export async function createRestaurantWithOwner(input: CreateRestaurantWithOwner
   }
 
   if (!ownerEmail || !ownerEmail.includes("@")) {
-    throw new Error("L’email du restaurateur est invalide.");
+    throw new Error("L'email du restaurateur est invalide.");
   }
 
   if (ownerPassword.length < 8) {
@@ -286,10 +326,10 @@ export async function createRestaurantWithOwner(input: CreateRestaurantWithOwner
       }
     }
 
-    await supabase.from("admin_events").insert({
-      actor_id: profile.id,
-      restaurant_id: restaurant.id,
-      event_type: "restaurant_created",
+    await insertAdminEvent({
+      actorId: profile.id,
+      restaurantId: restaurant.id,
+      eventType: "restaurant_created",
       message: `Restaurant créé : ${restaurantName}`,
       metadata: {
         restaurant_name: restaurantName,
