@@ -9,11 +9,11 @@ function getSupabaseAdminConfig() {
   const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl) {
-    throw new Error("L’URL Supabase serveur n’est pas configurée.");
+    throw new Error("L'URL Supabase serveur n'est pas configurée.");
   }
 
   if (!supabaseSecretKey) {
-    throw new Error("La clé serveur Supabase n’est pas configurée.");
+    throw new Error("La clé serveur Supabase n'est pas configurée.");
   }
 
   return {

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, lookupProfileByUserId } from "@/lib/auth/get-current-user";
+import { createClient } from "@/lib/supabase/server";
 
 export async function getCurrentRestaurantContext() {
   const user = await getCurrentUser();
@@ -23,10 +23,7 @@ export async function getCurrentRestaurantContext() {
     redirect("/unauthorized?reason=forbidden_role");
   }
 
-  const {
-    data: membership,
-    error: membershipError,
-  } = await supabase
+  const { data: membership, error: membershipError } = await supabase
     .from("restaurant_members")
     .select("restaurant_id")
     .eq("user_id", user.id)
@@ -50,10 +47,7 @@ export async function getCurrentRestaurantContext() {
   let restaurantId = membership?.restaurant_id ?? null;
 
   if (!restaurantId) {
-    const {
-      data: ownedRestaurant,
-      error: ownedRestaurantError,
-    } = await supabase
+    const { data: ownedRestaurant, error: ownedRestaurantError } = await supabase
       .from("restaurants")
       .select("id")
       .eq("owner_id", user.id)
@@ -89,10 +83,7 @@ export async function getCurrentRestaurantContext() {
     redirect("/unauthorized?reason=missing_restaurant");
   }
 
-  const {
-    data: restaurant,
-    error: restaurantError,
-  } = await supabase
+  const { data: restaurant, error: restaurantError } = await supabase
     .from("restaurants")
     .select("*")
     .eq("id", restaurantId)
@@ -124,16 +115,11 @@ export async function getCurrentRestaurantContext() {
     redirect("/unauthorized?reason=missing_restaurant");
   }
 
-const {
-  data: existingSettings,
-  error: settingsError,
-} = await supabase
-  .from("restaurant_settings")
-  .select("*")
-  .eq("restaurant_id", restaurant.id)
-  .maybeSingle();
-
-let settings = existingSettings;
+  const { data: existingSettings, error: settingsError } = await supabase
+    .from("restaurant_settings")
+    .select("*")
+    .eq("restaurant_id", restaurant.id)
+    .maybeSingle();
 
   if (settingsError) {
     if (process.env.NODE_ENV === "development") {
@@ -149,11 +135,10 @@ let settings = existingSettings;
     redirect("/unauthorized?reason=settings_query_error");
   }
 
+  let settings = existingSettings;
+
   if (!settings) {
-    const {
-      data: createdSettings,
-      error: createSettingsError,
-    } = await supabase
+    const { data: createdSettings, error: createSettingsError } = await supabase
       .from("restaurant_settings")
       .insert({ restaurant_id: restaurant.id })
       .select("*")
