@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { CustomerMenuContent } from "@/components/ui-custom/CustomerMenuContent";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Category, Product, TableInfo } from "@/lib/types";
-import { createClient } from "@/lib/supabase/server";
 
 type CustomerMenuPageProps = {
-  params: Promise<{ restaurant: string; table: string }>;
+  params: Promise<{ restaurant: string; table?: string }>;
 };
 
 type PublicRestaurantMenuData = {
@@ -57,7 +57,11 @@ type PublicRestaurantSettings = {
   reviews_enabled: boolean | null;
 };
 
-function getProductVisual(name: string): string {
+function cleanSlug(value: string) {
+  return value.trim();
+}
+
+function getProductVisual(name: string): Product["visual"] {
   const normalizedName = name
     .toLocaleLowerCase("fr-FR")
     .normalize("NFD")
@@ -80,17 +84,20 @@ function getProductVisual(name: string): string {
 
 async function getPublicRestaurantMenuData({
   restaurantSlug,
-  tableSlug,
 }: {
   restaurantSlug: string;
-  tableSlug: string;
 }): Promise<{ publicMenu: PublicRestaurantMenuData; table: TableInfo } | null> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
+  const cleanedRestaurantSlug = cleanSlug(restaurantSlug);
+
+  if (!cleanedRestaurantSlug) {
+    return null;
+  }
 
   const { data: restaurant, error: restaurantError } = await supabase
     .from("restaurants")
     .select("id, name, city, status, google_review_url")
-    .eq("slug", restaurantSlug)
+    .eq("slug", cleanedRestaurantSlug)
     .returns<PublicRestaurant[]>()
     .maybeSingle();
 
@@ -102,11 +109,13 @@ async function getPublicRestaurantMenuData({
     .from("restaurant_tables")
     .select("id, name, slug, zone, is_active, scans_count")
     .eq("restaurant_id", restaurant.id)
-    .eq("slug", tableSlug)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
     .returns<PublicRestaurantTable[]>()
     .maybeSingle();
 
-  if (tableError || !table || !table.is_active) {
+  if (tableError || !table) {
     return null;
   }
 
@@ -161,12 +170,16 @@ async function getPublicRestaurantMenuData({
     return null;
   }
 
-  const { data: settingsData } = await supabase
+  const { data: settingsData, error: settingsError } = await supabase
     .from("restaurant_settings")
     .select("orders_enabled, reviews_enabled")
     .eq("restaurant_id", restaurant.id)
     .returns<PublicRestaurantSettings[]>()
     .maybeSingle();
+
+  if (settingsError) {
+    return null;
+  }
 
   const products: Product[] = (productsData ?? []).map((item) => ({
     id: item.id,
@@ -216,11 +229,11 @@ async function getPublicRestaurantMenuData({
   };
 }
 
-export default async function CustomerMenuPage({ params }: CustomerMenuPageProps) {
-  const { restaurant, table } = await params;
+export default async function CustomerRestaurantPage({ params }: CustomerMenuPageProps) {
+  const { restaurant } = await params;
+
   const result = await getPublicRestaurantMenuData({
     restaurantSlug: restaurant,
-    tableSlug: table,
   });
 
   if (!result) {
@@ -230,7 +243,7 @@ export default async function CustomerMenuPage({ params }: CustomerMenuPageProps
   return (
     <CustomerMenuContent
       restaurantSlug={restaurant}
-      tableSlug={table}
+      tableSlug={result.table.slug}
       initialTable={result.table}
       publicMenu={result.publicMenu}
     />
