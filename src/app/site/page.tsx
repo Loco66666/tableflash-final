@@ -16,69 +16,69 @@ import {
 const appUrl = "https://app.tableflash.fr";
 
 const pains = [
-  "Le client attend la carte alors que l'equipe est deja prise.",
-  "Le serveur fait plusieurs allers-retours pour une meme table.",
-  "Une commande peut etre mal comprise ou notee trop vite.",
+  "Le client attend la carte alors que l'?quipe est d?j? prise.",
+  "Le serveur fait plusieurs allers-retours pour une m?me table.",
+  "Une commande peut ?tre mal comprise ou not?e trop vite.",
   "Un produit en rupture reste parfois visible trop longtemps.",
-  "Les avis clients ne sont pas toujours recuperes apres le repas.",
+  "Les avis clients ne sont pas toujours r?cup?r?s apr?s le repas.",
 ];
 
 const benefits = [
-  "Sans application a installer pour le client",
-  "Paiement sur place, aupres de votre equipe",
+  "Sans application ? installer pour le client",
+  "Paiement sur place, aupr?s de votre ?quipe",
   "QR imprimables par table ou par zone",
-  "Menu modifiable a tout moment",
+  "Menu modifiable ? tout moment",
 ];
 
 const features = [
   {
     icon: QrCode,
     title: "QR par table",
-    text: "Creez des QR propres pour chaque table, terrasse, comptoir ou zone a emporter. Les fiches sont pensees pour l'impression A6 et les chevalets.",
+    text: "Cr?ez des QR propres pour chaque table, terrasse, comptoir ou zone ? emporter. Les fiches sont pens?es pour l?impression A6 et les chevalets.",
   },
   {
     icon: Utensils,
     title: "Menu digital clair",
-    text: "Ajoutez vos categories, produits, prix, photos et disponibilites. Votre menu reste a jour meme pendant le service.",
+    text: "Ajoutez vos cat?gories, produits, prix, photos et disponibilit?s. Votre menu reste ? jour m?me pendant le service.",
   },
   {
     icon: ReceiptText,
-    title: "Commandes a table",
-    text: "Le client scanne, consulte le menu et passe commande depuis son telephone. Votre equipe recoit une commande claire dans le dashboard.",
+    title: "Commandes ? table",
+    text: "Le client scanne, consulte le menu et passe commande depuis son t?l?phone. Votre ?quipe re?oit une commande claire dans le dashboard.",
   },
   {
     icon: Clock3,
     title: "Suivi de commande",
-    text: "Passez une commande en acceptee, en preparation, prete ou servie. Le client comprend ou en est sa demande.",
+    text: "Passez une commande en accept?e, en pr?paration, pr?te ou servie. Le client comprend o? en est sa demande.",
   },
   {
     icon: Star,
     title: "Avis clients",
-    text: "Collectez les retours apres le service, repondez aux avis et gardez une trace des experiences clients.",
+    text: "Collectez les retours apr?s le service, r?pondez aux avis et gardez une trace des exp?riences clients.",
   },
   {
     icon: BarChart3,
     title: "Statistiques simples",
-    text: "Suivez les scans QR, les commandes et les indicateurs utiles sans tableau complique ni outil difficile a prendre en main.",
+    text: "Suivez les scans QR, les commandes et les indicateurs utiles sans tableau compliqu? ni outil difficile ? prendre en main.",
   },
 ];
 
 const steps = [
   {
-    title: "On configure votre etablissement",
-    text: "Nom, menu, tables, horaires, QR et reglages essentiels.",
+    title: "On configure votre ?tablissement",
+    text: "Nom, menu, tables, horaires, QR et r?glages essentiels.",
   },
   {
     title: "Vous imprimez vos QR",
-    text: "Chaque table recoit son QR clair, lisible et pret a scanner.",
+    text: "Chaque table re?oit son QR clair, lisible et pret a scanner.",
   },
   {
     title: "Le client commande",
-    text: "Il scanne, consulte le menu et passe commande depuis son telephone.",
+    text: "Il scanne, consulte le menu et passe commande depuis son t?l?phone.",
   },
   {
-    title: "Vous gardez le controle",
-    text: "Vous recevez la commande, changez le statut, servez et collectez l'avis.",
+    title: "Vous gardez le contr?le",
+    text: "Vous recevez la commande, changez le statut, servez et collectez l?avis.",
   },
 ];
 
@@ -86,21 +86,21 @@ const plans = [
   {
     name: "Starter",
     price: "29 EUR",
-    description: "Pour demarrer avec un menu QR et des commandes simples.",
-    items: ["Menu digital", "QR par table", "Commandes a table", "Paiement sur place", "Support standard"],
+    description: "Pour d?marrer avec un menu QR et des commandes simples.",
+    items: ["Menu digital", "QR par table", "Commandes ? table", "Paiement sur place", "Support standard"],
   },
   {
     name: "Pro",
     price: "59 EUR",
-    description: "Pour suivre commandes, avis clients et activite du restaurant.",
-    items: ["Tout Starter", "Avis clients", "Statistiques", "QR imprimables A6", "Reglages avances"],
+    description: "Pour suivre commandes, avis clients et activit? du restaurant.",
+    items: ["Tout Starter", "Avis clients", "Statistiques", "QR imprimables A6", "Reglages avanc?s"],
     highlighted: true,
   },
   {
     name: "Premium",
     price: "89 EUR",
     description: "Pour un accompagnement plus complet lors de la mise en place.",
-    items: ["Tout Pro", "Aide a l'installation", "Accompagnement menu", "Support prioritaire", "Preparation QR / chevalets"],
+    items: ["Tout Pro", "Aide a l?installation", "Accompagnement menu", "Support prioritaire", "Pr?paration QR / chevalets"],
   },
 ];
 
@@ -108,31 +108,31 @@ const faqs = [
   {
     question: "Est-ce que TableFlash remplace les serveurs ?",
     answer:
-      "Non. TableFlash ne remplace pas le contact humain. Il reduit les allers-retours inutiles et aide l'equipe a recevoir des commandes plus claires.",
+      "Non. TableFlash ne remplace pas le contact humain. Il r?duit les allers-retours inutiles et aide l'?quipe ? recevoir des commandes plus claires.",
   },
   {
     question: "Les clients doivent-ils installer une application ?",
-    answer: "Non. Le client scanne simplement le QR avec son telephone et accede au menu depuis son navigateur.",
+    answer: "Non. Le client scanne simplement le QR avec son t?l?phone et acc?de au menu depuis son navigateur.",
   },
   {
     question: "Le paiement se fait-il en ligne ?",
     answer:
-      "Pour le moment, le paiement se fait sur place, aupres du serveur ou au comptoir. C'est plus simple pour demarrer et cela garde le contact client.",
+      "Pour le moment, le paiement se fait sur place, aupr?s du serveur ou au comptoir. C?est plus simple pour d?marrer et cela garde le contact client.",
   },
   {
-    question: "Peut-on modifier le menu facilement ?",
+    question: "Peut-on modifi?r le menu facilement ?",
     answer:
-      "Oui. Vous pouvez modifier les produits, prix, photos, disponibilites et categories depuis votre espace restaurateur.",
+      "Oui. Vous pouvez modifi?r les produits, prix, photos, disponibilit?s et cat?gories depuis votre espace restaurateur.",
   },
   {
-    question: "Est-ce adapte aux petits restaurants ?",
+    question: "Est-ce adapt? aux petits restaurants ?",
     answer:
-      "Oui. TableFlash est pense pour les restaurants independants qui veulent un outil simple, pas une usine a gaz.",
+      "Oui. TableFlash est pens? pour les restaurants ind?pendants qui veulent un outil simple, pas une usine ? gaz.",
   },
   {
     question: "Peut-on imprimer les QR ?",
     answer:
-      "Oui. TableFlash genere des fiches QR par table, pensees pour etre imprimees et placees sur chevalet.",
+      "Oui. TableFlash g?n?re des fiches QR par table, pens?es pour ?tre imprim?es et plac?es sur chevalet.",
   },
 ];
 
@@ -146,14 +146,14 @@ export default function SitePage() {
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm font-black text-slate-600 lg:flex">
-            <a href="#probleme" className="transition hover:text-emerald-900">
-              Probleme
+            <a href="#probl?me" className="transition hover:text-emerald-900">
+              Probl?me
             </a>
             <a href="#solution" className="transition hover:text-emerald-900">
               Solution
             </a>
-            <a href="#fonctionnalites" className="transition hover:text-emerald-900">
-              Fonctionnalites
+            <a href="#fonctionnalit?s" className="transition hover:text-emerald-900">
+              Fonctionnalit?s
             </a>
             <a href="#tarifs" className="transition hover:text-emerald-900">
               Tarifs
@@ -188,7 +188,7 @@ export default function SitePage() {
         <div className="grid gap-8">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-900/10 bg-white px-4 py-2 text-sm font-black text-emerald-900 shadow-sm">
             <Sparkles className="size-4" />
-            Menu QR Â· Commandes a table Â· Avis clients
+            Menu QR Â· Commandes ? table Â· Avis clients
           </div>
 
           <div className="grid gap-6">
@@ -198,8 +198,8 @@ export default function SitePage() {
 
             <p className="max-w-2xl text-xl font-semibold leading-relaxed text-slate-600">
               TableFlash aide les restaurants a transformer chaque table en point de commande simple, sans remplacer le
-              contact humain. Vos clients scannent, consultent le menu, commandent depuis leur telephone, puis paient sur
-              place aupres de votre equipe.
+              contact humain. Vos clients scannent, consultent le menu, commandent depuis leur t?l?phone, puis paient sur
+              place aupr?s de votre ?quipe.
             </p>
           </div>
 
@@ -254,7 +254,7 @@ export default function SitePage() {
 
               <div className="rounded-2xl bg-white/10 p-4">
                 <p className="text-sm font-bold text-emerald-100">Statut</p>
-                <p className="mt-1 text-2xl font-black">En preparation</p>
+                <p className="mt-1 text-2xl font-black">En pr?paration</p>
               </div>
 
               <div className="grid grid-cols-3 gap-3 text-center">
@@ -276,17 +276,17 @@ export default function SitePage() {
         </div>
       </section>
 
-      <section id="probleme" className="bg-white py-20">
+      <section id="probl?me" className="bg-white py-20">
         <div className="mx-auto grid w-full max-w-7xl gap-10 px-5 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <div className="grid gap-4">
-            <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-700">Le vrai probleme</p>
+            <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-700">Le vrai probl?me</p>
             <h2 className="text-4xl font-black tracking-tight sm:text-5xl">Pendant le rush, chaque minute compte.</h2>
             <p className="text-lg font-semibold leading-relaxed text-slate-600">
-              Ce ne sont pas de simples details. Ce sont des moments ou le service perd du temps, de la clarte et parfois
+              Ce ne sont pas de simples details. Ce sont des moments ou le service perd du temps, de la clart? et parfois
               du chiffre d&apos;affaires.
             </p>
             <p className="rounded-3xl bg-emerald-50 p-5 text-xl font-black leading-relaxed text-emerald-950">
-              TableFlash ne remplace pas votre equipe. Il lui enleve les allers-retours inutiles.
+              TableFlash ne remplace pas votre ?quipe. Il lui enleve les allers-retours inutiles.
             </p>
           </div>
 
@@ -305,14 +305,14 @@ export default function SitePage() {
           <div className="grid gap-5">
             <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-200">La solution</p>
             <h2 className="text-4xl font-black tracking-tight sm:text-5xl">
-              Un QR par table. Un menu toujours a jour. Des commandes centralisees.
+              Un QR par table. Un menu toujours ? jour. Des commandes centralisees.
             </h2>
             <p className="text-lg font-semibold leading-relaxed text-emerald-50">
               Avec TableFlash, vos clients scannent le QR de leur table, voient votre menu, passent commande, puis suivent
-              l&apos;avancement. Cote restaurant, vous gardez la main.
+              l&apos;avancement. C?t? restaurant, vous gardez la main.
             </p>
             <p className="rounded-3xl bg-white/10 p-5 text-lg font-black leading-relaxed text-white">
-              Le paiement reste sur place, aupres de votre serveur ou au comptoir. Vous gardez le contact client,
+              Le paiement reste sur place, aupr?s de votre serveur ou au comptoir. Vous gardez le contact client,
               TableFlash simplifie seulement le parcours.
             </p>
           </div>
@@ -322,7 +322,7 @@ export default function SitePage() {
               <p className="text-sm font-black uppercase tracking-[0.2em] text-red-600">Avant</p>
               <ul className="mt-4 grid gap-3 text-base font-bold text-slate-700">
                 <li>Les clients attendent la carte.</li>
-                <li>Le serveur retourne plusieurs fois a la table.</li>
+                <li>Le serveur retourne plusieurs fois a l? table.</li>
                 <li>Les produits indisponibles restent parfois visibles.</li>
                 <li>Les avis clients sont rarement collectes.</li>
               </ul>
@@ -331,21 +331,21 @@ export default function SitePage() {
             <div className="rounded-3xl bg-emerald-50 p-5">
               <p className="text-sm font-black uppercase tracking-[0.2em] text-emerald-700">Apres TableFlash</p>
               <ul className="mt-4 grid gap-3 text-base font-bold text-slate-800">
-                <li>Le client scanne et voit le menu immediatement.</li>
+                <li>Le client scanne et voit le menu imm?diatement.</li>
                 <li>La commande arrive clairement dans le dashboard.</li>
-                <li>Le menu peut etre modifie a tout moment.</li>
-                <li>Les avis sont demandes apres le service.</li>
+                <li>Le menu peut ?tre modifi? ? tout moment.</li>
+                <li>Les avis sont demand?s apr?s le service.</li>
               </ul>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="fonctionnalites" className="mx-auto w-full max-w-7xl px-5 py-20">
+      <section id="fonctionnalit?s" className="mx-auto w-full max-w-7xl px-5 py-20">
         <div className="mb-10 grid gap-3">
-          <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-700">Fonctionnalites</p>
+          <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-700">Fonctionnalit?s</p>
           <h2 className="max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">
-            Pas une usine a gaz. Un outil simple pour mieux tenir le service.
+            Pas une usine ? gaz. Un outil simple pour mieux tenir le service.
           </h2>
         </div>
 
@@ -390,9 +390,9 @@ export default function SitePage() {
       <section id="tarifs" className="mx-auto w-full max-w-7xl px-5 py-20">
         <div className="mb-10 grid gap-3 text-center">
           <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-700">Tarifs</p>
-          <h2 className="text-4xl font-black tracking-tight sm:text-5xl">Des prix clairs pour demarrer.</h2>
+          <h2 className="text-4xl font-black tracking-tight sm:text-5xl">Des prix clairs pour d?marrer.</h2>
           <p className="mx-auto max-w-2xl text-lg font-semibold leading-relaxed text-slate-600">
-            Essai gratuit 14 jours. Frais d&apos;installation possibles selon le besoin : menu, QR, chevalets, parametrage
+            Essai gratuit 14 jours. Frais d&apos;installation possibles selon le besoin : menu, QR, chevalets, param?trage
             et formation rapide.
           </p>
         </div>
@@ -407,7 +407,7 @@ export default function SitePage() {
               ].join(" ")}
             >
               {plan.highlighted ? (
-                <p className="mb-4 w-fit rounded-full bg-emerald-950 px-3 py-1 text-sm font-black text-white">Recommande</p>
+                <p className="mb-4 w-fit rounded-full bg-emerald-950 px-3 py-1 text-sm font-black text-white">Recommand?</p>
               ) : null}
 
               <h3 className="text-2xl font-black">{plan.name}</h3>
@@ -439,8 +439,8 @@ export default function SitePage() {
               Testez TableFlash dans votre restaurant sans changer toute votre organisation.
             </h2>
             <p className="max-w-2xl text-lg font-semibold leading-relaxed text-emerald-50">
-              Vous testez le menu QR, les commandes a table, les avis et les QR imprimables dans des conditions reelles.
-              L&apos;acces est active apres validation pour garantir une installation propre.
+              Vous testez le menu QR, les commandes ? table, les avis et les QR imprimables dans des conditions r?elles.
+              L&apos;acc?s est activ? apr?s validation pour garantir une installation propre.
             </p>
           </div>
 
@@ -464,7 +464,7 @@ export default function SitePage() {
 
       <section id="faq" className="mx-auto w-full max-w-7xl px-5 py-20">
         <div className="mb-10 grid gap-3">
-          <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-700">Questions frequentes</p>
+          <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-700">Questions fr?quentes</p>
           <h2 className="text-4xl font-black tracking-tight sm:text-5xl">Les objections normales avant de tester.</h2>
         </div>
 
@@ -484,7 +484,7 @@ export default function SitePage() {
       <section className="px-5 pb-20">
         <div className="mx-auto grid w-full max-w-7xl gap-6 rounded-4xl bg-slate-950 p-8 text-white md:p-10">
           <ShieldCheck className="size-10 text-emerald-300" />
-          <h2 className="max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">Pret a rendre votre service plus fluide ?</h2>
+          <h2 className="max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">Pr?t a rendre votre service plus fluide ?</h2>
           <p className="max-w-2xl text-lg font-semibold leading-relaxed text-slate-300">
             Essayez TableFlash dans votre restaurant et voyez rapidement si vos clients scannent, commandent et laissent des avis.
           </p>
@@ -508,7 +508,7 @@ export default function SitePage() {
 
       <footer className="border-t border-black/5 bg-white">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-5 py-8 text-sm font-bold text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>Â© {new Date().getFullYear()} TableFlash. Tous droits reserves.</p>
+          <p>Â© {new Date().getFullYear()} TableFlash. Tous droits r?serv?s.</p>
           <div className="flex flex-wrap gap-4">
             <a href="#tarifs" className="hover:text-emerald-800">
               Tarifs
