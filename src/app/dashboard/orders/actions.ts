@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { OrderStatus } from "@/lib/types";
 
 type DbOrderStatus = "pending" | "accepted" | "preparing" | "ready" | "served" | "rejected" | "cancelled";
+type DbPaymentStatus = "unpaid" | "paid" | "cancelled";
 
 const ALLOWED_UI_STATUSES: readonly OrderStatus[] = [
   "new",
@@ -18,9 +19,13 @@ const ALLOWED_UI_STATUSES: readonly OrderStatus[] = [
   "refused",
 ];
 
+function cleanId(value: string) {
+  return value.trim();
+}
+
 function mapUiStatusToDbStatus(status: OrderStatus): {
   status: DbOrderStatus;
-  paymentStatus: string;
+  paymentStatus: DbPaymentStatus;
 } {
   switch (status) {
     case "new":
@@ -41,17 +46,42 @@ function mapUiStatusToDbStatus(status: OrderStatus): {
   }
 }
 
+async function getRestaurantOrderOrThrow(orderId: string, restaurantId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("id", orderId)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error("Commande introuvable.");
+  }
+
+  return data;
+}
+
 export async function updateDashboardOrderStatus(input: {
   orderId: string;
   nextStatus: OrderStatus;
 }) {
   const { restaurant } = await getCurrentRestaurantContext();
+  const supabase = await createClient();
+
+  const orderId = cleanId(input.orderId);
+
+  if (!orderId) {
+    throw new Error("Commande introuvable.");
+  }
 
   if (!ALLOWED_UI_STATUSES.includes(input.nextStatus)) {
     throw new Error("Statut de commande invalide.");
   }
 
-  const supabase = await createClient();
+  await getRestaurantOrderOrThrow(orderId, restaurant.id);
+
   const mappedStatus = mapUiStatusToDbStatus(input.nextStatus);
 
   const { error } = await supabase
@@ -61,13 +91,13 @@ export async function updateDashboardOrderStatus(input: {
       payment_status: mappedStatus.paymentStatus,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", input.orderId)
+    .eq("id", orderId)
     .eq("restaurant_id", restaurant.id);
 
   if (error) {
     console.error("[dashboard/orders] status update failed", {
       restaurantId: restaurant.id,
-      orderId: input.orderId,
+      orderId,
       nextStatus: input.nextStatus,
       errorCode: error.code,
       errorMessage: error.message,
@@ -77,6 +107,7 @@ export async function updateDashboardOrderStatus(input: {
   }
 
   revalidatePath("/dashboard/orders");
+  revalidatePath(`/r/${restaurant.slug}`);
 
   return { ok: true };
 }
