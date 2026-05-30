@@ -13,38 +13,68 @@ function normalizeText(value: string) {
 }
 
 function createSlugBase(value: string) {
-  const slug = normalizeText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const slug = normalizeText(value)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
   return slug || "table";
+}
+
+function cleanId(value: string) {
+  return value.trim();
+}
+
+function revalidateQrPaths(restaurantSlug: string, tableSlug?: string) {
+  revalidatePath("/dashboard/qr");
+
+  if (tableSlug) {
+    revalidatePath(`/r/${restaurantSlug}/table/${tableSlug}`);
+  }
 }
 
 async function createUniqueTableSlug(name: string, restaurantId: string) {
   const supabase = await createClient();
   const baseSlug = createSlugBase(name);
 
-  const { data, error } = await supabase
-    .from("restaurant_tables")
-    .select("slug")
-    .eq("restaurant_id", restaurantId)
-    .returns<{ slug: string }[]>();
-
-  if (error) {
-    throw new Error("Lecture des tables impossible.");
-  }
-
-  const existingSlugs = new Set((data ?? []).map((table) => table.slug));
-
-  if (!existingSlugs.has(baseSlug)) {
-    return baseSlug;
-  }
-
+  let candidateSlug = baseSlug;
   let index = 2;
 
-  while (existingSlugs.has(`${baseSlug}-${index}`)) {
+  while (true) {
+    const { data, error } = await supabase
+      .from("restaurant_tables")
+      .select("id")
+      .eq("restaurant_id", restaurantId)
+      .eq("slug", candidateSlug)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error("Lecture des tables impossible.");
+    }
+
+    if (!data) {
+      return candidateSlug;
+    }
+
+    candidateSlug = `${baseSlug}-${index}`;
     index += 1;
   }
+}
 
-  return `${baseSlug}-${index}`;
+async function getRestaurantTableOrThrow(tableId: string, restaurantId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("restaurant_tables")
+    .select("id, slug")
+    .eq("id", tableId)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error("Table introuvable.");
+  }
+
+  return data;
 }
 
 async function assertUniqueTableName({
@@ -117,8 +147,7 @@ export async function createRestaurantTable(input: {
     throw new Error("Création de la table impossible.");
   }
 
-  revalidatePath("/dashboard/qr");
-  revalidatePath(`/r/${restaurant.slug}/table/${slug}`);
+  revalidateQrPaths(restaurant.slug, slug);
 
   return { ok: true };
 }
@@ -132,10 +161,11 @@ export async function updateRestaurantTable(input: {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
 
+  const tableId = cleanId(input.tableId);
   const name = input.name.trim();
   const zone = input.zone.trim();
 
-  if (!input.tableId) {
+  if (!tableId) {
     throw new Error("Table introuvable.");
   }
 
@@ -147,22 +177,13 @@ export async function updateRestaurantTable(input: {
     throw new Error("La zone est requise.");
   }
 
+  const table = await getRestaurantTableOrThrow(tableId, restaurant.id);
+
   await assertUniqueTableName({
     restaurantId: restaurant.id,
     name,
-    ignoredTableId: input.tableId,
+    ignoredTableId: tableId,
   });
-
-  const { data: table, error: tableError } = await supabase
-    .from("restaurant_tables")
-    .select("slug")
-    .eq("id", input.tableId)
-    .eq("restaurant_id", restaurant.id)
-    .maybeSingle();
-
-  if (tableError || !table) {
-    throw new Error("Table introuvable.");
-  }
 
   const { error } = await supabase
     .from("restaurant_tables")
@@ -172,15 +193,14 @@ export async function updateRestaurantTable(input: {
       is_active: input.isActive,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", input.tableId)
+    .eq("id", tableId)
     .eq("restaurant_id", restaurant.id);
 
   if (error) {
     throw new Error("Modification de la table impossible.");
   }
 
-  revalidatePath("/dashboard/qr");
-  revalidatePath(`/r/${restaurant.slug}/table/${table.slug}`);
+  revalidateQrPaths(restaurant.slug, table.slug);
 
   return { ok: true };
 }
@@ -192,20 +212,28 @@ export async function toggleRestaurantTable(input: {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
 
+  const tableId = cleanId(input.tableId);
+
+  if (!tableId) {
+    throw new Error("Table introuvable.");
+  }
+
+  const table = await getRestaurantTableOrThrow(tableId, restaurant.id);
+
   const { error } = await supabase
     .from("restaurant_tables")
     .update({
       is_active: input.isActive,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", input.tableId)
+    .eq("id", tableId)
     .eq("restaurant_id", restaurant.id);
 
   if (error) {
     throw new Error("Mise à jour de la table impossible.");
   }
 
-  revalidatePath("/dashboard/qr");
+  revalidateQrPaths(restaurant.slug, table.slug);
 
   return { ok: true };
 }
@@ -216,15 +244,19 @@ export async function deleteRestaurantTable(input: {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
 
-  if (!input.tableId) {
+  const tableId = cleanId(input.tableId);
+
+  if (!tableId) {
     throw new Error("Table introuvable.");
   }
+
+  const table = await getRestaurantTableOrThrow(tableId, restaurant.id);
 
   const { count, error: countError } = await supabase
     .from("orders")
     .select("id", { count: "exact", head: true })
     .eq("restaurant_id", restaurant.id)
-    .eq("table_id", input.tableId);
+    .eq("table_id", tableId);
 
   if (countError) {
     throw new Error("Vérification des commandes impossible.");
@@ -237,14 +269,14 @@ export async function deleteRestaurantTable(input: {
   const { error } = await supabase
     .from("restaurant_tables")
     .delete()
-    .eq("id", input.tableId)
+    .eq("id", tableId)
     .eq("restaurant_id", restaurant.id);
 
   if (error) {
     throw new Error("Suppression de la table impossible.");
   }
 
-  revalidatePath("/dashboard/qr");
+  revalidateQrPaths(restaurant.slug, table.slug);
 
   return { ok: true };
 }
