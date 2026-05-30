@@ -53,6 +53,7 @@ export default async function QrPage() {
       <PageHeader title={restaurant.name} subtitle="QR de table" />
       <Suspense fallback={null}>
         <TableQrManager
+          restaurantName={restaurant.name}
           restaurantSlug={restaurant.slug}
           initialTables={tables}
           qrOrdersCount={qrOrdersCount ?? 0}

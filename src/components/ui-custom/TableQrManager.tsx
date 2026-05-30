@@ -133,10 +133,14 @@ function PrintableQrCard({
         <h3 className={cn("font-black tracking-tight text-slate-950", compact ? "text-2xl" : "text-3xl")}>
           {restaurantName}
         </h3>
-        <div className="mx-auto mt-2 inline-flex min-h-11 items-center rounded-full bg-emerald-900 px-6 text-lg font-black text-white">
+
+        <p className="mt-2 text-sm font-black uppercase tracking-[0.2em] text-emerald-700">
+          {table.area}
+        </p>
+
+        <div className="mx-auto inline-flex min-h-11 items-center rounded-full bg-emerald-900 px-6 text-lg font-black text-white">
           {table.name}
         </div>
-        <p className="text-sm font-semibold text-slate-500">{table.area}</p>
       </header>
 
       <section className="grid gap-4 text-center">
@@ -233,10 +237,12 @@ function CustomerMenuLink({ path, link, className }: { path: string; link: strin
 }
 
 export function TableQrManager({
+  restaurantName,
   restaurantSlug,
   initialTables,
   qrOrdersCount,
 }: {
+  restaurantName?: string;
   restaurantSlug: string;
   initialTables: TableInfo[];
   qrOrdersCount: number;
@@ -260,7 +266,7 @@ export function TableQrManager({
   const [origin, setOrigin] = useState("");
 
   const tables = initialTables;
-  const restaurantName = useMemo(() => formatRestaurantNameFromSlug(restaurantSlug), [restaurantSlug]);
+  const restaurantDisplayName = restaurantName?.trim() || formatRestaurantNameFromSlug(restaurantSlug);
   const activeTables = useMemo(() => tables.filter((table) => table.isActive), [tables]);
   const activePrintIds = useMemo(() => new Set(activeTables.map((table) => table.id)), [activeTables]);
   const selectedActivePrintIds = selectedPrintIds.filter((tableId) => activePrintIds.has(tableId));
@@ -887,7 +893,7 @@ export function TableQrManager({
                   return (
                     <PrintableQrCard
                       key={table.id}
-                      restaurantName={restaurantName}
+                      restaurantName={restaurantDisplayName}
                       table={table}
                       link={link}
                       compact={printFormat === "sheet"}
