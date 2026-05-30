@@ -60,6 +60,21 @@ type GetPublicOrderTrackingResult = {
   order?: PublicOrderTracking;
 };
 
+type PublicRestaurantForOrder = {
+  id: string;
+  status: string;
+};
+
+type PublicRestaurantForReview = {
+  id: string;
+  status: string;
+  google_review_url: string | null;
+};
+
+type PublicTable = {
+  id: string;
+};
+
 type MenuProductForOrder = {
   id: string;
   name: string;
@@ -85,16 +100,6 @@ type TrackedOrderRow = {
   total: number | null;
 };
 
-type PublicRestaurantForReview = {
-  id: string;
-  status: string;
-  google_review_url: string | null;
-};
-
-type PublicTableForReview = {
-  id: string;
-};
-
 type PublicOrderForReview = {
   id: string;
   restaurant_id: string;
@@ -110,6 +115,26 @@ type ExistingReviewRow = {
 };
 
 const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
+const ACTIVE_RESTAURANT_STATUSES = ["active", "trial"];
+const MAX_CART_LINES = 50;
+const MAX_ITEM_QUANTITY = 99;
+const MAX_CUSTOMER_NAME_LENGTH = 80;
+const MAX_CUSTOMER_NOTE_LENGTH = 500;
+const MAX_REVIEW_COMMENT_LENGTH = 1000;
+
+function cleanText(value: string) {
+  return value.trim();
+}
+
+function cleanOptionalText(value?: string | null) {
+  const cleaned = value?.trim();
+
+  return cleaned ? cleaned : null;
+}
+
+function cleanId(value: string) {
+  return value.trim();
+}
 
 function normalizeMoney(value: number) {
   return Math.round(value * 100) / 100;
@@ -133,6 +158,10 @@ function clampRating(value: number) {
   return Math.round(value);
 }
 
+function isRestaurantAvailable(status: string) {
+  return ACTIVE_RESTAURANT_STATUSES.includes(status);
+}
+
 function mapDbStatusToCustomerStatus(status: string, paymentStatus: string): OrderStatus {
   if (status === "pending") return "new";
   if (status === "accepted") return paymentStatus === "paid" ? "paid" : "accepted";
@@ -144,25 +173,121 @@ function mapDbStatusToCustomerStatus(status: string, paymentStatus: string): Ord
   return "new";
 }
 
+function normalizeCartItems(items: OrderCartItemPayload[]) {
+  const quantitiesByProductId = new Map<string, number>();
+
+  for (const item of items) {
+    const menuItemId = cleanId(item.menuItemId);
+    const quantity = Math.floor(Number(item.quantity));
+
+    if (!menuItemId || !Number.isFinite(quantity) || quantity <= 0) {
+      continue;
+    }
+
+    const currentQuantity = quantitiesByProductId.get(menuItemId) ?? 0;
+    const nextQuantity = Math.min(currentQuantity + quantity, MAX_ITEM_QUANTITY);
+
+    quantitiesByProductId.set(menuItemId, nextQuantity);
+  }
+
+  return [...quantitiesByProductId.entries()].slice(0, MAX_CART_LINES).map(([menuItemId, quantity]) => ({
+    menuItemId,
+    quantity,
+  }));
+}
+
+async function getPublicRestaurantForOrder(restaurantSlug: string) {
+  const supabase = await createClient();
+  const slug = cleanId(restaurantSlug);
+
+  if (!slug) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("restaurants")
+    .select("id, status")
+    .eq("slug", slug)
+    .returns<PublicRestaurantForOrder[]>()
+    .maybeSingle();
+
+  if (error || !data || !isRestaurantAvailable(data.status)) {
+    return null;
+  }
+
+  return data;
+}
+
+async function getPublicRestaurantForReview(restaurantSlug: string) {
+  const supabase = await createClient();
+  const slug = cleanId(restaurantSlug);
+
+  if (!slug) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("restaurants")
+    .select("id, status, google_review_url")
+    .eq("slug", slug)
+    .returns<PublicRestaurantForReview[]>()
+    .maybeSingle();
+
+  if (error || !data || !isRestaurantAvailable(data.status)) {
+    return null;
+  }
+
+  return data;
+}
+
+async function getPublicTable(restaurantId: string, tableLabel: string) {
+  const supabase = await createClient();
+  const tableSlug = cleanId(tableLabel);
+
+  if (!tableSlug) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("restaurant_tables")
+    .select("id")
+    .eq("restaurant_id", restaurantId)
+    .eq("slug", tableSlug)
+    .eq("is_active", true)
+    .returns<PublicTable[]>()
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data;
+}
+
 export async function createPublicOrder(payload: CreatePublicOrderPayload): Promise<CreatePublicOrderResult> {
-  const customerName = payload.customerName.trim();
+  const customerName = cleanText(payload.customerName);
 
   if (!customerName) {
     return { ok: false, message: "Le nom du client est obligatoire." };
   }
 
-  const phone = payload.customerPhone?.trim();
+  if (customerName.length > MAX_CUSTOMER_NAME_LENGTH) {
+    return { ok: false, message: "Le nom du client est trop long." };
+  }
+
+  const phone = cleanOptionalText(payload.customerPhone);
 
   if (phone && !FRENCH_PHONE_REGEX.test(phone)) {
     return { ok: false, message: "Numéro de téléphone invalide." };
   }
 
-  const normalizedItems = payload.items
-    .map((item) => ({
-      menuItemId: item.menuItemId,
-      quantity: Math.floor(item.quantity),
-    }))
-    .filter((item) => item.menuItemId && item.quantity > 0);
+  const customerNote = cleanOptionalText(payload.customerNote);
+
+  if (customerNote && customerNote.length > MAX_CUSTOMER_NOTE_LENGTH) {
+    return { ok: false, message: "La note est trop longue." };
+  }
+
+  const normalizedItems = normalizeCartItems(payload.items);
 
   if (normalizedItems.length === 0) {
     return { ok: false, message: "Ajoutez au moins un produit avant de confirmer." };
@@ -170,32 +295,21 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
 
   const supabase = await createClient();
 
-  const { data: restaurant, error: restaurantError } = await supabase
-    .from("restaurants")
-    .select("id, status")
-    .eq("slug", payload.restaurantSlug)
-    .maybeSingle();
+  const restaurant = await getPublicRestaurantForOrder(payload.restaurantSlug);
 
-  if (restaurantError || !restaurant || !["active", "trial"].includes(restaurant.status)) {
+  if (!restaurant) {
     return {
       ok: false,
-      message: "Ce restaurant n’accepte pas de commandes pour le moment.",
+      message: "Ce restaurant n'accepte pas de commandes pour le moment.",
     };
   }
 
-  const { data: table, error: tableError } = await supabase
-    .from("restaurant_tables")
-    .select("id")
-    .eq("restaurant_id", restaurant.id)
-    .eq("slug", payload.tableLabel)
-    .eq("is_active", true)
-    .returns<{ id: string }[]>()
-    .maybeSingle();
+  const table = await getPublicTable(restaurant.id, payload.tableLabel);
 
-  if (tableError || !table) {
+  if (!table) {
     return {
       ok: false,
-      message: "Cette table n’est pas disponible pour le moment.",
+      message: "Cette table n'est pas disponible pour le moment.",
     };
   }
 
@@ -219,7 +333,7 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
     };
   }
 
-  const ids = [...new Set(normalizedItems.map((item) => item.menuItemId))];
+  const ids = normalizedItems.map((item) => item.menuItemId);
 
   const { data: menuItems, error: menuItemsError } = await supabase
     .from("menu_products")
@@ -237,13 +351,13 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
 
   const byId = new Map((menuItems ?? []).map((item) => [item.id, item]));
 
-  const missing = normalizedItems.some((item) => {
+  const hasUnavailableItem = normalizedItems.some((item) => {
     const menuItem = byId.get(item.menuItemId);
 
-    return !menuItem || !menuItem.is_available;
+    return !menuItem || !menuItem.is_available || getEffectivePrice(menuItem) <= 0;
   });
 
-  if (missing) {
+  if (hasUnavailableItem) {
     return {
       ok: false,
       message: "Un ou plusieurs produits ne sont plus disponibles.",
@@ -265,6 +379,13 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
   });
 
   const subtotal = normalizeMoney(lines.reduce((sum, line) => sum + line.total, 0));
+
+  if (subtotal <= 0) {
+    return {
+      ok: false,
+      message: "Le total de la commande est invalide.",
+    };
+  }
 
   const { data: latestOrder, error: latestOrderError } = await supabase
     .from("orders")
@@ -291,8 +412,8 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
       restaurant_id: restaurant.id,
       table_id: table.id,
       customer_name: customerName,
-      customer_phone: phone || null,
-      customer_note: payload.customerNote?.trim() || null,
+      customer_phone: phone,
+      customer_note: customerNote,
       subtotal,
       total: subtotal,
       payment_status: "unpaid",
@@ -306,7 +427,7 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
   if (orderError || !order) {
     return {
       ok: false,
-      message: "Impossible d’envoyer la commande pour le moment.",
+      message: "Impossible d'envoyer la commande pour le moment.",
     };
   }
 
@@ -322,9 +443,17 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
   const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
 
   if (itemsError) {
+    console.error("[public/orders] order items insert failed", {
+      restaurantId: restaurant.id,
+      orderId: order.id,
+      orderNumber: order.order_number,
+      errorCode: itemsError.code,
+      errorMessage: itemsError.message,
+    });
+
     return {
       ok: false,
-      message: "Impossible d’envoyer la commande pour le moment.",
+      message: "Impossible d'envoyer la commande pour le moment.",
     };
   }
 
@@ -339,7 +468,9 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
 export async function getPublicOrderTracking(
   payload: GetPublicOrderTrackingPayload,
 ): Promise<GetPublicOrderTrackingResult> {
-  if (!payload.orderId) {
+  const orderId = cleanId(payload.orderId);
+
+  if (!orderId) {
     return {
       ok: false,
       message: "Commande introuvable.",
@@ -348,29 +479,18 @@ export async function getPublicOrderTracking(
 
   const supabase = await createClient();
 
-  const { data: restaurant, error: restaurantError } = await supabase
-    .from("restaurants")
-    .select("id, status")
-    .eq("slug", payload.restaurantSlug)
-    .maybeSingle();
+  const restaurant = await getPublicRestaurantForOrder(payload.restaurantSlug);
 
-  if (restaurantError || !restaurant || !["active", "trial"].includes(restaurant.status)) {
+  if (!restaurant) {
     return {
       ok: false,
       message: "Restaurant indisponible.",
     };
   }
 
-  const { data: table, error: tableError } = await supabase
-    .from("restaurant_tables")
-    .select("id")
-    .eq("restaurant_id", restaurant.id)
-    .eq("slug", payload.tableLabel)
-    .eq("is_active", true)
-    .returns<{ id: string }[]>()
-    .maybeSingle();
+  const table = await getPublicTable(restaurant.id, payload.tableLabel);
 
-  if (tableError || !table) {
+  if (!table) {
     return {
       ok: false,
       message: "Table indisponible.",
@@ -380,7 +500,7 @@ export async function getPublicOrderTracking(
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .select("id, order_number, status, payment_status, total")
-    .eq("id", payload.orderId)
+    .eq("id", orderId)
     .eq("restaurant_id", restaurant.id)
     .eq("table_id", table.id)
     .returns<TrackedOrderRow[]>()
@@ -406,7 +526,9 @@ export async function getPublicOrderTracking(
 }
 
 export async function submitPublicReview(payload: SubmitPublicReviewPayload): Promise<SubmitPublicReviewResult> {
-  if (!payload.orderId) {
+  const orderId = cleanId(payload.orderId);
+
+  if (!orderId) {
     return {
       ok: false,
       message: "Commande introuvable.",
@@ -414,19 +536,21 @@ export async function submitPublicReview(payload: SubmitPublicReviewPayload): Pr
   }
 
   const rating = clampRating(payload.rating);
-  const comment = payload.comment?.trim() || null;
+  const comment = cleanOptionalText(payload.comment);
   const suggestGoogle = rating >= 4;
+
+  if (comment && comment.length > MAX_REVIEW_COMMENT_LENGTH) {
+    return {
+      ok: false,
+      message: "Le commentaire est trop long.",
+    };
+  }
 
   const supabase = await createClient();
 
-  const { data: restaurant, error: restaurantError } = await supabase
-    .from("restaurants")
-    .select("id, status, google_review_url")
-    .eq("slug", payload.restaurantSlug)
-    .returns<PublicRestaurantForReview[]>()
-    .maybeSingle();
+  const restaurant = await getPublicRestaurantForReview(payload.restaurantSlug);
 
-  if (restaurantError || !restaurant || !["active", "trial"].includes(restaurant.status)) {
+  if (!restaurant) {
     return {
       ok: false,
       message: "Restaurant indisponible.",
@@ -442,7 +566,7 @@ export async function submitPublicReview(payload: SubmitPublicReviewPayload): Pr
   if (settingsError) {
     return {
       ok: false,
-      message: "Impossible de vérifier les paramètres d’avis.",
+      message: "Impossible de vérifier les paramètres d'avis.",
     };
   }
 
@@ -453,16 +577,9 @@ export async function submitPublicReview(payload: SubmitPublicReviewPayload): Pr
     };
   }
 
-  const { data: table, error: tableError } = await supabase
-    .from("restaurant_tables")
-    .select("id")
-    .eq("restaurant_id", restaurant.id)
-    .eq("slug", payload.tableLabel)
-    .eq("is_active", true)
-    .returns<PublicTableForReview[]>()
-    .maybeSingle();
+  const table = await getPublicTable(restaurant.id, payload.tableLabel);
 
-  if (tableError || !table) {
+  if (!table) {
     return {
       ok: false,
       message: "Table indisponible.",
@@ -472,7 +589,7 @@ export async function submitPublicReview(payload: SubmitPublicReviewPayload): Pr
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .select("id, restaurant_id, table_id, customer_name, status")
-    .eq("id", payload.orderId)
+    .eq("id", orderId)
     .eq("restaurant_id", restaurant.id)
     .eq("table_id", table.id)
     .returns<PublicOrderForReview[]>()
@@ -542,7 +659,7 @@ export async function submitPublicReview(payload: SubmitPublicReviewPayload): Pr
 
     return {
       ok: false,
-      message: "Impossible d’envoyer votre avis pour le moment.",
+      message: "Impossible d'envoyer votre avis pour le moment.",
     };
   }
 
