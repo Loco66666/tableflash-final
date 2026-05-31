@@ -203,7 +203,7 @@ function Header() {
           <a href="#fonctionnalites" className="transition hover:text-emerald-700">
             Fonctionnalités
           </a>
-          <a href="#tarifs" className="transition hover:text-emerald-700">
+          <a href="/tarifs" className="transition hover:text-emerald-700">
             Tarifs
           </a>
           <a href="#fonctionnement" className="transition hover:text-emerald-700">
@@ -578,6 +578,7 @@ function Footer() {
 export default function SitePage() {
   return <HomePage />;
 }
+
 
 
 
