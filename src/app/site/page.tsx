@@ -468,8 +468,14 @@ function HomePage() {
 
       <section className="mx-auto w-full max-w-265 px-5 py-3">
         <div className="grid gap-6 rounded-xl border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.03)] md:grid-cols-[auto_1fr_auto_auto] md:items-center">
-          <div className="size-24 overflow-hidden rounded-full bg-linear-to-br from-emerald-100 to-slate-200">
-            <div className="grid h-full place-items-center text-[42px] font-black text-emerald-700">J</div>
+          <div className="size-24 overflow-hidden rounded-full border border-slate-200 bg-emerald-50 shadow-sm">
+            <Image
+              src="/images/julien-testimonial.png"
+              alt="Julien, g?rant du Bistrot des Halles"
+              width={160}
+              height={160}
+              className="h-full w-full object-cover"
+            />
           </div>
 
           <div>
