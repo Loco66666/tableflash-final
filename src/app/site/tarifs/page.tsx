@@ -179,8 +179,12 @@ function Header() {
   );
 }
 
-function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
+function PlanCard({ plan, billing }: { plan: (typeof plans)[number]; billing: "monthly" | "yearly" }) {
   const Icon = plan.icon;
+  const displayedPrice = billing === "monthly" ? plan.price : plan.yearly;
+  const displayedPeriod = billing === "monthly" ? "/ mois" : "";
+  const displayedHint = billing === "monthly" ? plan.yearly : "2 mois offerts";
+  const displayedSubHint = billing === "monthly" ? plan.oldYearly : plan.oldYearly;
 
   return (
     <article
@@ -204,13 +208,13 @@ function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
 
       <div className="mt-5 flex items-end justify-between gap-4">
         <div>
-          <span className="text-4xl font-black tracking-tight text-slate-950">{plan.price}</span>
-          <span className="ml-1 text-base font-black text-slate-950">/ mois</span>
+          <span className="text-4xl font-black tracking-tight text-slate-950">{displayedPrice}</span>
+          <span className="ml-1 text-base font-black text-slate-950">{displayedPeriod}</span>
         </div>
 
         <div className="text-right text-sm font-bold text-slate-500">
-          <p>{plan.yearly}</p>
-          <p>{plan.oldYearly}</p>
+          <p>{displayedHint}</p>
+          <p>{displayedSubHint}</p>
         </div>
       </div>
 
@@ -356,7 +360,7 @@ export default function TarifsPage() {
 
         <div className="grid gap-6 lg:grid-cols-3">
           {plans.map((plan) => (
-            <PlanCard key={plan.name} plan={plan} />
+            <PlanCard key={plan.name} plan={plan} billing={billing} />
           ))}
         </div>
       </section>
