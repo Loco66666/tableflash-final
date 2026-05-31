@@ -1,4 +1,4 @@
-/* eslint-disable react/no-unescaped-entities */
+﻿/* eslint-disable react/no-unescaped-entities */
 
 import Image from "next/image";
 import Link from "next/link";
@@ -22,11 +22,11 @@ const plans = [
     name: "Essentiel",
     icon: Store,
     description: "L'essentiel pour digitaliser vos commandes.",
-    price: "29 €",
-    yearly: "348 € / an",
-    oldYearly: "au lieu de 408 €",
+    price: "29 â‚¬",
+    yearly: "348 â‚¬ / an",
+    oldYearly: "au lieu de 408 â‚¬",
     items: [
-      "Jusqu'à 5 tables",
+      "Jusqu'Ã  5 tables",
       "Commandes en direct",
       "QR code menu & commande",
       "Avis clients",
@@ -38,16 +38,16 @@ const plans = [
   {
     name: "Pro",
     icon: Crown,
-    description: "Plus de puissance pour booster votre activité.",
-    price: "59 €",
-    yearly: "708 € / an",
-    oldYearly: "au lieu de 828 €",
+    description: "Plus de puissance pour booster votre activitÃ©.",
+    price: "59 â‚¬",
+    yearly: "708 â‚¬ / an",
+    oldYearly: "au lieu de 828 â‚¬",
     items: [
-      "Jusqu'à 25 tables",
+      "Jusqu'Ã  25 tables",
       "Commandes en direct",
       "QR code menu & commande",
-      "Avis clients avancés",
-      "Statistiques avancées",
+      "Avis clients avancÃ©s",
+      "Statistiques avancÃ©es",
       "Paiement sur place",
       "Support prioritaire",
     ],
@@ -57,18 +57,18 @@ const plans = [
     name: "Premium",
     icon: Diamond,
     description: "Le maximum de personnalisation et d'accompagnement.",
-    price: "89 €",
-    yearly: "1 068 € / an",
-    oldYearly: "au lieu de 1 248 €",
+    price: "89 â‚¬",
+    yearly: "1 068 â‚¬ / an",
+    oldYearly: "au lieu de 1 248 â‚¬",
     items: [
-      "Tables illimitées",
+      "Tables illimitÃ©es",
       "Commandes en direct",
       "QR code menu & commande",
-      "Avis clients avancés",
-      "Statistiques avancées",
+      "Avis clients avancÃ©s",
+      "Statistiques avancÃ©es",
       "Paiement sur place",
-      "Personnalisation avancée",
-      "Support dédié",
+      "Personnalisation avancÃ©e",
+      "Support dÃ©diÃ©",
     ],
     highlighted: false,
   },
@@ -77,53 +77,53 @@ const plans = [
 const advantages = [
   {
     icon: CalendarDays,
-    title: "Annulation à tout moment",
-    text: "Sans engagement. Aucun frais caché.",
+    title: "Annulation Ã  tout moment",
+    text: "Sans engagement. Aucun frais cachÃ©.",
   },
   {
     icon: Cloud,
-    title: "Déploiement rapide",
-    text: "Votre espace prêt en quelques minutes.",
+    title: "DÃ©ploiement rapide",
+    text: "Votre espace prÃªt en quelques minutes.",
   },
   {
     icon: Headphones,
-    title: "Support dédié",
-    text: "Une équipe réactive 7j/7 pour vous accompagner.",
+    title: "Support dÃ©diÃ©",
+    text: "Une Ã©quipe rÃ©active 7j/7 pour vous accompagner.",
   },
   {
     icon: CreditCard,
     title: "Paiement sur place",
-    text: "Règlement au comptoir ou auprès du serveur.",
+    text: "RÃ¨glement au comptoir ou auprÃ¨s du serveur.",
   },
 ];
 
 const comparisonRows = [
-  ["Nombre de tables", "Jusqu'à 5", "Jusqu'à 25", "Illimitées"],
-  ["Commandes en direct", "✓", "✓", "✓"],
-  ["QR code menu & commande", "✓", "✓", "✓"],
-  ["Avis clients", "De base", "Avancés", "Avancés"],
-  ["Statistiques", "De base", "Avancées", "Avancées"],
-  ["Paiement sur place", "—", "✓", "✓"],
-  ["Personnalisation avancée", "—", "—", "✓"],
-  ["Support", "Email", "Prioritaire", "Dédié"],
+  ["Nombre de tables", "Jusqu'Ã  5", "Jusqu'Ã  25", "IllimitÃ©es"],
+  ["Commandes en direct", "âœ“", "âœ“", "âœ“"],
+  ["QR code menu & commande", "âœ“", "âœ“", "âœ“"],
+  ["Avis clients", "De base", "AvancÃ©s", "AvancÃ©s"],
+  ["Statistiques", "De base", "AvancÃ©es", "AvancÃ©es"],
+  ["Paiement sur place", "â€”", "âœ“", "âœ“"],
+  ["Personnalisation avancÃ©e", "â€”", "â€”", "âœ“"],
+  ["Support", "Email", "Prioritaire", "DÃ©diÃ©"],
 ];
 
 const faqs = [
   {
     question: "Y a-t-il un engagement ?",
-    answer: "Non, nos offres sont sans engagement. Vous pouvez annuler à tout moment.",
+    answer: "Non, nos offres sont sans engagement. Vous pouvez annuler Ã  tout moment.",
   },
   {
     question: "L'installation est-elle rapide ?",
-    answer: "Oui, votre espace est prêt en quelques minutes. Nous vous guidons pas à pas.",
+    answer: "Oui, votre espace est prÃªt en quelques minutes. Nous vous guidons pas Ã  pas.",
   },
   {
     question: "Le support est-il inclus ?",
-    answer: "Oui, un support réactif est inclus dans tous nos plans.",
+    answer: "Oui, un support rÃ©actif est inclus dans tous nos plans.",
   },
   {
     question: "Le paiement sur place est-il inclus ?",
-    answer: "Oui, le client paie au comptoir ou directement auprès du serveur. Table Flash ne traite aucun paiement.",
+    answer: "Oui, le client paie au comptoir ou directement auprÃ¨s du serveur. Table Flash ne traite aucun paiement.",
   },
 ];
 
@@ -145,16 +145,16 @@ function Header() {
         </Link>
 
         <nav className="hidden items-center gap-10 text-sm font-black text-slate-950 lg:flex">
-          <Link href="/site#fonctionnalites" className="transition hover:text-emerald-700">
-            Fonctionnalités
+          <Link href="/#fonctionnalites" className="transition hover:text-emerald-700">
+            FonctionnalitÃ©s
           </Link>
-          <Link href="/site/tarifs" className="border-b-2 border-emerald-700 py-7 text-emerald-700">
+          <Link href="/tarifs" className="border-b-2 border-emerald-700 py-7 text-emerald-700">
             Tarifs
           </Link>
-          <Link href="/site#fonctionnement" className="transition hover:text-emerald-700">
-            Comment ça marche ?
+          <Link href="/#fonctionnement" className="transition hover:text-emerald-700">
+            Comment Ã§a marche ?
           </Link>
-          <Link href="/site#ressources" className="transition hover:text-emerald-700">
+          <Link href="/#ressources" className="transition hover:text-emerald-700">
             Ressources
           </Link>
         </nav>
@@ -247,14 +247,14 @@ function Footer() {
             <span className="text-2xl font-black tracking-tight text-slate-950">Table Flash</span>
           </div>
           <p className="mt-3 max-w-44 text-sm font-semibold leading-relaxed text-slate-500">
-            La commande à table simple, rapide et sans contact.
+            La commande Ã  table simple, rapide et sans contact.
           </p>
         </div>
 
         {[
-          ["Produit", ["Fonctionnalités", "Tarifs", "Intégrations", "Mises à jour"]],
+          ["Produit", ["FonctionnalitÃ©s", "Tarifs", "IntÃ©grations", "Mises Ã  jour"]],
           ["Ressources", ["Guides", "Blog", "FAQ", "Contact"]],
-          ["Légal", ["Mentions légales", "Conditions générales", "Politique de confidentialité", "Cookies"]],
+          ["LÃ©gal", ["Mentions lÃ©gales", "Conditions gÃ©nÃ©rales", "Politique de confidentialitÃ©", "Cookies"]],
           ["Contact", ["contact@tableflash.fr", "Facebook  Instagram  LinkedIn"]],
         ].map(([title, links]) => (
           <div key={String(title)}>
@@ -270,7 +270,7 @@ function Footer() {
         ))}
       </div>
 
-      <p className="pt-8 text-center text-sm font-semibold text-slate-500">© 2026 Table Flash - Tous droits réservés</p>
+      <p className="pt-8 text-center text-sm font-semibold text-slate-500">Â© 2026 Table Flash - Tous droits rÃ©servÃ©s</p>
     </footer>
   );
 }
@@ -287,11 +287,11 @@ export default function TarifsPage() {
           </p>
 
           <h1 className="max-w-xl text-[44px] font-black leading-[1.05] tracking-[-0.055em] text-slate-950 sm:text-[58px]">
-            Des tarifs transparents pour faire grandir votre activité
+            Des tarifs transparents pour faire grandir votre activitÃ©
           </h1>
 
           <p className="mt-6 max-w-xl text-xl font-medium leading-relaxed text-slate-600">
-            Des offres simples, sans frais cachés, conçues pour aider votre restaurant à gagner du temps et satisfaire
+            Des offres simples, sans frais cachÃ©s, conÃ§ues pour aider votre restaurant Ã  gagner du temps et satisfaire
             vos clients.
           </p>
 
@@ -363,7 +363,7 @@ export default function TarifsPage() {
           <table className="w-full min-w-190 border-collapse text-left text-sm font-semibold text-slate-600">
             <thead>
               <tr className="border-b border-slate-200 bg-white">
-                <th className="px-5 py-4 text-base font-black text-slate-950">Fonctionnalités</th>
+                <th className="px-5 py-4 text-base font-black text-slate-950">FonctionnalitÃ©s</th>
                 <th className="px-5 py-4 text-center text-base font-black text-slate-950">Essentiel</th>
                 <th className="bg-emerald-50 px-5 py-4 text-center text-base font-black text-slate-950">
                   Pro <span className="rounded-full bg-emerald-700 px-2 py-1 text-xs text-white">Populaire</span>
@@ -390,22 +390,22 @@ export default function TarifsPage() {
           <Percent className="size-20 text-emerald-700" />
           <div>
             <h2 className="text-3xl font-black tracking-tight text-emerald-700">
-              Zéro commission Table Flash sur vos ventes
+              ZÃ©ro commission Table Flash sur vos ventes
             </h2>
             <p className="mt-2 text-lg font-semibold leading-relaxed text-slate-600">
-              Contrairement à d'autres plateformes, nous ne prenons aucune commission sur vos ventes. 100 % de vos
+              Contrairement Ã  d'autres plateformes, nous ne prenons aucune commission sur vos ventes. 100 % de vos
               revenus vous appartiennent.
             </p>
           </div>
           <p className="flex items-center justify-center gap-3 rounded-xl bg-white px-6 py-4 text-lg font-black text-emerald-700">
             <CheckCircle2 className="size-6 fill-emerald-700 text-white" />
-            Zéro commission
+            ZÃ©ro commission
           </p>
         </div>
       </section>
 
       <section className="mx-auto w-full max-w-265 px-5 py-4">
-        <h2 className="mb-4 text-2xl font-black tracking-tight text-slate-950">Questions fréquentes</h2>
+        <h2 className="mb-4 text-2xl font-black tracking-tight text-slate-950">Questions frÃ©quentes</h2>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {faqs.map((faq) => (
@@ -428,7 +428,7 @@ export default function TarifsPage() {
 
           <div>
             <h2 className="text-3xl font-black leading-tight tracking-tight">
-              Prêt à simplifier votre service et à faire grandir votre restaurant ?
+              PrÃªt Ã  simplifier votre service et Ã  faire grandir votre restaurant ?
             </h2>
             <p className="mt-2 text-sm font-semibold text-emerald-50">
               Rejoignez des centaines de restaurateurs qui nous font confiance.
@@ -445,11 +445,11 @@ export default function TarifsPage() {
             </a>
 
             <a
-              href="mailto:contact@tableflash.fr?subject=Demande%20de%20démo%20TableFlash"
+              href="mailto:contact@tableflash.fr?subject=Demande%20de%20dÃ©mo%20TableFlash"
               className="grid min-h-16 min-w-48 place-items-center rounded-lg border border-white/50 px-6 text-center text-sm font-black text-white"
             >
-              Demander une démo
-              <span className="block text-xs font-bold text-emerald-100">Présentation personnalisée</span>
+              Demander une dÃ©mo
+              <span className="block text-xs font-bold text-emerald-100">PrÃ©sentation personnalisÃ©e</span>
             </a>
           </div>
         </div>
