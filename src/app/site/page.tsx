@@ -1,5 +1,6 @@
 ﻿/* eslint-disable react/no-unescaped-entities */
 
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -230,119 +231,6 @@ function Header() {
   );
 }
 
-function DashboardMockup() {
-  return (
-    <div className="relative min-h-[360px] lg:min-h-[390px]">
-      <div className="absolute right-[-20px] top-2 hidden size-[410px] rounded-full bg-emerald-50 lg:block" />
-
-      <div className="absolute left-0 top-0 w-[560px] max-w-[86%] rounded-[22px] border-[9px] border-black bg-white shadow-[0_26px_55px_rgba(15,23,42,0.18)]">
-        <div className="flex min-h-[315px] overflow-hidden rounded-xl bg-white">
-          <aside className="w-28 border-r border-slate-100 bg-slate-50 p-4">
-            <div className="mb-5 flex items-center gap-2">
-              <span className="grid size-5 place-items-center rounded-full bg-emerald-700 text-white">
-                <Store className="size-3" />
-              </span>
-              <span className="text-[11px] font-black text-slate-950">Table Flash</span>
-            </div>
-
-            {["Accueil", "Commandes", "Menu", "Avis clients", "Statistiques", "Réglages"].map((item, index) => (
-              <div
-                key={item}
-                className={[
-                  "mb-2 rounded-md px-2 py-2 text-[10px] font-bold",
-                  index === 0 ? "bg-emerald-50 text-emerald-700" : "text-slate-500",
-                ].join(" ")}
-              >
-                {item}
-              </div>
-            ))}
-          </aside>
-
-          <section className="flex-1 p-5">
-            <h3 className="mb-4 text-sm font-black text-slate-950">Tableau de bord</h3>
-
-            <div className="rounded-xl border border-slate-100 p-4">
-              <p className="mb-3 text-xs font-black text-slate-950">Performances aujourd'hui</p>
-
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  ["Commandes", "92", "aujourd'hui"],
-                  ["Chiffre d'affaires", "1 240 €", "aujourd'hui"],
-                  ["Panier moyen", "16,80 €", "aujourd'hui"],
-                  ["Avis moyens", "4,6/5", "sur 100 avis"],
-                ].map(([label, value, sub]) => (
-                  <div key={label} className="rounded-lg border border-slate-100 bg-white p-3">
-                    <p className="text-[8px] font-bold text-slate-500">{label}</p>
-                    <p className="mt-1 text-lg font-black text-emerald-700">{value}</p>
-                    <p className="text-[8px] font-bold text-slate-400">{sub}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-5 rounded-xl border border-slate-100 p-3">
-                <p className="mb-3 text-xs font-black text-slate-950">Ventes</p>
-                <div className="h-24 rounded-lg bg-emerald-50">
-                  <svg viewBox="0 0 360 100" className="h-full w-full">
-                    <path
-                      d="M8 82 C35 62 55 76 78 58 C99 43 120 53 142 37 C166 20 195 50 219 34 C246 17 262 58 288 40 C314 20 331 31 352 16"
-                      fill="none"
-                      stroke="#69b99a"
-                      strokeWidth="5"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M8 82 C35 62 55 76 78 58 C99 43 120 53 142 37 C166 20 195 50 219 34 C246 17 262 58 288 40 C314 20 331 31 352 16 L352 100 L8 100 Z"
-                      fill="rgba(0,107,70,0.10)"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <div className="absolute -bottom-7 left-1/2 h-4 w-3/4 -translate-x-1/2 rounded-b-full bg-black/20 blur-sm" />
-        <div className="absolute -bottom-5 left-1/2 h-5 w-3/5 -translate-x-1/2 rounded-b-full bg-slate-300" />
-      </div>
-
-      <div className="absolute bottom-0 left-[56%] z-10 w-[122px] rounded-3xl border-[7px] border-black bg-white shadow-[0_22px_45px_rgba(15,23,42,0.20)]">
-        <div className="rounded-2xl bg-white p-3">
-          <p className="mb-2 text-center text-[9px] font-black text-emerald-700">Carte</p>
-          {["Burger", "Salade", "Pasta", "Dessert"].map((item) => (
-            <div key={item} className="mb-2 flex gap-2 rounded-lg border border-slate-100 p-1.5">
-              <div className="size-7 rounded-md bg-linear-to-br from-orange-200 to-orange-500" />
-              <div>
-                <p className="text-[8px] font-black text-slate-950">{item}</p>
-                <p className="text-[7px] font-bold text-slate-400">12,90 €</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="absolute bottom-9 right-[-10px] z-20 w-[138px] -rotate-2 rounded-xl border border-slate-200 bg-white p-4 text-center shadow-[0_26px_55px_rgba(15,23,42,0.18)]">
-        <p className="text-[8px] font-black uppercase text-emerald-700">Restaurant</p>
-        <p className="mt-1 text-lg font-black text-slate-950">Le Bistrot</p>
-        <p className="mt-2 text-[8px] font-bold leading-tight text-slate-600">
-          Scanne le QR code pour consulter le menu et passer commande
-        </p>
-
-        <div className="mx-auto my-3 grid size-18 grid-cols-5 gap-1 rounded-md border border-emerald-700/20 bg-emerald-50 p-1">
-          {Array.from({ length: 25 }).map((_, index) => (
-            <span
-              key={index}
-              className={index % 3 === 0 || index % 7 === 0 ? "rounded-sm bg-emerald-700" : "rounded-sm bg-white"}
-            />
-          ))}
-        </div>
-
-        <p className="text-[8px] font-bold text-slate-600">Paiement sur place</p>
-        <p className="text-[7px] font-bold text-slate-400">Merci et à bientôt !</p>
-      </div>
-    </div>
-  );
-}
-
 function Bullet({ children }: { children: React.ReactNode }) {
   return (
     <p className="flex items-start gap-2 text-sm font-bold leading-relaxed text-slate-950">
@@ -391,7 +279,16 @@ function HomePage() {
           </div>
         </div>
 
-        <DashboardMockup />
+        <div className="relative flex items-center justify-center lg:justify-end">
+          <Image
+            src="/images/tableflash-hero-mockup.png"
+            alt="Table Flash sur ordinateur, mobile et chevalet QR"
+            width={760}
+            height={482}
+            priority
+            className="h-auto w-full max-w-165 object-contain"
+          />
+        </div>
       </section>
 
       <section className="mx-auto grid w-full max-w-265 gap-5 px-5 py-5 md:grid-cols-3">
@@ -675,5 +572,6 @@ function Footer() {
 export default function SitePage() {
   return <HomePage />;
 }
+
 
 
