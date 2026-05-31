@@ -1,7 +1,10 @@
+"use client";
+
 ﻿/* eslint-disable react/no-unescaped-entities */
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -141,7 +144,7 @@ function Header() {
       <div className="mx-auto flex h-18 w-full max-w-295 items-center justify-between px-5">
         <Link href="/" className="flex items-center gap-3">
           <LogoMark />
-          <span className="text-3xl font-black tracking-tight text-slate-950">Table Flash</span>
+          <span className="text-2xl font-black tracking-tight text-slate-950">Table Flash</span>
         </Link>
 
         <nav className="hidden items-center gap-10 text-sm font-black text-slate-950 lg:flex">
@@ -182,7 +185,7 @@ function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
   return (
     <article
       className={[
-        "relative rounded-2xl border bg-white p-6 shadow-[0_10px_25px_rgba(15,23,42,0.04)]",
+        "relative rounded-2xl border bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.04)]",
         plan.highlighted ? "border-emerald-600 ring-1 ring-emerald-600" : "border-slate-200",
       ].join(" ")}
     >
@@ -192,17 +195,17 @@ function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
         </div>
       ) : null}
 
-      <div className="mb-5 grid size-14 place-items-center rounded-full bg-emerald-50 text-emerald-700">
-        <Icon className="size-8" />
+      <div className="mb-4 grid size-13 place-items-center rounded-full bg-emerald-50 text-emerald-700">
+        <Icon className="size-7" />
       </div>
 
-      <h2 className="text-3xl font-black tracking-tight text-slate-950">{plan.name}</h2>
-      <p className="mt-2 min-h-12 text-base font-semibold leading-relaxed text-slate-600">{plan.description}</p>
+      <h2 className="text-2xl font-black tracking-tight text-slate-950">{plan.name}</h2>
+      <p className="mt-2 min-h-10 text-sm font-semibold leading-relaxed text-slate-600">{plan.description}</p>
 
-      <div className="mt-6 flex items-end justify-between gap-4">
+      <div className="mt-5 flex items-end justify-between gap-4">
         <div>
-          <span className="text-5xl font-black tracking-tight text-slate-950">{plan.price}</span>
-          <span className="ml-1 text-lg font-black text-slate-950">/ mois</span>
+          <span className="text-4xl font-black tracking-tight text-slate-950">{plan.price}</span>
+          <span className="ml-1 text-base font-black text-slate-950">/ mois</span>
         </div>
 
         <div className="text-right text-sm font-bold text-slate-500">
@@ -211,9 +214,9 @@ function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
         </div>
       </div>
 
-      <ul className="mt-6 grid gap-3">
+      <ul className="mt-5 grid gap-2.5">
         {plan.items.map((item) => (
-          <li key={item} className="flex items-center gap-3 text-base font-black text-slate-800">
+          <li key={item} className="flex items-center gap-2.5 text-sm font-black text-slate-800">
             <CheckCircle2 className="size-5 shrink-0 fill-emerald-700 text-white" />
             {item}
           </li>
@@ -276,26 +279,28 @@ function Footer() {
 }
 
 export default function TarifsPage() {
+  const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
+
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <Header />
 
-      <section className="mx-auto grid w-full max-w-295 gap-8 px-5 pb-4 pt-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+      <section className="mx-auto grid w-full max-w-265 gap-5 px-5 pb-0 pt-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
         <div>
-          <p className="mb-5 inline-flex rounded-full bg-emerald-50 px-4 py-1.5 text-base font-black text-emerald-700">
+          <p className="mb-4 inline-flex rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-black text-emerald-700">
             Tarifs transparents
           </p>
 
-          <h1 className="max-w-xl text-[44px] font-black leading-[1.05] tracking-[-0.055em] text-slate-950 sm:text-[58px]">
+          <h1 className="max-w-xl text-[40px] font-black leading-[1.04] tracking-[-0.055em] text-slate-950 sm:text-[52px]">
             Des tarifs transparents pour faire grandir votre activité
           </h1>
 
-          <p className="mt-6 max-w-xl text-xl font-medium leading-relaxed text-slate-600">
+          <p className="mt-5 max-w-lg text-lg font-medium leading-relaxed text-slate-600">
             Des offres simples, sans frais cachés, conçues pour aider votre restaurant à  gagner du temps et satisfaire
             vos clients.
           </p>
 
-          <div className="mt-8 flex flex-col gap-5 sm:flex-row">
+          <div className="mt-7 flex flex-col gap-5 sm:flex-row">
             <p className="flex items-center gap-3 text-lg font-black text-slate-950">
               <CheckCircle2 className="size-6 fill-emerald-700 text-white" />
               30 jours d'essai gratuit
@@ -314,18 +319,36 @@ export default function TarifsPage() {
             width={760}
             height={482}
             priority
-            className="h-auto w-full max-w-190 object-contain"
+            className="h-auto w-full max-w-155 object-contain"
           />
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-265 px-5 pb-7 pt-2">
-        <div className="mx-auto mb-5 grid max-w-xl grid-cols-2 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
-          <button className="rounded-full px-6 py-3 text-center text-base font-black text-slate-950">
+      <section className="mx-auto w-full max-w-265 px-5 pb-5 pt-0">
+        <div className="mx-auto mb-4 grid max-w-lg grid-cols-2 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setBilling("monthly")}
+            className={[
+              "rounded-full px-6 py-2.5 text-center text-sm font-black transition",
+              billing === "monthly"
+                ? "border border-emerald-700 bg-emerald-50 text-emerald-700"
+                : "text-slate-950",
+            ].join(" ")}
+          >
             Mensuel
             <span className="block text-xs font-bold text-slate-500">Sans engagement</span>
           </button>
-          <button className="rounded-full border border-emerald-700 bg-emerald-50 px-6 py-3 text-center text-base font-black text-emerald-700">
+          <button
+            type="button"
+            onClick={() => setBilling("yearly")}
+            className={[
+              "rounded-full px-6 py-2.5 text-center text-sm font-black transition",
+              billing === "yearly"
+                ? "border border-emerald-700 bg-emerald-50 text-emerald-700"
+                : "text-slate-950",
+            ].join(" ")}
+          >
             Annuel
             <span className="block text-xs font-bold text-emerald-700">2 mois offerts</span>
           </button>
@@ -338,14 +361,14 @@ export default function TarifsPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-265 px-5 py-4">
-        <div className="grid gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_10px_25px_rgba(15,23,42,0.03)] md:grid-cols-4">
+      <section className="mx-auto w-full max-w-265 px-5 py-3">
+        <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.03)] md:grid-cols-4">
           {advantages.map((advantage) => {
             const Icon = advantage.icon;
 
             return (
               <div key={advantage.title} className="flex items-center gap-4 border-slate-200 md:border-r md:last:border-r-0">
-                <Icon className="size-12 shrink-0 text-emerald-700" />
+                <Icon className="size-10 shrink-0 text-emerald-700" />
                 <div>
                   <h3 className="text-base font-black text-slate-950">{advantage.title}</h3>
                   <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-600">{advantage.text}</p>
@@ -356,25 +379,25 @@ export default function TarifsPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-265 px-5 py-5">
-        <h2 className="mb-4 text-2xl font-black tracking-tight text-slate-950">Comparez nos offres</h2>
+      <section className="mx-auto w-full max-w-265 px-5 py-3">
+        <h2 className="mb-3 text-xl font-black tracking-tight text-slate-950">Comparez nos offres</h2>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_25px_rgba(15,23,42,0.03)]">
           <table className="w-full min-w-190 border-collapse text-left text-sm font-semibold text-slate-600">
             <thead>
               <tr className="border-b border-slate-200 bg-white">
-                <th className="px-5 py-4 text-base font-black text-slate-950">Fonctionnalités</th>
-                <th className="px-5 py-4 text-center text-base font-black text-slate-950">Essentiel</th>
-                <th className="bg-emerald-50 px-5 py-4 text-center text-base font-black text-slate-950">
+                <th className="px-5 py-3 text-sm font-black text-slate-950">Fonctionnalités</th>
+                <th className="px-5 py-3 text-center text-sm font-black text-slate-950">Essentiel</th>
+                <th className="bg-emerald-50 px-5 py-3 text-center text-sm font-black text-slate-950">
                   Pro <span className="rounded-full bg-emerald-700 px-2 py-1 text-xs text-white">Populaire</span>
                 </th>
-                <th className="px-5 py-4 text-center text-base font-black text-slate-950">Premium</th>
+                <th className="px-5 py-3 text-center text-sm font-black text-slate-950">Premium</th>
               </tr>
             </thead>
             <tbody>
               {comparisonRows.map(([label, essentiel, pro, premium]) => (
                 <tr key={label} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-5 py-3">{label}</td>
+                  <td className="px-5 py-2.5">{label}</td>
                   <td className="px-5 py-3 text-center">{essentiel}</td>
                   <td className="bg-emerald-50 px-5 py-3 text-center">{pro}</td>
                   <td className="px-5 py-3 text-center">{premium}</td>
@@ -385,14 +408,14 @@ export default function TarifsPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-265 px-5 py-4">
-        <div className="grid gap-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-6 md:grid-cols-[auto_1fr_auto] md:items-center">
-          <Percent className="size-20 text-emerald-700" />
+      <section className="mx-auto w-full max-w-265 px-5 py-3">
+        <div className="grid gap-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-5 md:grid-cols-[auto_1fr_auto] md:items-center">
+          <Percent className="size-16 text-emerald-700" />
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-emerald-700">
+            <h2 className="text-2xl font-black tracking-tight text-emerald-700">
               Zéro commission Table Flash sur vos ventes
             </h2>
-            <p className="mt-2 text-lg font-semibold leading-relaxed text-slate-600">
+            <p className="mt-2 text-base font-semibold leading-relaxed text-slate-600">
               Contrairement à  d'autres plateformes, nous ne prenons aucune commission sur vos ventes. 100 % de vos
               revenus vous appartiennent.
             </p>
@@ -404,30 +427,30 @@ export default function TarifsPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-265 px-5 py-4">
-        <h2 className="mb-4 text-2xl font-black tracking-tight text-slate-950">Questions fréquentes</h2>
+      <section className="mx-auto w-full max-w-265 px-5 py-3">
+        <h2 className="mb-3 text-xl font-black tracking-tight text-slate-950">Questions fréquentes</h2>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {faqs.map((faq) => (
-            <article key={faq.question} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <article key={faq.question} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <h3 className="text-base font-black text-slate-950">{faq.question}</h3>
                 <ChevronDown className="size-5 shrink-0 text-emerald-700" />
               </div>
-              <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-600">{faq.answer}</p>
+              <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-600">{faq.answer}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-265 px-5 py-4">
-        <div className="grid gap-6 rounded-xl bg-emerald-700 p-8 text-white shadow-[0_18px_40px_rgba(0,107,70,0.24)] md:grid-cols-[auto_1fr_auto] md:items-center">
-          <div className="grid size-20 place-items-center rounded-full bg-white/10">
-            <Store className="size-10" />
+      <section className="mx-auto w-full max-w-265 px-5 py-3">
+        <div className="grid gap-5 rounded-xl bg-emerald-700 p-6 text-white shadow-[0_18px_40px_rgba(0,107,70,0.24)] md:grid-cols-[auto_1fr_auto] md:items-center">
+          <div className="grid size-16 place-items-center rounded-full bg-white/10">
+            <Store className="size-8" />
           </div>
 
           <div>
-            <h2 className="text-3xl font-black leading-tight tracking-tight">
+            <h2 className="text-2xl font-black leading-tight tracking-tight">
               Prêt à  simplifier votre service et à  faire grandir votre restaurant ?
             </h2>
             <p className="mt-2 text-sm font-semibold text-emerald-50">
