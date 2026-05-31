@@ -232,11 +232,11 @@ function Header() {
 
 function DashboardMockup() {
   return (
-    <div className="relative min-h-90 lg:min-h-97.5">
-      <div className="absolute right-2 top-2 hidden size-96 rounded-full bg-emerald-50 lg:block" />
+    <div className="relative min-h-[360px] lg:min-h-[390px]">
+      <div className="absolute right-[-20px] top-2 hidden size-[410px] rounded-full bg-emerald-50 lg:block" />
 
-      <div className="absolute left-0 top-2 w-130 max-w-[78%] rounded-[22px] border-[9px] border-black bg-white shadow-[0_26px_55px_rgba(15,23,42,0.18)]">
-        <div className="flex min-h-75 overflow-hidden rounded-xl bg-white">
+      <div className="absolute left-0 top-0 w-[560px] max-w-[86%] rounded-[22px] border-[9px] border-black bg-white shadow-[0_26px_55px_rgba(15,23,42,0.18)]">
+        <div className="flex min-h-[315px] overflow-hidden rounded-xl bg-white">
           <aside className="w-28 border-r border-slate-100 bg-slate-50 p-4">
             <div className="mb-5 flex items-center gap-2">
               <span className="grid size-5 place-items-center rounded-full bg-emerald-700 text-white">
@@ -305,7 +305,7 @@ function DashboardMockup() {
         <div className="absolute -bottom-5 left-1/2 h-5 w-3/5 -translate-x-1/2 rounded-b-full bg-slate-300" />
       </div>
 
-      <div className="absolute bottom-1 left-[58%] z-10 w-29.5 rounded-3xl border-[7px] border-black bg-white shadow-[0_22px_45px_rgba(15,23,42,0.20)]">
+      <div className="absolute bottom-0 left-[56%] z-10 w-[122px] rounded-3xl border-[7px] border-black bg-white shadow-[0_22px_45px_rgba(15,23,42,0.20)]">
         <div className="rounded-2xl bg-white p-3">
           <p className="mb-2 text-center text-[9px] font-black text-emerald-700">Carte</p>
           {["Burger", "Salade", "Pasta", "Dessert"].map((item) => (
@@ -320,7 +320,7 @@ function DashboardMockup() {
         </div>
       </div>
 
-      <div className="absolute bottom-9 right-0 z-20 w-31.5 -rotate-2 rounded-xl border border-slate-200 bg-white p-4 text-center shadow-[0_26px_55px_rgba(15,23,42,0.18)]">
+      <div className="absolute bottom-9 right-[-10px] z-20 w-[138px] -rotate-2 rounded-xl border border-slate-200 bg-white p-4 text-center shadow-[0_26px_55px_rgba(15,23,42,0.18)]">
         <p className="text-[8px] font-black uppercase text-emerald-700">Restaurant</p>
         <p className="mt-1 text-lg font-black text-slate-950">Le Bistrot</p>
         <p className="mt-2 text-[8px] font-bold leading-tight text-slate-600">
@@ -675,4 +675,5 @@ function Footer() {
 export default function SitePage() {
   return <HomePage />;
 }
+
 
