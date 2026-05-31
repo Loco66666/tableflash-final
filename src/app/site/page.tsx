@@ -192,7 +192,7 @@ function LogoMark() {
 function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-xl">
-      <div className="mx-auto flex h-18 w-full max-w-7xl items-center justify-between px-6">
+      <div className="mx-auto flex h-18 w-full max-w-295 items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-3">
           <LogoMark />
           <span className="text-3xl font-black tracking-tight text-slate-950">Table Flash</span>
@@ -232,11 +232,11 @@ function Header() {
 
 function DashboardMockup() {
   return (
-    <div className="relative min-h-96 lg:min-h-108">
-      <div className="absolute right-5 top-0 hidden size-90 rounded-full bg-emerald-50 lg:block" />
+    <div className="relative min-h-90 lg:min-h-97.5">
+      <div className="absolute right-2 top-2 hidden size-96 rounded-full bg-emerald-50 lg:block" />
 
-      <div className="absolute left-0 top-4 w-lg max-w-[78%] rounded-3xl border-8 border-black bg-white shadow-2xl">
-        <div className="flex min-h-80 overflow-hidden rounded-2xl bg-white">
+      <div className="absolute left-0 top-2 w-130 max-w-[78%] rounded-[22px] border-[9px] border-black bg-white shadow-[0_26px_55px_rgba(15,23,42,0.18)]">
+        <div className="flex min-h-75 overflow-hidden rounded-xl bg-white">
           <aside className="w-28 border-r border-slate-100 bg-slate-50 p-4">
             <div className="mb-5 flex items-center gap-2">
               <span className="grid size-5 place-items-center rounded-full bg-emerald-700 text-white">
@@ -305,7 +305,7 @@ function DashboardMockup() {
         <div className="absolute -bottom-5 left-1/2 h-5 w-3/5 -translate-x-1/2 rounded-b-full bg-slate-300" />
       </div>
 
-      <div className="absolute bottom-0 left-[58%] z-10 w-28 rounded-3xl border-8 border-black bg-white shadow-2xl">
+      <div className="absolute bottom-1 left-[58%] z-10 w-29.5 rounded-3xl border-[7px] border-black bg-white shadow-[0_22px_45px_rgba(15,23,42,0.20)]">
         <div className="rounded-2xl bg-white p-3">
           <p className="mb-2 text-center text-[9px] font-black text-emerald-700">Carte</p>
           {["Burger", "Salade", "Pasta", "Dessert"].map((item) => (
@@ -320,7 +320,7 @@ function DashboardMockup() {
         </div>
       </div>
 
-      <div className="absolute bottom-8 right-0 z-20 w-32 -rotate-2 rounded-xl border border-slate-200 bg-white p-4 text-center shadow-2xl">
+      <div className="absolute bottom-9 right-0 z-20 w-31.5 -rotate-2 rounded-xl border border-slate-200 bg-white p-4 text-center shadow-[0_26px_55px_rgba(15,23,42,0.18)]">
         <p className="text-[8px] font-black uppercase text-emerald-700">Restaurant</p>
         <p className="mt-1 text-lg font-black text-slate-950">Le Bistrot</p>
         <p className="mt-2 text-[8px] font-bold leading-tight text-slate-600">
@@ -357,24 +357,24 @@ function HomePage() {
     <main className="min-h-screen bg-white text-slate-950">
       <Header />
 
-      <section className="mx-auto grid w-full max-w-7xl gap-8 px-6 pb-8 pt-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:pt-8">
+      <section className="mx-auto grid w-full max-w-295 gap-8 px-5 pb-2 pt-9 lg:grid-cols-[0.98fr_1.02fr] lg:items-center">
         <div>
-          <h1 className="max-w-xl text-5xl font-black leading-tight tracking-tight text-slate-950 sm:text-6xl">
+          <h1 className="max-w-155 text-[42px] font-black leading-[1.05] tracking-[-0.055em] text-slate-950 sm:text-[54px] lg:text-[58px]">
             Le service devient plus simple, vos clients le ressentent immédiatement.
           </h1>
 
-          <p className="mt-5 max-w-lg text-xl font-medium leading-relaxed text-slate-600">
+          <p className="mt-5 max-w-130 text-[19px] font-medium leading-[1.45] text-slate-600">
             Commandes plus rapides, moins d'erreurs, plus de calme, et une satisfaction qui se voit.
           </p>
 
-          <div className="mt-5 grid gap-2">
+          <div className="mt-5 grid gap-1.5">
             <Bullet>Le restaurant valide la commande</Bullet>
             <Bullet>Le client paie sur place</Bullet>
             <Bullet>La préparation commence</Bullet>
             <Bullet>Le client suit sa commande en temps réel</Bullet>
           </div>
 
-          <div className="mt-7 flex flex-col gap-4 sm:flex-row">
+          <div className="mt-6 flex flex-col gap-4 sm:flex-row">
             <a
               href="#essai"
               className="inline-flex min-h-14 min-w-48 items-center justify-center rounded-lg bg-emerald-700 px-7 text-base font-black text-white shadow-lg transition hover:bg-emerald-800"
@@ -394,7 +394,7 @@ function HomePage() {
         <DashboardMockup />
       </section>
 
-      <section className="mx-auto grid w-full max-w-7xl gap-5 px-6 py-6 md:grid-cols-3">
+      <section className="mx-auto grid w-full max-w-265 gap-5 px-5 py-5 md:grid-cols-3">
         {[
           ["0 commission", "Aucun frais sur vos ventes."],
           ["Paiement au comptoir ou auprès du serveur", "Le client règle sur place."],
@@ -412,8 +412,8 @@ function HomePage() {
         ))}
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-6 py-6">
-        <h2 className="mb-6 text-center text-3xl font-black tracking-tight text-slate-950">
+      <section className="mx-auto w-full max-w-265 px-5 py-5">
+        <h2 className="mb-6 text-center text-[28px] font-black tracking-[-0.03em] text-slate-950">
           Pourquoi ça change vraiment le quotidien
         </h2>
 
@@ -422,7 +422,7 @@ function HomePage() {
             const Icon = card.icon;
 
             return (
-              <article key={card.title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <article key={card.title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.03)]">
                 <div className="mb-4 grid size-14 place-items-center rounded-full bg-emerald-50 text-emerald-700">
                   <Icon className="size-9" />
                 </div>
@@ -434,8 +434,8 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="fonctionnement" className="mx-auto w-full max-w-7xl px-6 py-6">
-        <h2 className="mb-8 text-center text-3xl font-black tracking-tight text-slate-950">
+      <section id="fonctionnement" className="mx-auto w-full max-w-265 px-5 py-5">
+        <h2 className="mb-8 text-center text-[30px] font-black tracking-[-0.035em] text-slate-950">
           Un parcours clair du scan à la préparation
         </h2>
 
@@ -465,8 +465,8 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="fonctionnalites" className="mx-auto w-full max-w-6xl px-6 py-8">
-        <h2 className="mb-6 text-center text-3xl font-black tracking-tight text-slate-950">
+      <section id="fonctionnalites" className="mx-auto w-full max-w-265 px-5 py-6">
+        <h2 className="mb-6 text-center text-[28px] font-black tracking-[-0.03em] text-slate-950">
           Tout ce qu'il vous faut, réuni en un seul outil
         </h2>
 
@@ -475,7 +475,7 @@ function HomePage() {
             const Icon = card.icon;
 
             return (
-              <article key={card.title} className="flex gap-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <article key={card.title} className="flex gap-5 rounded-xl border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.03)]">
                 <div className="grid size-14 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-700">
                   <Icon className="size-9" />
                 </div>
@@ -496,7 +496,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-6 py-3">
+      <section className="mx-auto w-full max-w-265 px-5 py-3">
         <div className="grid gap-6 rounded-xl border border-emerald-200 bg-emerald-50 p-6 md:grid-cols-[0.9fr_1.4fr_0.8fr] md:items-center">
           <div className="flex items-center gap-5">
             <ShieldCheck className="size-20 text-emerald-700" />
@@ -535,7 +535,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-6 py-4">
+      <section className="mx-auto w-full max-w-265 px-5 py-3">
         <div className="grid overflow-hidden rounded-xl border border-slate-200 bg-white md:grid-cols-[1fr_auto_1fr]">
           <div className="bg-red-50 p-6">
             <h3 className="text-lg font-black text-red-600">Avant Table Flash</h3>
@@ -569,10 +569,10 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-6 py-3">
-        <div className="grid gap-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-[auto_1fr_auto_auto] md:items-center">
+      <section className="mx-auto w-full max-w-265 px-5 py-3">
+        <div className="grid gap-6 rounded-xl border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.03)] md:grid-cols-[auto_1fr_auto_auto] md:items-center">
           <div className="size-24 overflow-hidden rounded-full bg-linear-to-br from-emerald-100 to-slate-200">
-            <div className="grid h-full place-items-center text-4xl font-black text-emerald-700">J</div>
+            <div className="grid h-full place-items-center text-[42px] font-black text-emerald-700">J</div>
           </div>
 
           <div>
@@ -599,8 +599,8 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="essai" className="mx-auto w-full max-w-6xl px-6 py-4">
-        <div className="grid gap-6 rounded-xl bg-emerald-700 p-8 text-white shadow-xl md:grid-cols-[auto_1fr_auto] md:items-center">
+      <section id="essai" className="mx-auto w-full max-w-265 px-5 py-3">
+        <div className="grid gap-6 rounded-xl bg-emerald-700 p-8 text-white shadow-[0_18px_40px_rgba(0,107,70,0.24)] md:grid-cols-[auto_1fr_auto] md:items-center">
           <div className="grid size-20 place-items-center rounded-full bg-white/10">
             <Store className="size-10" />
           </div>
@@ -641,7 +641,7 @@ function HomePage() {
 
 function Footer() {
   return (
-    <footer id="ressources" className="mx-auto w-full max-w-6xl px-6 pb-8 pt-2">
+    <footer id="ressources" className="mx-auto w-full max-w-265 px-5 pb-8 pt-2">
       <div className="grid gap-8 border-t border-slate-100 pt-6 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
         <div>
           <div className="flex items-center gap-2">
@@ -675,3 +675,4 @@ function Footer() {
 export default function SitePage() {
   return <HomePage />;
 }
+
