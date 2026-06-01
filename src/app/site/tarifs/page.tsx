@@ -151,7 +151,7 @@ function Header() {
           <Link href="/tarifs" className="border-b-2 border-emerald-700 py-7 text-emerald-700">
             Tarifs
           </Link>
-          <Link href="/#fonctionnement" className="transition hover:text-emerald-700">
+          <Link href="/comment-ca-marche" className="transition hover:text-emerald-700">
             Comment ça marche ?
           </Link>
           <Link href="/#ressources" className="transition hover:text-emerald-700">
@@ -449,3 +449,4 @@ export default function TarifsPage() {
     </main>
   );
 }
+

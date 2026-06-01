@@ -261,7 +261,7 @@ function Hero() {
           </a>
 
           <Link
-            href="#parcours"
+            href="/comment-ca-marche"
             className="inline-flex min-h-12 items-center justify-center rounded-xl border border-emerald-700 px-7 text-base font-black text-emerald-700 transition hover:bg-emerald-50"
           >
             Voir la démo

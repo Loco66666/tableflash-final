@@ -206,7 +206,7 @@ function Header() {
           <a href="/tarifs" className="transition hover:text-emerald-700">
             Tarifs
           </a>
-          <a href="#fonctionnement" className="transition hover:text-emerald-700">
+          <a href="/comment-ca-marche" className="transition hover:text-emerald-700">
             Comment ça marche ?
           </a>
           <a href="#ressources" className="transition hover:text-emerald-700">
@@ -271,7 +271,7 @@ function HomePage() {
             </a>
 
             <a
-              href="#fonctionnement"
+              href="/comment-ca-marche"
               className="inline-flex min-h-14 min-w-40 items-center justify-center rounded-lg border border-emerald-700 bg-white px-7 text-base font-black text-emerald-700 transition hover:bg-emerald-50"
             >
               Voir la démo
@@ -331,7 +331,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="fonctionnement" className="mx-auto w-full max-w-265 px-5 py-5">
+      <section id="ancien-parcours" className="mx-auto w-full max-w-265 px-5 py-5">
         <h2 className="mb-8 text-center text-[30px] font-black tracking-[-0.035em] text-slate-950">
           Un parcours clair du scan à la préparation
         </h2>
@@ -527,7 +527,7 @@ function HomePage() {
             </a>
 
             <a
-              href="#fonctionnement"
+              href="/comment-ca-marche"
               className="grid min-h-16 min-w-48 place-items-center rounded-lg border border-white/50 px-6 text-center text-sm font-black text-white"
             >
               Voir la démo
@@ -578,6 +578,8 @@ function Footer() {
 export default function SitePage() {
   return <HomePage />;
 }
+
+
 
 
 
