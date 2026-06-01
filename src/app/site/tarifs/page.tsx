@@ -77,8 +77,8 @@ const plans = [
 const advantages = [
   {
     icon: CalendarDays,
-    title: "Annulation à  tout moment",
-    text: "Sans engagement. Aucun frais caché.",
+    title: "Sans engagement",
+    text: "Annulation à tout moment. Aucun frais caché.",
   },
   {
     icon: Cloud,
