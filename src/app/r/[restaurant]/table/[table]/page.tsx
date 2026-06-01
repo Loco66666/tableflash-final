@@ -50,6 +50,7 @@ type PublicMenuProduct = {
   is_available: boolean;
   is_featured: boolean;
   image_url: string | null;
+  options_config?: Product["optionsConfig"] | null;
 };
 
 type PublicRestaurantSettings = {
@@ -160,7 +161,7 @@ async function getPublicRestaurantMenuData({
 
   const { data: productsData, error: productsError } = await supabase
     .from("menu_products")
-    .select("id, name, category_id, description, price, promo_price, is_available, is_featured, image_url")
+    .select("id, name, category_id, description, price, promo_price, is_available, is_featured, image_url, options_config")
     .eq("restaurant_id", restaurant.id)
     .eq("is_available", true)
     .order("sort_order", { ascending: true })
@@ -195,6 +196,7 @@ async function getPublicRestaurantMenuData({
     promoted: Boolean(item.is_featured),
     visual: getProductVisual(item.name),
     imageUrl: item.image_url ?? undefined,
+    optionsConfig: item.options_config ?? undefined,
   }));
 
   const visibleCategoryIds = new Set(products.map((product) => product.categoryId));
