@@ -195,6 +195,141 @@ function Toggle({
   );
 }
 
+
+type SmartOptionTemplate = {
+  keywords: string[];
+  label: string;
+  description: string;
+  suggestions: string[];
+};
+
+const smartOptionTemplates: SmartOptionTemplate[] = [
+  {
+    keywords: ["pizza", "pizzeria"],
+    label: "Suggestions pour Pizza",
+    description: "Ajoutez rapidement les tailles, bases et suppl?ments les plus fr?quents.",
+    suggestions: ["Tailles 29 cm / 33 cm", "Base tomate / cr?me", "Suppl?ments"],
+  },
+  {
+    keywords: ["tacos"],
+    label: "Suggestions pour Tacos",
+    description: "Pr?parez les choix indispensables pour personnaliser un tacos.",
+    suggestions: ["Choix de viande", "Choix de sauce", "Formule seul / menu"],
+  },
+  {
+    keywords: ["burger", "hamburger"],
+    label: "Suggestions pour Burger",
+    description: "Ajoutez les suppl?ments et options classiques d'un burger.",
+    suggestions: ["Suppl?ments", "Cuisson", "Formule menu"],
+  },
+  {
+    keywords: ["plat", "brasserie", "restaurant", "viande", "grillade"],
+    label: "Suggestions pour Brasserie",
+    description: "Ajoutez les options utiles pour les plats servis ? table.",
+    suggestions: ["Cuisson", "Sauce", "Accompagnement"],
+  },
+  {
+    keywords: ["sushi", "maki", "japonais", "california"],
+    label: "Suggestions pour Sushi",
+    description: "Ajoutez les accompagnements habituels des menus japonais.",
+    suggestions: ["Sauce soja", "Wasabi / gingembre", "Suppl?ments"],
+  },
+  {
+    keywords: ["caf?", "coffee", "latte", "boisson", "th?", "chocolat"],
+    label: "Suggestions pour Boisson",
+    description: "Ajoutez les formats et personnalisations simples.",
+    suggestions: ["Taille", "Lait", "Chaud / glac?"],
+  },
+  {
+    keywords: ["bar", "tapas", "planche"],
+    label: "Suggestions pour Bar / Tapas",
+    description: "Ajoutez les formats, suppl?ments et disponibilit?s utiles.",
+    suggestions: ["Taille", "Suppl?ments", "Disponibilit? horaire"],
+  },
+  {
+    keywords: ["cr?pe", "crepe", "galette", "cr?perie"],
+    label: "Suggestions pour Cr?perie",
+    description: "Ajoutez les options courantes pour galettes et cr?pes.",
+    suggestions: ["Cuisson ?uf", "Suppl?ments", "Formule"],
+  },
+  {
+    keywords: ["glace", "glacier", "coupe", "boule"],
+    label: "Suggestions pour Glacier",
+    description: "Ajoutez parfums, formats et toppings.",
+    suggestions: ["Parfums", "Toppings", "Pot / cornet"],
+  },
+];
+
+const genericOptionTemplate: SmartOptionTemplate = {
+  keywords: [],
+  label: "Besoin d'options pour ce produit ?",
+  description: "Ajoutez des options seulement si ce produit en a besoin.",
+  suggestions: ["Taille / format", "Choix client", "Suppl?ment", "Formule", "Allerg?nes"],
+};
+
+function normalizeTemplateText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function getSmartOptionTemplate(categoryName?: string) {
+  const normalizedCategory = normalizeTemplateText(categoryName ?? "");
+
+  return (
+    smartOptionTemplates.find((template) =>
+      template.keywords.some((keyword) => normalizedCategory.includes(normalizeTemplateText(keyword))),
+    ) ?? genericOptionTemplate
+  );
+}
+
+function SmartOptionSuggestions({ categoryName }: { categoryName?: string }) {
+  const template = getSmartOptionTemplate(categoryName);
+
+  return (
+    <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3">
+        <div>
+          <p className="text-base font-black text-slate-950">Ajouter des options avanc?es</p>
+          <p className="mt-1 text-sm font-semibold text-slate-500">
+            Tailles, sauces, suppl?ments, formules, disponibilit?, allerg?nes
+          </p>
+        </div>
+
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-slate-50 text-xl font-black text-slate-500 transition group-open:rotate-45">
+          +
+        </span>
+      </summary>
+
+      <div className="border-t border-slate-100 px-4 pb-4 pt-3">
+        <div className="rounded-2xl bg-emerald-50 p-3">
+          <p className="text-sm font-black text-emerald-900">{template.label}</p>
+          <p className="mt-1 text-xs font-semibold leading-relaxed text-emerald-800/80">{template.description}</p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {template.suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 text-xs font-black text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50"
+              >
+                <Plus className="size-4" />
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <p className="mt-3 text-xs font-semibold leading-relaxed text-slate-500">
+          Ces suggestions sont facultatives. Le restaurateur peut les utiliser, les modifier ou garder un produit simple.
+        </p>
+      </div>
+    </details>
+  );
+}
+
+
 export function MenuManager({
   initialCategories,
   initialProducts,
@@ -853,6 +988,10 @@ export function MenuManager({
                 onChange={(checked) => setProductForm({ ...productForm, featured: checked })}
               />
             </div>
+
+            <SmartOptionSuggestions
+              categoryName={menuCategories.find((category) => category.id === productForm.categoryId)?.name}
+            />
 
             <div className="sticky bottom-0 z-10 -mx-1 grid gap-2 border-t border-slate-200 bg-white/95 px-1 pt-3 backdrop-blur">
               <button
