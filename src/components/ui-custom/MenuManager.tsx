@@ -386,6 +386,18 @@ function ProductOptionsEditor({
     });
   }
 
+  function updateItemPrice(group: ProductOptionGroup, itemId: string, price: string) {
+    const normalizedPrice = price.replace(",", ".");
+    const numericPrice = normalizedPrice === "" ? 0 : Number(normalizedPrice);
+
+    if (Number.isNaN(numericPrice)) return;
+
+    updateGroup(group.id, {
+      ...group,
+      items: group.items.map((item) => (item.id === itemId ? { ...item, price: numericPrice } : item)),
+    });
+  }
+
   function removeItem(group: ProductOptionGroup, itemId: string) {
     updateGroup(group.id, {
       ...group,
@@ -512,13 +524,29 @@ function ProductOptionsEditor({
 
                 <div className="mt-3 grid gap-2">
                   {group.items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-2">
+                    <div key={item.id} className="grid gap-2 min-[430px]:grid-cols-[1fr_112px_40px] min-[430px]:items-center">
                       <input
                         value={item.name}
                         onChange={(event) => updateItemName(group, item.id, event.target.value)}
-                        className="min-h-10 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                        className="min-h-10 min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                         aria-label="Nom de l'option"
                       />
+
+                      <div className="relative">
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.5"
+                          value={item.price ?? 0}
+                          onChange={(event) => updateItemPrice(group, item.id, event.target.value)}
+                          className="min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 pr-7 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                          aria-label="Prix suppl?mentaire"
+                        />
+                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">
+                          
+                        </span>
+                      </div>
 
                       <button
                         type="button"
