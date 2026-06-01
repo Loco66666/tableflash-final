@@ -154,7 +154,7 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
     return [
       {
         label: "Tailles 29 cm / 33 cm",
-        group: createOptionGroup("sizes", "Taille", "single_choice", ["29 cm", "33 cm", "M?ga 40 cm"], true),
+        group: createOptionGroup("sizes", "Taille", "single_choice", ["29 cm", "33 cm", "Méga 40 cm"], true),
       },
       {
         label: "Base tomate / crème",
@@ -213,8 +213,8 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
         group: createOptionGroup("drink-size", "Format", "single_choice", ["33 cl", "50 cl", "1 L", "1,5 L", "2 L"]),
       },
       {
-        label: "Gla?ons / citron",
-        group: createOptionGroup("drink-options", "Options boisson", "multiple_choice", ["Gla?ons", "Sans gla?ons", "Citron", "Paille"]),
+        label: "Glaçons / citron",
+        group: createOptionGroup("drink-options", "Options boisson", "multiple_choice", ["Glaçons", "Sans glaçons", "Citron", "Paille"]),
       },
       {
         label: "Pack / menu",
@@ -339,15 +339,6 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
   ];
 }
 
-function mergeOptionGroup(groups: ProductOptionGroup[], groupToAdd: ProductOptionGroup) {
-  const exists = groups.some((group) => group.id === groupToAdd.id);
-
-  if (exists) {
-    return groups.map((group) => (group.id === groupToAdd.id ? groupToAdd : group));
-  }
-
-  return [...groups, groupToAdd];
-}
 
 function ProductOptionsEditor({
   categoryName,
@@ -360,12 +351,17 @@ function ProductOptionsEditor({
   onChange: (nextOptionsConfig: ProductOptionsConfig) => void;
   onAskAi: () => void;
 }) {
+  const [newItemNames, setNewItemNames] = useState<Record<string, string>>({});
   const suggestions = getSmartOptionSuggestions(categoryName);
 
   function addGroup(group: ProductOptionGroup) {
+    const exists = optionsConfig.groups.some((currentGroup) => currentGroup.id === group.id);
+
+    if (exists) return;
+
     onChange({
       ...optionsConfig,
-      groups: mergeOptionGroup(optionsConfig.groups, group),
+      groups: [...optionsConfig.groups, group],
     });
   }
 
@@ -374,6 +370,52 @@ function ProductOptionsEditor({
       ...optionsConfig,
       groups: optionsConfig.groups.filter((group) => group.id !== groupId),
     });
+  }
+
+  function updateGroup(groupId: string, nextGroup: ProductOptionGroup) {
+    onChange({
+      ...optionsConfig,
+      groups: optionsConfig.groups.map((group) => (group.id === groupId ? nextGroup : group)),
+    });
+  }
+
+  function updateItemName(group: ProductOptionGroup, itemId: string, name: string) {
+    updateGroup(group.id, {
+      ...group,
+      items: group.items.map((item) => (item.id === itemId ? { ...item, name } : item)),
+    });
+  }
+
+  function removeItem(group: ProductOptionGroup, itemId: string) {
+    updateGroup(group.id, {
+      ...group,
+      items: group.items.filter((item) => item.id !== itemId),
+    });
+  }
+
+  function addCustomItem(group: ProductOptionGroup) {
+    const rawName = newItemNames[group.id]?.trim();
+
+    if (!rawName) return;
+
+    const itemId = normalizeText(`${group.id}-${rawName}-${Date.now()}`);
+
+    updateGroup(group.id, {
+      ...group,
+      items: [
+        ...group.items,
+        {
+          id: itemId,
+          name: rawName,
+          price: 0,
+        },
+      ],
+    });
+
+    setNewItemNames((current) => ({
+      ...current,
+      [group.id]: "",
+    }));
   }
 
   return (
@@ -399,7 +441,7 @@ function ProductOptionsEditor({
                 {categoryName ? `Suggestions pour ${categoryName}` : "Suggestions intelligentes"}
               </p>
               <p className="mt-1 text-xs font-semibold leading-relaxed text-emerald-800/80">
-                Choisissez un modèle pour ajouter un vrai groupe d&apos;options au produit.
+                Cliquez sur un modèle pour créer une section modifiable.
               </p>
             </div>
 
@@ -413,17 +455,22 @@ function ProductOptionsEditor({
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            {suggestions.map((suggestion) => (
-              <button
-                key={suggestion.group.id}
-                type="button"
-                onClick={() => addGroup(suggestion.group)}
-                className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 text-xs font-black text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50"
-              >
-                <Plus className="size-4" />
-                {suggestion.label}
-              </button>
-            ))}
+            {suggestions.map((suggestion) => {
+              const alreadyAdded = optionsConfig.groups.some((group) => group.id === suggestion.group.id);
+
+              return (
+                <button
+                  key={suggestion.group.id}
+                  type="button"
+                  disabled={alreadyAdded}
+                  onClick={() => addGroup(suggestion.group)}
+                  className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 text-xs font-black text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 disabled:opacity-50"
+                >
+                  <Plus className="size-4" />
+                  {alreadyAdded ? "Ajouté" : suggestion.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -434,40 +481,91 @@ function ProductOptionsEditor({
             {optionsConfig.groups.map((group) => (
               <div key={group.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-slate-950">{group.name}</p>
-                    <p className="mt-1 text-xs font-semibold text-slate-500">
-                      {group.required ? "Choix obligatoire" : "Choix optionnel"} ? {group.items.length} option
-                      {group.items.length > 1 ? "s" : ""}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <input
+                      value={group.name}
+                      onChange={(event) => updateGroup(group.id, { ...group, name: event.target.value })}
+                      className="min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-950 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                      aria-label="Nom du groupe d'options"
+                    />
+
+                    <label className="mt-2 flex items-center gap-2 text-xs font-bold text-slate-500">
+                      <input
+                        type="checkbox"
+                        checked={group.required}
+                        onChange={(event) => updateGroup(group.id, { ...group, required: event.target.checked })}
+                        className="size-4 accent-emerald-700"
+                      />
+                      Choix obligatoire
+                    </label>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => removeGroup(group.id)}
-                    className="grid size-8 shrink-0 place-items-center rounded-xl border border-red-100 bg-white text-red-600"
+                    className="grid size-10 shrink-0 place-items-center rounded-xl border border-red-100 bg-white text-red-600"
                     aria-label={`Supprimer ${group.name}`}
                   >
                     <X className="size-4" />
                   </button>
                 </div>
 
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 grid gap-2">
                   {group.items.map((item) => (
-                    <span
-                      key={item.id}
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700"
-                    >
-                      {item.name}
-                    </span>
+                    <div key={item.id} className="flex items-center gap-2">
+                      <input
+                        value={item.name}
+                        onChange={(event) => updateItemName(group, item.id, event.target.value)}
+                        className="min-h-10 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                        aria-label="Nom de l'option"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => removeItem(group, item.id)}
+                        className="grid size-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500"
+                        aria-label={`Supprimer ${item.name}`}
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </div>
                   ))}
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={newItemNames[group.id] ?? ""}
+                      onChange={(event) =>
+                        setNewItemNames((current) => ({
+                          ...current,
+                          [group.id]: event.target.value,
+                        }))
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          addCustomItem(group);
+                        }
+                      }}
+                      placeholder="Ajouter une option puis Entr?e"
+                      className="min-h-10 min-w-0 flex-1 rounded-xl border border-dashed border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => addCustomItem(group)}
+                      className="min-h-10 shrink-0 rounded-xl bg-emerald-700 px-3 text-xs font-black text-white"
+                    >
+                      Ajouter
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
           <p className="text-xs font-semibold leading-relaxed text-slate-500">
-            Aucun groupe ajout? pour l&apos;instant. Le produit peut rester simple si vous n&apos;avez pas besoin d&apos;options.
+            Aucun groupe ajouté pour le moment. Le produit peut rester simple si vous n&apos;avez pas besoin
+            d&apos;options.
           </p>
         )}
       </div>
