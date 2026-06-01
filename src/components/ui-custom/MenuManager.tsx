@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { ProductCard } from "@/components/ui-custom/ProductCard";
-import type { Category, Product } from "@/lib/types";
+import type { Category, Product, ProductOptionGroup, ProductOptionsConfig } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   createMenuCategory,
@@ -41,6 +41,7 @@ type ProductFormState = {
   available: boolean;
   featured: boolean;
   imageUrl: string;
+  optionsConfig: ProductOptionsConfig;
 };
 
 type ProductFormErrors = Partial<Record<"name" | "categoryId" | "price" | "promoPrice", string>>;
@@ -53,6 +54,18 @@ type CategoryFormState = {
 
 type PanelMode = "add-product" | "edit-product" | "add-category" | "manage-categories" | null;
 
+
+function createEmptyOptionsConfig(): ProductOptionsConfig {
+  return {
+    groups: [],
+    allergens: [],
+    availability: {
+      enabled: false,
+    },
+  };
+}
+
+
 const emptyProductForm: ProductFormState = {
   name: "",
   categoryId: "",
@@ -62,6 +75,7 @@ const emptyProductForm: ProductFormState = {
   available: true,
   featured: false,
   imageUrl: "",
+  optionsConfig: createEmptyOptionsConfig(),
 };
 
 const emptyCategoryForm: CategoryFormState = {
@@ -103,8 +117,341 @@ function getProductForm(product: Product): ProductFormState {
     available: typeof product.available === "boolean" ? product.available : true,
     featured: Boolean(product.featured ?? product.promoted),
     imageUrl: product.imageUrl ?? product.imageDataUrl ?? "",
+    optionsConfig: product.optionsConfig ?? createEmptyOptionsConfig(),
   };
 }
+
+
+type SmartOptionSuggestion = {
+  label: string;
+  group: ProductOptionGroup;
+};
+
+function createOptionGroup(
+  id: string,
+  name: string,
+  type: ProductOptionGroup["type"],
+  itemNames: string[],
+  required = false,
+): ProductOptionGroup {
+  return {
+    id,
+    name,
+    type,
+    required,
+    items: itemNames.map((itemName) => ({
+      id: normalizeText(`${id}-${itemName}`),
+      name: itemName,
+      price: 0,
+    })),
+  };
+}
+
+function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion[] {
+  const normalizedCategory = normalizeText(categoryName ?? "");
+
+  if (normalizedCategory.includes("pizza") || normalizedCategory.includes("pizzeria")) {
+    return [
+      {
+        label: "Tailles 29 cm / 33 cm",
+        group: createOptionGroup("sizes", "Taille", "single_choice", ["29 cm", "33 cm"], true),
+      },
+      {
+        label: "Base tomate / cr?me",
+        group: createOptionGroup("base", "Base", "single_choice", ["Tomate", "Cr?me"], false),
+      },
+      {
+        label: "Suppl?ments",
+        group: createOptionGroup("supplements", "Suppl?ments", "multiple_choice", ["Fromage", "?uf", "Poulet", "Sauce en plus"]),
+      },
+    ];
+  }
+
+  if (normalizedCategory.includes("tacos")) {
+    return [
+      {
+        label: "Choix de viande",
+        group: createOptionGroup("meat", "Viande", "single_choice", ["Kebab", "Poulet", "Steak", "Merguez"], true),
+      },
+      {
+        label: "Choix de sauce",
+        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Blanche", "Alg?rienne", "Samoura?", "Andalouse"], true),
+      },
+      {
+        label: "Formule seul / menu",
+        group: createOptionGroup("formula", "Formule", "single_choice", ["Seul", "Menu avec boisson"], false),
+      },
+    ];
+  }
+
+  if (normalizedCategory.includes("burger") || normalizedCategory.includes("hamburger")) {
+    return [
+      {
+        label: "Suppl?ments",
+        group: createOptionGroup("supplements", "Suppl?ments", "multiple_choice", ["Cheddar", "Bacon", "?uf", "Steak en plus"]),
+      },
+      {
+        label: "Cuisson",
+        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Saignant", "? point", "Bien cuit"]),
+      },
+      {
+        label: "Formule menu",
+        group: createOptionGroup("formula", "Formule", "single_choice", ["Seul", "Menu frites + boisson"]),
+      },
+    ];
+  }
+
+  if (
+    normalizedCategory.includes("plat") ||
+    normalizedCategory.includes("brasserie") ||
+    normalizedCategory.includes("viande") ||
+    normalizedCategory.includes("grillade")
+  ) {
+    return [
+      {
+        label: "Cuisson",
+        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Bleu", "Saignant", "? point", "Bien cuit"]),
+      },
+      {
+        label: "Sauce",
+        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Poivre", "Roquefort", "B?arnaise"]),
+      },
+      {
+        label: "Accompagnement",
+        group: createOptionGroup("side", "Accompagnement", "single_choice", ["Frites", "Salade", "Riz", "L?gumes"]),
+      },
+    ];
+  }
+
+  if (normalizedCategory.includes("sushi") || normalizedCategory.includes("maki") || normalizedCategory.includes("california")) {
+    return [
+      {
+        label: "Sauce soja",
+        group: createOptionGroup("soy", "Sauce soja", "single_choice", ["Sucr?e", "Sal?e"]),
+      },
+      {
+        label: "Wasabi / gingembre",
+        group: createOptionGroup("wasabi-ginger", "Accompagnements", "multiple_choice", ["Wasabi", "Gingembre"]),
+      },
+      {
+        label: "Suppl?ments",
+        group: createOptionGroup("supplements", "Suppl?ments", "multiple_choice", ["Soupe miso", "Riz", "Salade de chou"]),
+      },
+    ];
+  }
+
+  if (
+    normalizedCategory.includes("cafe") ||
+    normalizedCategory.includes("coffee") ||
+    normalizedCategory.includes("latte") ||
+    normalizedCategory.includes("boisson")
+  ) {
+    return [
+      {
+        label: "Taille",
+        group: createOptionGroup("size", "Taille", "single_choice", ["Petit", "Moyen", "Grand"]),
+      },
+      {
+        label: "Lait",
+        group: createOptionGroup("milk", "Lait", "single_choice", ["Entier", "Avoine", "Soja", "Amande"]),
+      },
+      {
+        label: "Chaud / glac?",
+        group: createOptionGroup("temperature", "Pr?paration", "single_choice", ["Chaud", "Glac?"]),
+      },
+    ];
+  }
+
+  if (normalizedCategory.includes("crepe") || normalizedCategory.includes("galette")) {
+    return [
+      {
+        label: "Cuisson ?uf",
+        group: createOptionGroup("egg", "?uf", "single_choice", ["Miroir", "Brouill?", "Sans ?uf"]),
+      },
+      {
+        label: "Suppl?ments",
+        group: createOptionGroup("supplements", "Suppl?ments", "multiple_choice", ["Fromage", "Jambon", "Champignons"]),
+      },
+      {
+        label: "Formule",
+        group: createOptionGroup("formula", "Formule", "single_choice", ["Galette seule", "Galette + cr?pe + boisson"]),
+      },
+    ];
+  }
+
+  if (normalizedCategory.includes("glace") || normalizedCategory.includes("glacier") || normalizedCategory.includes("coupe")) {
+    return [
+      {
+        label: "Parfums",
+        group: createOptionGroup("flavours", "Parfums", "multiple_choice", ["Vanille", "Chocolat", "Fraise", "Pistache"]),
+      },
+      {
+        label: "Toppings",
+        group: createOptionGroup("toppings", "Toppings", "multiple_choice", ["Chantilly", "Coulis chocolat", "Noisettes"]),
+      },
+      {
+        label: "Pot / cornet",
+        group: createOptionGroup("container", "Service", "single_choice", ["Pot", "Cornet"]),
+      },
+    ];
+  }
+
+  return [
+    {
+      label: "Taille / format",
+      group: createOptionGroup("size", "Taille / format", "single_choice", ["Petit", "Moyen", "Grand"]),
+    },
+    {
+      label: "Choix client",
+      group: createOptionGroup("choice", "Choix client", "single_choice", ["Option 1", "Option 2"]),
+    },
+    {
+      label: "Suppl?ment",
+      group: createOptionGroup("supplements", "Suppl?ments", "multiple_choice", ["Suppl?ment 1", "Suppl?ment 2"]),
+    },
+    {
+      label: "Allerg?nes",
+      group: createOptionGroup("allergens", "Allerg?nes", "multiple_choice", ["Gluten", "Lait", "?ufs", "Fruits ? coque"]),
+    },
+  ];
+}
+
+function mergeOptionGroup(groups: ProductOptionGroup[], groupToAdd: ProductOptionGroup) {
+  const exists = groups.some((group) => group.id === groupToAdd.id);
+
+  if (exists) {
+    return groups.map((group) => (group.id === groupToAdd.id ? groupToAdd : group));
+  }
+
+  return [...groups, groupToAdd];
+}
+
+function ProductOptionsEditor({
+  categoryName,
+  optionsConfig,
+  onChange,
+  onAskAi,
+}: {
+  categoryName?: string;
+  optionsConfig: ProductOptionsConfig;
+  onChange: (nextOptionsConfig: ProductOptionsConfig) => void;
+  onAskAi: () => void;
+}) {
+  const suggestions = getSmartOptionSuggestions(categoryName);
+
+  function addGroup(group: ProductOptionGroup) {
+    onChange({
+      ...optionsConfig,
+      groups: mergeOptionGroup(optionsConfig.groups, group),
+    });
+  }
+
+  function removeGroup(groupId: string) {
+    onChange({
+      ...optionsConfig,
+      groups: optionsConfig.groups.filter((group) => group.id !== groupId),
+    });
+  }
+
+  return (
+    <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-base font-black text-slate-950">Ajouter des options avanc?es</p>
+          <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-500">
+            Tailles, sauces, suppl?ments, formules, disponibilit? et allerg?nes.
+          </p>
+        </div>
+
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-slate-50 text-xl font-black text-slate-500 transition group-open:rotate-45">
+          +
+        </span>
+      </summary>
+
+      <div className="grid gap-3 border-t border-slate-100 px-4 pb-4 pt-3">
+        <div className="rounded-2xl bg-emerald-50 p-3">
+          <div className="flex flex-col gap-3 min-[390px]:flex-row min-[390px]:items-start min-[390px]:justify-between">
+            <div>
+              <p className="text-sm font-black text-emerald-900">
+                {categoryName ? `Suggestions pour ${categoryName}` : "Suggestions intelligentes"}
+              </p>
+              <p className="mt-1 text-xs font-semibold leading-relaxed text-emerald-800/80">
+                Choisissez un mod?le pour ajouter un vrai groupe d&apos;options au produit.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onAskAi}
+              className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-xl bg-emerald-700 px-3 text-xs font-black text-white shadow-sm transition hover:bg-emerald-800"
+            >
+              ? G?n?rer avec l&apos;IA
+            </button>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion.group.id}
+                type="button"
+                onClick={() => addGroup(suggestion.group)}
+                className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 text-xs font-black text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50"
+              >
+                <Plus className="size-4" />
+                {suggestion.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {optionsConfig.groups.length > 0 ? (
+          <div className="grid gap-2">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Options ajout?es</p>
+
+            {optionsConfig.groups.map((group) => (
+              <div key={group.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-slate-950">{group.name}</p>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                      {group.required ? "Choix obligatoire" : "Choix optionnel"} ? {group.items.length} option
+                      {group.items.length > 1 ? "s" : ""}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => removeGroup(group.id)}
+                    className="grid size-8 shrink-0 place-items-center rounded-xl border border-red-100 bg-white text-red-600"
+                    aria-label={`Supprimer ${group.name}`}
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {group.items.map((item) => (
+                    <span
+                      key={item.id}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700"
+                    >
+                      {item.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs font-semibold leading-relaxed text-slate-500">
+            Aucun groupe ajout? pour l&apos;instant. Le produit peut rester simple si vous n&apos;avez pas besoin d&apos;options.
+          </p>
+        )}
+      </div>
+    </details>
+  );
+}
+
 
 function Panel({
   children,
@@ -525,6 +872,7 @@ export function MenuManager({
             available: productForm.available,
             featured: productForm.featured,
             imageUrl: productForm.imageUrl,
+            optionsConfig: productForm.optionsConfig,
           };
 
           if (panelMode === "edit-product" && editingProductId) {
@@ -991,6 +1339,15 @@ export function MenuManager({
 
             <SmartOptionSuggestions
               categoryName={menuCategories.find((category) => category.id === productForm.categoryId)?.name}
+            />
+
+            <ProductOptionsEditor
+              categoryName={menuCategories.find((category) => category.id === productForm.categoryId)?.name}
+              optionsConfig={productForm.optionsConfig}
+              onChange={(optionsConfig) => setProductForm({ ...productForm, optionsConfig })}
+              onAskAi={() =>
+                setActionMessage("Assistant IA pr?t ? ?tre connect?. Les mod?les intelligents fonctionnent d?j? sans IA.")
+              }
             />
 
             <div className="sticky bottom-0 z-10 -mx-1 grid gap-2 border-t border-slate-200 bg-white/95 px-1 pt-3 backdrop-blur">
