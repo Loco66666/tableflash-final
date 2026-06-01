@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useRef, useMemo, useState, useTransition } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
@@ -154,28 +154,28 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
     return [
       {
         label: "Tailles 29 cm / 33 cm",
-        group: createOptionGroup("sizes", "Taille", "single_choice", ["29 cm", "33 cm"], true),
+        group: createOptionGroup("sizes", "Taille", "single_choice", ["29 cm", "33 cm", "M?ga 40 cm"], true),
       },
       {
-        label: "Base tomate / cr?me",
-        group: createOptionGroup("base", "Base", "single_choice", ["Tomate", "Cr?me"], false),
+        label: "Base tomate / crème",
+        group: createOptionGroup("base", "Base", "single_choice", ["Base tomate", "Base crème"], false),
       },
       {
-        label: "Suppl?ments",
-        group: createOptionGroup("supplements", "Suppl?ments", "multiple_choice", ["Fromage", "?uf", "Poulet", "Sauce en plus"]),
+        label: "Suppléments pizza",
+        group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Fromage", "Œuf", "Champignons", "Jambon", "Poulet"]),
       },
     ];
   }
 
-  if (normalizedCategory.includes("tacos")) {
+  if (normalizedCategory.includes("tacos") || normalizedCategory.includes("kebab")) {
     return [
       {
         label: "Choix de viande",
-        group: createOptionGroup("meat", "Viande", "single_choice", ["Kebab", "Poulet", "Steak", "Merguez"], true),
+        group: createOptionGroup("meat", "Viande", "multiple_choice", ["Kebab", "Poulet", "Steak", "Merguez"], true),
       },
       {
         label: "Choix de sauce",
-        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Blanche", "Alg?rienne", "Samoura?", "Andalouse"], true),
+        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Blanche", "Algérienne", "Samouraï", "Andalouse"], true),
       },
       {
         label: "Formule seul / menu",
@@ -187,16 +187,61 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
   if (normalizedCategory.includes("burger") || normalizedCategory.includes("hamburger")) {
     return [
       {
-        label: "Suppl?ments",
-        group: createOptionGroup("supplements", "Suppl?ments", "multiple_choice", ["Cheddar", "Bacon", "?uf", "Steak en plus"]),
+        label: "Suppléments burger",
+        group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Cheddar", "Bacon", "Œuf", "Double steak"]),
       },
       {
-        label: "Cuisson",
+        label: "Cuisson steak",
         group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Saignant", "? point", "Bien cuit"]),
       },
       {
         label: "Formule menu",
-        group: createOptionGroup("formula", "Formule", "single_choice", ["Seul", "Menu frites + boisson"]),
+        group: createOptionGroup("formula", "Formule", "single_choice", ["Burger seul", "Menu frites + boisson"]),
+      },
+    ];
+  }
+
+  if (
+    normalizedCategory.includes("boisson") ||
+    normalizedCategory.includes("soda") ||
+    normalizedCategory.includes("eau") ||
+    normalizedCategory.includes("jus")
+  ) {
+    return [
+      {
+        label: "Formats bouteille / canette",
+        group: createOptionGroup("drink-size", "Format", "single_choice", ["33 cl", "50 cl", "1 L", "1,5 L", "2 L"]),
+      },
+      {
+        label: "Gla?ons / citron",
+        group: createOptionGroup("drink-options", "Options boisson", "multiple_choice", ["Gla?ons", "Sans gla?ons", "Citron", "Paille"]),
+      },
+      {
+        label: "Pack / menu",
+        group: createOptionGroup("drink-formula", "Formule", "single_choice", ["? l?unit?", "Avec menu", "Pack famille"]),
+      },
+    ];
+  }
+
+  if (
+    normalizedCategory.includes("cafe") ||
+    normalizedCategory.includes("coffee") ||
+    normalizedCategory.includes("latte") ||
+    normalizedCategory.includes("the") ||
+    normalizedCategory.includes("chocolat")
+  ) {
+    return [
+      {
+        label: "Taille caf?",
+        group: createOptionGroup("coffee-size", "Taille", "single_choice", ["Petit", "Moyen", "Grand"]),
+      },
+      {
+        label: "Type de lait",
+        group: createOptionGroup("milk", "Lait", "single_choice", ["Entier", "Avoine", "Soja", "Amande"]),
+      },
+      {
+        label: "Chaud / glac?",
+        group: createOptionGroup("temperature", "Pr?paration", "single_choice", ["Chaud", "Glac?"]),
       },
     ];
   }
@@ -234,30 +279,8 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
         group: createOptionGroup("wasabi-ginger", "Accompagnements", "multiple_choice", ["Wasabi", "Gingembre"]),
       },
       {
-        label: "Suppl?ments",
-        group: createOptionGroup("supplements", "Suppl?ments", "multiple_choice", ["Soupe miso", "Riz", "Salade de chou"]),
-      },
-    ];
-  }
-
-  if (
-    normalizedCategory.includes("cafe") ||
-    normalizedCategory.includes("coffee") ||
-    normalizedCategory.includes("latte") ||
-    normalizedCategory.includes("boisson")
-  ) {
-    return [
-      {
-        label: "Taille",
-        group: createOptionGroup("size", "Taille", "single_choice", ["Petit", "Moyen", "Grand"]),
-      },
-      {
-        label: "Lait",
-        group: createOptionGroup("milk", "Lait", "single_choice", ["Entier", "Avoine", "Soja", "Amande"]),
-      },
-      {
-        label: "Chaud / glac?",
-        group: createOptionGroup("temperature", "Pr?paration", "single_choice", ["Chaud", "Glac?"]),
+        label: "Suppléments japonais",
+        group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Soupe miso", "Riz", "Salade de chou"]),
       },
     ];
   }
@@ -265,16 +288,16 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
   if (normalizedCategory.includes("crepe") || normalizedCategory.includes("galette")) {
     return [
       {
-        label: "Cuisson ?uf",
-        group: createOptionGroup("egg", "?uf", "single_choice", ["Miroir", "Brouill?", "Sans ?uf"]),
+        label: "Cuisson Œuf",
+        group: createOptionGroup("egg", "Œuf", "single_choice", ["Miroir", "Brouill?", "Sans Œuf"]),
       },
       {
-        label: "Suppl?ments",
-        group: createOptionGroup("supplements", "Suppl?ments", "multiple_choice", ["Fromage", "Jambon", "Champignons"]),
+        label: "Suppléments cr?perie",
+        group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Fromage", "Jambon", "Champignons"]),
       },
       {
         label: "Formule",
-        group: createOptionGroup("formula", "Formule", "single_choice", ["Galette seule", "Galette + cr?pe + boisson"]),
+        group: createOptionGroup("formula", "Formule", "single_choice", ["Produit seul", "Formule avec boisson"]),
       },
     ];
   }
@@ -306,12 +329,12 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
       group: createOptionGroup("choice", "Choix client", "single_choice", ["Option 1", "Option 2"]),
     },
     {
-      label: "Suppl?ment",
-      group: createOptionGroup("supplements", "Suppl?ments", "multiple_choice", ["Suppl?ment 1", "Suppl?ment 2"]),
+      label: "Supplément",
+      group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Supplément 1", "Supplément 2"]),
     },
     {
-      label: "Allerg?nes",
-      group: createOptionGroup("allergens", "Allerg?nes", "multiple_choice", ["Gluten", "Lait", "?ufs", "Fruits ? coque"]),
+      label: "Allergènes",
+      group: createOptionGroup("allergens", "Allergènes", "multiple_choice", ["Gluten", "Lait", "Œufs", "Fruits à coque"]),
     },
   ];
 }
@@ -357,9 +380,9 @@ function ProductOptionsEditor({
     <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3">
         <div className="min-w-0">
-          <p className="text-base font-black text-slate-950">Ajouter des options avanc?es</p>
+          <p className="text-base font-black text-slate-950">Ajouter des options avancées</p>
           <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-500">
-            Tailles, sauces, suppl?ments, formules, disponibilit? et allerg?nes.
+            Tailles, sauces, suppléments, formules, disponibilité et allergènes.
           </p>
         </div>
 
@@ -376,7 +399,7 @@ function ProductOptionsEditor({
                 {categoryName ? `Suggestions pour ${categoryName}` : "Suggestions intelligentes"}
               </p>
               <p className="mt-1 text-xs font-semibold leading-relaxed text-emerald-800/80">
-                Choisissez un mod?le pour ajouter un vrai groupe d&apos;options au produit.
+                Choisissez un modèle pour ajouter un vrai groupe d&apos;options au produit.
               </p>
             </div>
 
@@ -385,7 +408,7 @@ function ProductOptionsEditor({
               onClick={onAskAi}
               className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-xl bg-emerald-700 px-3 text-xs font-black text-white shadow-sm transition hover:bg-emerald-800"
             >
-              ? G?n?rer avec l&apos;IA
+              Générer avec IA
             </button>
           </div>
 
@@ -406,7 +429,7 @@ function ProductOptionsEditor({
 
         {optionsConfig.groups.length > 0 ? (
           <div className="grid gap-2">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Options ajout?es</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Options ajoutées</p>
 
             {optionsConfig.groups.map((group) => (
               <div key={group.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
@@ -539,140 +562,6 @@ function Toggle({
         <span className={cn("size-6 rounded-full bg-white shadow transition", checked && "translate-x-6")} />
       </span>
     </button>
-  );
-}
-
-
-type SmartOptionTemplate = {
-  keywords: string[];
-  label: string;
-  description: string;
-  suggestions: string[];
-};
-
-const smartOptionTemplates: SmartOptionTemplate[] = [
-  {
-    keywords: ["pizza", "pizzeria"],
-    label: "Suggestions pour Pizza",
-    description: "Ajoutez rapidement les tailles, bases et suppl?ments les plus fr?quents.",
-    suggestions: ["Tailles 29 cm / 33 cm", "Base tomate / cr?me", "Suppl?ments"],
-  },
-  {
-    keywords: ["tacos"],
-    label: "Suggestions pour Tacos",
-    description: "Pr?parez les choix indispensables pour personnaliser un tacos.",
-    suggestions: ["Choix de viande", "Choix de sauce", "Formule seul / menu"],
-  },
-  {
-    keywords: ["burger", "hamburger"],
-    label: "Suggestions pour Burger",
-    description: "Ajoutez les suppl?ments et options classiques d'un burger.",
-    suggestions: ["Suppl?ments", "Cuisson", "Formule menu"],
-  },
-  {
-    keywords: ["plat", "brasserie", "restaurant", "viande", "grillade"],
-    label: "Suggestions pour Brasserie",
-    description: "Ajoutez les options utiles pour les plats servis ? table.",
-    suggestions: ["Cuisson", "Sauce", "Accompagnement"],
-  },
-  {
-    keywords: ["sushi", "maki", "japonais", "california"],
-    label: "Suggestions pour Sushi",
-    description: "Ajoutez les accompagnements habituels des menus japonais.",
-    suggestions: ["Sauce soja", "Wasabi / gingembre", "Suppl?ments"],
-  },
-  {
-    keywords: ["caf?", "coffee", "latte", "boisson", "th?", "chocolat"],
-    label: "Suggestions pour Boisson",
-    description: "Ajoutez les formats et personnalisations simples.",
-    suggestions: ["Taille", "Lait", "Chaud / glac?"],
-  },
-  {
-    keywords: ["bar", "tapas", "planche"],
-    label: "Suggestions pour Bar / Tapas",
-    description: "Ajoutez les formats, suppl?ments et disponibilit?s utiles.",
-    suggestions: ["Taille", "Suppl?ments", "Disponibilit? horaire"],
-  },
-  {
-    keywords: ["cr?pe", "crepe", "galette", "cr?perie"],
-    label: "Suggestions pour Cr?perie",
-    description: "Ajoutez les options courantes pour galettes et cr?pes.",
-    suggestions: ["Cuisson ?uf", "Suppl?ments", "Formule"],
-  },
-  {
-    keywords: ["glace", "glacier", "coupe", "boule"],
-    label: "Suggestions pour Glacier",
-    description: "Ajoutez parfums, formats et toppings.",
-    suggestions: ["Parfums", "Toppings", "Pot / cornet"],
-  },
-];
-
-const genericOptionTemplate: SmartOptionTemplate = {
-  keywords: [],
-  label: "Besoin d'options pour ce produit ?",
-  description: "Ajoutez des options seulement si ce produit en a besoin.",
-  suggestions: ["Taille / format", "Choix client", "Suppl?ment", "Formule", "Allerg?nes"],
-};
-
-function normalizeTemplateText(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function getSmartOptionTemplate(categoryName?: string) {
-  const normalizedCategory = normalizeTemplateText(categoryName ?? "");
-
-  return (
-    smartOptionTemplates.find((template) =>
-      template.keywords.some((keyword) => normalizedCategory.includes(normalizeTemplateText(keyword))),
-    ) ?? genericOptionTemplate
-  );
-}
-
-function SmartOptionSuggestions({ categoryName }: { categoryName?: string }) {
-  const template = getSmartOptionTemplate(categoryName);
-
-  return (
-    <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white">
-      <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3">
-        <div>
-          <p className="text-base font-black text-slate-950">Ajouter des options avanc?es</p>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
-            Tailles, sauces, suppl?ments, formules, disponibilit?, allerg?nes
-          </p>
-        </div>
-
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-slate-50 text-xl font-black text-slate-500 transition group-open:rotate-45">
-          +
-        </span>
-      </summary>
-
-      <div className="border-t border-slate-100 px-4 pb-4 pt-3">
-        <div className="rounded-2xl bg-emerald-50 p-3">
-          <p className="text-sm font-black text-emerald-900">{template.label}</p>
-          <p className="mt-1 text-xs font-semibold leading-relaxed text-emerald-800/80">{template.description}</p>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            {template.suggestions.map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 text-xs font-black text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50"
-              >
-                <Plus className="size-4" />
-                {suggestion}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <p className="mt-3 text-xs font-semibold leading-relaxed text-slate-500">
-          Ces suggestions sont facultatives. Le restaurateur peut les utiliser, les modifier ou garder un produit simple.
-        </p>
-      </div>
-    </details>
   );
 }
 
@@ -1193,7 +1082,13 @@ export function MenuManager({
             <Field label="Catégorie" error={productErrors.categoryId}>
               <select
                 value={productForm.categoryId}
-                onChange={(event) => setProductForm({ ...productForm, categoryId: event.target.value })}
+                onChange={(event) =>
+                  setProductForm({
+                    ...productForm,
+                    categoryId: event.target.value,
+                    optionsConfig: createEmptyOptionsConfig(),
+                  })
+                }
                 className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
               >
                 <option value="">Choisir une catégorie</option>
@@ -1336,17 +1231,12 @@ export function MenuManager({
                 onChange={(checked) => setProductForm({ ...productForm, featured: checked })}
               />
             </div>
-
-            <SmartOptionSuggestions
-              categoryName={menuCategories.find((category) => category.id === productForm.categoryId)?.name}
-            />
-
             <ProductOptionsEditor
               categoryName={menuCategories.find((category) => category.id === productForm.categoryId)?.name}
               optionsConfig={productForm.optionsConfig}
               onChange={(optionsConfig) => setProductForm({ ...productForm, optionsConfig })}
               onAskAi={() =>
-                setActionMessage("Assistant IA pr?t ? ?tre connect?. Les mod?les intelligents fonctionnent d?j? sans IA.")
+                setActionMessage("Assistant IA prêt ? être connect?. Les modèles intelligents fonctionnent déjà sans IA.")
               }
             />
 
