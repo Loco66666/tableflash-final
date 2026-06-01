@@ -28,9 +28,7 @@ export default async function MenuPage() {
 
   const { data: productsData, error: productsError } = await supabase
     .from("menu_products")
-    .select(
-      "id, category_id, name, description, price, promo_price, image_url, is_available, is_featured, sort_order, created_at",
-    )
+    .select("*")
     .eq("restaurant_id", restaurant.id)
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
@@ -53,7 +51,20 @@ export default async function MenuPage() {
     sortOrder: category.sort_order ?? 0,
   }));
 
-  const products: Product[] = (productsData ?? []).map((product) => ({
+  type MenuProductRow = {
+    id: string;
+    name: string;
+    category_id: string | null;
+    description: string | null;
+    price: number | string | null;
+    promo_price: number | string | null;
+    image_url: string | null;
+    is_available: boolean;
+    is_featured: boolean;
+    options_config?: Product["optionsConfig"] | null;
+  };
+
+  const products: Product[] = ((productsData ?? []) as MenuProductRow[]).map((product) => ({
     id: product.id,
     name: product.name,
     categoryId: product.category_id ?? "",
@@ -66,6 +77,7 @@ export default async function MenuPage() {
     promoted: product.is_featured,
     visual: "salad",
     imageUrl: product.image_url ?? undefined,
+    optionsConfig: product.options_config ?? undefined,
   }));
 
   return (

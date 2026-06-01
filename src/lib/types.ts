@@ -1,3 +1,26 @@
+export type ProductOptionItem = {
+  id: string;
+  name: string;
+  price?: number;
+};
+
+export type ProductOptionGroup = {
+  id: string;
+  name: string;
+  type: "single_choice" | "multiple_choice" | "supplement" | "formula" | "text";
+  required: boolean;
+  items: ProductOptionItem[];
+};
+
+export type ProductOptionsConfig = {
+  groups: ProductOptionGroup[];
+  allergens: string[];
+  availability: {
+    enabled: boolean;
+    label?: string;
+  };
+};
+
 export type OrderStatus = "new" | "accepted" | "payment_pending" | "paid" | "preparing" | "ready" | "served" | "refused";
 
 export type Category = {
@@ -24,6 +47,7 @@ export type Product = {
   imageUrl?: string;
   imageDataUrl?: string;
   allergens?: string[] | string;
+  optionsConfig?: ProductOptionsConfig;
 };
 
 export type OrderLine = {

@@ -307,6 +307,7 @@ export async function createMenuProduct(input: {
   available?: boolean;
   featured?: boolean;
   imageUrl?: string;
+  optionsConfig?: unknown;
 }) {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
@@ -342,7 +343,7 @@ export async function createMenuProduct(input: {
     throw new Error("Lecture des produits impossible.");
   }
 
-  const { error } = await supabase.from("menu_products").insert({
+  const productPayload = {
     restaurant_id: restaurant.id,
     category_id: categoryId,
     name,
@@ -350,10 +351,13 @@ export async function createMenuProduct(input: {
     price,
     promo_price: promoPrice,
     image_url: imageUrl,
+    options_config: input.optionsConfig ?? { groups: [], allergens: [], availability: { enabled: false } },
     is_available: input.available ?? true,
     is_featured: input.featured ?? false,
     sort_order: count ?? 0,
-  });
+  };
+
+  const { error } = await supabase.from("menu_products").insert(productPayload as never);
 
   if (error) {
     throw new Error("Création du produit impossible.");
@@ -374,6 +378,7 @@ export async function updateMenuProduct(input: {
   available?: boolean;
   featured?: boolean;
   imageUrl?: string;
+  optionsConfig?: unknown;
 }) {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
@@ -406,19 +411,22 @@ export async function updateMenuProduct(input: {
     throw new Error("Le prix promo doit être inférieur au prix normal.");
   }
 
+  const productPayload = {
+    name,
+    category_id: categoryId,
+    description,
+    price,
+    promo_price: promoPrice,
+    image_url: imageUrl,
+    options_config: input.optionsConfig ?? { groups: [], allergens: [], availability: { enabled: false } },
+    is_available: input.available ?? true,
+    is_featured: input.featured ?? false,
+    updated_at: new Date().toISOString(),
+  };
+
   const { error } = await supabase
     .from("menu_products")
-    .update({
-      name,
-      category_id: categoryId,
-      description,
-      price,
-      promo_price: promoPrice,
-      image_url: imageUrl,
-      is_available: input.available ?? true,
-      is_featured: input.featured ?? false,
-      updated_at: new Date().toISOString(),
-    })
+    .update(productPayload as never)
     .eq("id", productId)
     .eq("restaurant_id", restaurant.id);
 
