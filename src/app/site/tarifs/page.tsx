@@ -287,7 +287,7 @@ export default function TarifsPage() {
             Tarifs transparents
           </p>
 
-          <h1 className="max-w-xl text-[40px] font-black leading-[1.04] tracking-[-0.055em] text-slate-950 sm:text-[52px]">
+          <h1 className="max-w-xl text-[38px] font-black leading-[1.04] tracking-[-0.055em] text-slate-950 sm:text-[50px]">
             Des tarifs transparents pour faire grandir votre activité
           </h1>
 
@@ -320,7 +320,7 @@ export default function TarifsPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-265 px-5 pb-5 pt-0">
+      <section className="mx-auto w-full max-w-265 px-5 pb-5 pt-8">
         <div className="grid gap-6 lg:grid-cols-3">
           {plans.map((plan) => (
             <PlanCard key={plan.name} plan={plan} />
