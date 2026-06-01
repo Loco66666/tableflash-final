@@ -387,10 +387,21 @@ function ProductOptionsEditor({
   }
 
   function updateItemPrice(group: ProductOptionGroup, itemId: string, price: string) {
-    const normalizedPrice = price.replace(",", ".");
-    const numericPrice = normalizedPrice === "" ? 0 : Number(normalizedPrice);
+    const normalizedPrice = price.trim().replace(",", ".");
 
-    if (Number.isNaN(numericPrice)) return;
+    if (normalizedPrice === "") {
+      updateGroup(group.id, {
+        ...group,
+        items: group.items.map((item) => (item.id === itemId ? { ...item, price: 0 } : item)),
+      });
+      return;
+    }
+
+    if (!/^\d{0,5}(\.\d{0,8})?$/.test(normalizedPrice)) return;
+
+    const numericPrice = Number(normalizedPrice);
+
+    if (!Number.isFinite(numericPrice) || numericPrice < 0 || numericPrice > 99999.99999999) return;
 
     updateGroup(group.id, {
       ...group,
@@ -534,12 +545,11 @@ function ProductOptionsEditor({
 
                       <div className="relative">
                         <input
-                          type="number"
+                          type="text"
                           inputMode="decimal"
-                          min="0"
-                          step="0.5"
-                          value={item.price ?? 0}
+                          value={String(item.price ?? 0)}
                           onChange={(event) => updateItemPrice(group, item.id, event.target.value)}
+                          placeholder="0.00"
                           className="min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 pr-7 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                           aria-label="Prix suppl?mentaire"
                         />
