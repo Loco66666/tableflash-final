@@ -1,10 +1,7 @@
-"use client";
-
 ﻿/* eslint-disable react/no-unescaped-entities */
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -179,12 +176,8 @@ function Header() {
   );
 }
 
-function PlanCard({ plan, billing }: { plan: (typeof plans)[number]; billing: "monthly" | "yearly" }) {
+function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
   const Icon = plan.icon;
-  const displayedPrice = billing === "monthly" ? plan.price : plan.yearly;
-  const displayedPeriod = billing === "monthly" ? "/ mois" : "";
-  const displayedHint = billing === "monthly" ? plan.yearly : "2 mois offerts";
-  const displayedSubHint = billing === "monthly" ? plan.oldYearly : plan.oldYearly;
 
   return (
     <article
@@ -208,13 +201,13 @@ function PlanCard({ plan, billing }: { plan: (typeof plans)[number]; billing: "m
 
       <div className="mt-5 flex items-end justify-between gap-4">
         <div>
-          <span className="text-4xl font-black tracking-tight text-slate-950">{displayedPrice}</span>
-          <span className="ml-1 text-base font-black text-slate-950">{displayedPeriod}</span>
+          <span className="text-4xl font-black tracking-tight text-slate-950">{plan.price}</span>
+          <span className="ml-1 text-base font-black text-slate-950">/ mois</span>
         </div>
 
         <div className="text-right text-sm font-bold text-slate-500">
-          <p>{displayedHint}</p>
-          <p>{displayedSubHint}</p>
+          <p>Sans engagement</p>
+          <p>Essai gratuit inclus</p>
         </div>
       </div>
 
@@ -283,7 +276,6 @@ function Footer() {
 }
 
 export default function TarifsPage() {
-  const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
@@ -329,38 +321,9 @@ export default function TarifsPage() {
       </section>
 
       <section className="mx-auto w-full max-w-265 px-5 pb-5 pt-0">
-        <div className="mx-auto mb-4 grid max-w-lg grid-cols-2 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
-          <button
-            type="button"
-            onClick={() => setBilling("monthly")}
-            className={[
-              "rounded-full px-6 py-2.5 text-center text-sm font-black transition",
-              billing === "monthly"
-                ? "border border-emerald-700 bg-emerald-50 text-emerald-700"
-                : "text-slate-950",
-            ].join(" ")}
-          >
-            Mensuel
-            <span className="block text-xs font-bold text-slate-500">Sans engagement</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setBilling("yearly")}
-            className={[
-              "rounded-full px-6 py-2.5 text-center text-sm font-black transition",
-              billing === "yearly"
-                ? "border border-emerald-700 bg-emerald-50 text-emerald-700"
-                : "text-slate-950",
-            ].join(" ")}
-          >
-            Annuel
-            <span className="block text-xs font-bold text-emerald-700">2 mois offerts</span>
-          </button>
-        </div>
-
         <div className="grid gap-6 lg:grid-cols-3">
           {plans.map((plan) => (
-            <PlanCard key={plan.name} plan={plan} billing={billing} />
+            <PlanCard key={plan.name} plan={plan} />
           ))}
         </div>
       </section>
