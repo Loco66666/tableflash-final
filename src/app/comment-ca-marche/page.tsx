@@ -237,17 +237,17 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="mx-auto grid w-full max-w-295 gap-8 px-5 pb-7 pt-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+    <section className="mx-auto grid w-full max-w-295 gap-8 px-5 pb-4 pt-7 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
       <div>
         <p className="mb-4 inline-flex rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-black text-emerald-700">
           Comment ça marche ?
         </p>
 
-        <h1 className="max-w-2xl text-[40px] font-black leading-[1.04] tracking-[-0.055em] text-slate-950 sm:text-[54px]">
+        <h1 className="max-w-2xl text-[38px] font-black leading-[1.04] tracking-[-0.055em] text-slate-950 sm:text-[50px]">
           Une expérience simple pour vous et vos clients
         </h1>
 
-        <p className="mt-5 max-w-xl text-lg font-medium leading-relaxed text-slate-600">
+        <p className="mt-4 max-w-xl text-base font-medium leading-relaxed text-slate-600">
           Table Flash simplifie chaque étape, du scan à la table jusqu'au service. Vos clients commandent en toute autonomie,
           vous gardez le contrôle.
         </p>
@@ -268,7 +268,7 @@ function Hero() {
           </Link>
         </div>
 
-        <ul className="mt-8 grid gap-4 sm:grid-cols-3">
+        <ul className="mt-7 grid gap-4 sm:grid-cols-3">
           {quickBenefits.map((benefit) => (
             <li key={benefit} className="flex items-center gap-3 text-sm font-black text-slate-700">
               <CheckCircle2 className="size-5 shrink-0 fill-emerald-700 text-white" />
@@ -294,13 +294,13 @@ function Hero() {
 
 function Journey() {
   return (
-    <section id="parcours" className="mx-auto w-full max-w-295 px-5 py-4">
-      <div className="rounded-2xl border border-slate-200 bg-white px-5 py-6 shadow-[0_10px_25px_rgba(15,23,42,0.03)]">
+    <section id="parcours" className="mx-auto w-full max-w-295 px-5 py-3">
+      <div className="rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-[0_10px_25px_rgba(15,23,42,0.03)]">
         <h2 className="text-center text-2xl font-black tracking-tight text-slate-950">
           Du scan à l'assiette : un parcours clair et maîtrisé
         </h2>
 
-        <div className="mt-7 grid gap-6 lg:grid-cols-7">
+        <div className="mt-6 grid gap-4 lg:grid-cols-7">
           {journeySteps.map((step, index) => {
             const Icon = step.icon;
 
@@ -310,16 +310,16 @@ function Journey() {
                   <div className="absolute left-[58%] top-9 hidden h-px w-[85%] border-t border-dotted border-emerald-500 lg:block" />
                 ) : null}
 
-                <div className="relative z-10 mx-auto grid size-18 place-items-center rounded-full bg-emerald-50 text-emerald-700">
-                  <Icon className="size-8" />
+                <div className="relative z-10 mx-auto grid size-16 place-items-center rounded-full bg-emerald-50 text-emerald-700">
+                  <Icon className="size-7" />
                 </div>
 
                 <div className="relative z-10 mx-auto mt-3 grid size-6 place-items-center rounded-full bg-emerald-700 text-xs font-black text-white">
                   {step.number}
                 </div>
 
-                <h3 className="mt-3 text-sm font-black text-slate-950">{step.title}</h3>
-                <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-600">{step.description}</p>
+                <h3 className="mt-2 text-[13px] font-black text-slate-950">{step.title}</h3>
+                <p className="mt-1.5 text-[11px] font-semibold leading-relaxed text-slate-600">{step.description}</p>
               </div>
             );
           })}
@@ -331,21 +331,21 @@ function Journey() {
 
 function DetailCards() {
   return (
-    <section className="mx-auto w-full max-w-295 px-5 py-4">
+    <section className="mx-auto w-full max-w-295 px-5 py-3">
       <div className="grid gap-4 lg:grid-cols-7">
         {detailCards.map((card) => {
           const Icon = card.icon;
 
           return (
-            <article key={card.title} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center gap-3">
-                <Icon className="size-6 text-emerald-700" />
-                <h3 className="text-sm font-black text-slate-950">{card.title}</h3>
+            <article key={card.title} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+              <div className="mb-2 flex items-center gap-2">
+                <Icon className="size-5 text-emerald-700" />
+                <h3 className="text-[13px] font-black text-slate-950">{card.title}</h3>
               </div>
 
-              <ul className="grid gap-2">
+              <ul className="grid gap-1.5">
                 {card.items.map((item) => (
-                  <li key={item} className="flex gap-2 text-xs font-semibold leading-relaxed text-slate-600">
+                  <li key={item} className="flex gap-2 text-[11px] font-semibold leading-relaxed text-slate-600">
                     <CheckCircle2 className="mt-0.5 size-4 shrink-0 fill-emerald-700 text-white" />
                     {item}
                   </li>
@@ -361,12 +361,12 @@ function DetailCards() {
 
 function SerenityBanner() {
   return (
-    <section className="mx-auto w-full max-w-295 px-5 py-4">
-      <div className="grid gap-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-6 md:grid-cols-[auto_1fr_auto] md:items-center">
-        <ShieldCheck className="size-16 text-emerald-700" />
+    <section className="mx-auto w-full max-w-295 px-5 py-3">
+      <div className="grid gap-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-5 md:grid-cols-[auto_1fr_auto] md:items-center">
+        <ShieldCheck className="size-14 text-emerald-700" />
 
         <div>
-          <h2 className="text-3xl font-black tracking-tight text-emerald-700">Moins de pertes, plus de sérénité</h2>
+          <h2 className="text-2xl font-black tracking-tight text-emerald-700">Moins de pertes, plus de sérénité</h2>
           <p className="mt-2 max-w-2xl text-sm font-bold leading-relaxed text-slate-700">
             Le paiement n'est encaissé qu'après validation de votre part et avant le début de la préparation.
           </p>
@@ -387,9 +387,9 @@ function SerenityBanner() {
 
 function DashboardSection() {
   return (
-    <section className="mx-auto w-full max-w-295 px-5 py-4">
+    <section className="mx-auto w-full max-w-295 px-5 py-3">
       <div className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[0.8fr_1.2fr]">
-        <div className="p-7">
+        <div className="p-6">
           <h2 className="max-w-sm text-3xl font-black leading-tight tracking-tight text-slate-950">
             Ce que voit le restaurateur sur son tableau de bord
           </h2>
@@ -411,7 +411,7 @@ function DashboardSection() {
           </a>
         </div>
 
-        <div className="relative flex min-h-75 items-center justify-center bg-linear-to-br from-emerald-50 to-white p-6">
+        <div className="relative flex min-h-68 items-center justify-center bg-linear-to-br from-emerald-50 to-white p-5">
           <Image
             src="/images/tableflash-hero-mockup.png"
             alt="Aperçu du tableau de bord Table Flash"
@@ -427,13 +427,13 @@ function DashboardSection() {
 
 function FinalBenefits() {
   return (
-    <section className="mx-auto w-full max-w-295 px-5 py-4">
+    <section className="mx-auto w-full max-w-295 px-5 py-3">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {finalBenefits.map((benefit) => {
           const Icon = benefit.icon;
 
           return (
-            <article key={benefit.title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <article key={benefit.title} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <Icon className="size-10 text-emerald-700" />
               <h3 className="mt-3 text-lg font-black text-slate-950">{benefit.title}</h3>
               <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-600">{benefit.description}</p>
@@ -447,10 +447,10 @@ function FinalBenefits() {
 
 function Cta() {
   return (
-    <section className="mx-auto w-full max-w-295 px-5 py-4">
-      <div className="grid gap-5 rounded-xl bg-emerald-700 p-6 text-white shadow-[0_18px_40px_rgba(0,107,70,0.24)] md:grid-cols-[auto_1fr_auto] md:items-center">
+    <section className="mx-auto w-full max-w-295 px-5 py-3">
+      <div className="grid gap-5 rounded-xl bg-emerald-700 p-5 text-white shadow-[0_18px_40px_rgba(0,107,70,0.24)] md:grid-cols-[auto_1fr_auto] md:items-center">
         <div className="grid size-16 place-items-center rounded-full bg-white/10">
-          <Store className="size-8" />
+          <Store className="size-7" />
         </div>
 
         <div>
@@ -502,7 +502,7 @@ function Footer() {
           {footerColumns.map((column) => (
             <div key={column.title}>
               <h3 className="mb-3 text-sm font-black text-slate-950">{column.title}</h3>
-              <ul className="grid gap-2">
+              <ul className="grid gap-1.5">
                 {column.links.map((link) => (
                   <li key={link} className="text-sm font-semibold text-slate-500">
                     {link}
