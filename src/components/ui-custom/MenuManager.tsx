@@ -709,6 +709,7 @@ export function MenuManager({
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
@@ -868,6 +869,56 @@ export function MenuManager({
     } finally {
       setIsUploadingImage(false);
       event.target.value = "";
+    }
+  }
+
+  async function generateProductDescription() {
+    const productName = productForm.name.trim();
+
+    if (!productName) {
+      setActionError("Ajoutez d'abord le nom du produit.");
+      return;
+    }
+
+    const categoryName = menuCategories.find((category) => category.id === productForm.categoryId)?.name ?? "";
+
+    setIsGeneratingDescription(true);
+    setActionError("");
+    setActionMessage("");
+
+    try {
+      const response = await fetch("/api/ai/product-description", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: productName,
+          categoryName,
+          descriptionDraft: productForm.description,
+        }),
+      });
+
+      const result = (await response.json()) as {
+        ok?: boolean;
+        description?: string;
+        message?: string;
+      };
+
+      if (!response.ok || !result.ok || !result.description) {
+        throw new Error(result.message ?? "Description IA impossible.");
+      }
+
+      setProductForm((currentForm) => ({
+        ...currentForm,
+        description: result.description ?? currentForm.description,
+      }));
+
+      setActionMessage("Description g?n?r?e. Vous pouvez la modifier avant d'enregistrer.");
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Description IA impossible.");
+    } finally {
+      setIsGeneratingDescription(false);
     }
   }
 
@@ -1254,13 +1305,26 @@ export function MenuManager({
               </Field>
             </div>
 
-            <Field label="Description">
+            <Field
+              label="Description"
+              helper="Ajoutez quelques ingr?dients ou infos, puis laissez l'IA proposer une description courte."
+            >
               <textarea
                 value={productForm.description}
                 onChange={(event) => setProductForm({ ...productForm, description: event.target.value })}
                 rows={3}
+                placeholder="Ex : steak, cheddar, sauce maison"
                 className="min-h-28 w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
               />
+
+              <button
+                type="button"
+                onClick={generateProductDescription}
+                disabled={isPending || isGeneratingDescription || !productForm.name.trim()}
+                className="mt-2 min-h-11 w-full rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50"
+              >
+                {isGeneratingDescription ? "G?n?ration en cours..." : "G?n?rer une description avec IA"}
+              </button>
             </Field>
 
             <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
