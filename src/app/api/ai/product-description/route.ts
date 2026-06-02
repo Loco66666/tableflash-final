@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 const MAX_TEXT_LENGTH = 500;
 
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-5.5-mini",
+        model: "gpt-4o-mini",
         input: prompt,
         max_output_tokens: 90,
       }),
