@@ -344,14 +344,13 @@ function ProductOptionsEditor({
   categoryName,
   optionsConfig,
   onChange,
-  onAskAi,
 }: {
   categoryName?: string;
   optionsConfig: ProductOptionsConfig;
   onChange: (nextOptionsConfig: ProductOptionsConfig) => void;
-  onAskAi: () => void;
 }) {
   const [newItemNames, setNewItemNames] = useState<Record<string, string>>({});
+  const [itemPriceInputs, setItemPriceInputs] = useState<Record<string, string>>({});
   const suggestions = getSmartOptionSuggestions(categoryName);
 
   function addGroup(group: ProductOptionGroup) {
@@ -387,19 +386,18 @@ function ProductOptionsEditor({
   }
 
   function updateItemPrice(group: ProductOptionGroup, itemId: string, price: string) {
-    const normalizedPrice = price.trim().replace(",", ".");
+    const rawPrice = price.replace(",", ".");
 
-    if (normalizedPrice === "") {
-      updateGroup(group.id, {
-        ...group,
-        items: group.items.map((item) => (item.id === itemId ? { ...item, price: 0 } : item)),
-      });
-      return;
-    }
+    if (!/^\d{0,5}(\.\d{0,8})?$/.test(rawPrice)) return;
 
-    if (!/^\d{0,5}(\.\d{0,8})?$/.test(normalizedPrice)) return;
+    setItemPriceInputs((current) => ({
+      ...current,
+      [itemId]: price,
+    }));
 
-    const numericPrice = Number(normalizedPrice);
+    if (rawPrice === "" || rawPrice === "." || rawPrice.endsWith(".")) return;
+
+    const numericPrice = Number(rawPrice);
 
     if (!Number.isFinite(numericPrice) || numericPrice < 0 || numericPrice > 99999.99999999) return;
 
@@ -467,14 +465,6 @@ function ProductOptionsEditor({
                 Cliquez sur un modèle pour créer une section modifiable.
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={onAskAi}
-              className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-xl bg-emerald-700 px-3 text-xs font-black text-white shadow-sm transition hover:bg-emerald-800"
-            >
-              Générer avec IA
-            </button>
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
@@ -547,8 +537,14 @@ function ProductOptionsEditor({
                         <input
                           type="text"
                           inputMode="decimal"
-                          value={String(item.price ?? 0)}
+                          value={itemPriceInputs[item.id] ?? String(item.price ?? 0)}
                           onChange={(event) => updateItemPrice(group, item.id, event.target.value)}
+                          onBlur={() =>
+                            setItemPriceInputs((current) => ({
+                              ...current,
+                              [item.id]: String(item.price ?? 0),
+                            }))
+                          }
                           placeholder="0.00"
                           className="min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 pr-7 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                           aria-label="Prix suppl?mentaire"
@@ -584,7 +580,7 @@ function ProductOptionsEditor({
                           addCustomItem(group);
                         }
                       }}
-                      placeholder="Ajouter une option puis Entr?e"
+                      placeholder="Ajouter une option puis Entr\u00e9e"
                       className="min-h-10 min-w-0 flex-1 rounded-xl border border-dashed border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                     />
 
@@ -1371,9 +1367,6 @@ export function MenuManager({
               categoryName={menuCategories.find((category) => category.id === productForm.categoryId)?.name}
               optionsConfig={productForm.optionsConfig}
               onChange={(optionsConfig) => setProductForm({ ...productForm, optionsConfig })}
-              onAskAi={() =>
-                setActionMessage("Assistant IA prêt ? être connect?. Les modèles intelligents fonctionnent déjà sans IA.")
-              }
             />
 
             <div className="sticky bottom-0 z-10 -mx-1 grid gap-2 border-t border-slate-200 bg-white/95 px-1 pt-3 backdrop-blur">
