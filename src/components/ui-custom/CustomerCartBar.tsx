@@ -3,17 +3,8 @@ import type { Product } from "@/lib/types";
 import { formatEuro } from "@/lib/utils";
 
 type BasketLine = {
-  id: string;
   product: Product;
   quantity: number;
-  unitPrice: number;
-  options: {
-    groupId: string;
-    groupName: string;
-    itemId: string;
-    itemName: string;
-    price: number;
-  }[];
 };
 
 type CustomerCartBarProps = {
@@ -29,9 +20,9 @@ type CustomerCartBarProps = {
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
-  onIncrease: (lineId: string) => void;
-  onDecrease: (lineId: string) => void;
-  onRemove: (lineId: string) => void;
+  onIncrease: (productId: string) => void;
+  onDecrease: (productId: string) => void;
+  onRemove: (productId: string) => void;
   onNoteChange: (note: string) => void;
   onCustomerNameChange: (value: string) => void;
   onCustomerPhoneChange: (value: string) => void;
@@ -140,10 +131,10 @@ export function CustomerCartBar({
             {lines.length > 0 ? (
               <div className="grid gap-3">
                 {lines.map((line) => {
-                  const unitPrice = line.unitPrice ?? getEffectiveProductPrice(line.product);
+                  const unitPrice = getEffectiveProductPrice(line.product);
 
                   return (
-                    <article key={line.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
+                    <article key={line.product.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h3 className="text-xl font-black leading-tight text-slate-950">{line.product.name}</h3>
@@ -155,22 +146,11 @@ export function CustomerCartBar({
                         </strong>
                       </div>
 
-                      {line.options.length > 0 ? (
-                        <div className="mt-3 grid gap-1 rounded-2xl bg-slate-50 p-3">
-                          {line.options.map((option) => (
-                            <p key={`${option.groupId}-${option.itemId}`} className="text-sm font-bold text-slate-600">
-                              <span className="text-slate-950">{option.groupName} :</span> {option.itemName}
-                              {option.price > 0 ? ` + ${formatEuro(option.price)}` : ""}
-                            </p>
-                          ))}
-                        </div>
-                      ) : null}
-
                       <div className="mt-4 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 rounded-2xl bg-slate-50 p-1">
                           <button
                             type="button"
-                            onClick={() => onDecrease(line.id)}
+                            onClick={() => onDecrease(line.product.id)}
                             className="grid size-11 place-items-center rounded-xl bg-white text-slate-700 shadow-card"
                             aria-label={`Diminuer ${line.product.name}`}
                           >
@@ -181,7 +161,7 @@ export function CustomerCartBar({
 
                           <button
                             type="button"
-                            onClick={() => onIncrease(line.id)}
+                            onClick={() => onIncrease(line.product.id)}
                             className="grid size-11 place-items-center rounded-xl bg-white text-(--tf-primary-800) shadow-card"
                             aria-label={`Ajouter ${line.product.name}`}
                           >
@@ -191,7 +171,7 @@ export function CustomerCartBar({
 
                         <button
                           type="button"
-                          onClick={() => onRemove(line.id)}
+                          onClick={() => onRemove(line.product.id)}
                           className="min-h-11 rounded-xl px-3 text-red-600"
                           aria-label={`Retirer ${line.product.name}`}
                         >
