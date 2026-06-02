@@ -14,10 +14,22 @@ import {
   submitPublicReview,
 } from "@/app/r/[restaurant]/table/[table]/actions";
 import type { Category, Order, Product, TableInfo } from "@/lib/types";
+import { formatEuro } from "@/lib/utils";
+
+type SelectedBasketOption = {
+  groupId: string;
+  groupName: string;
+  itemId: string;
+  itemName: string;
+  price: number;
+};
 
 type BasketLine = {
+  id: string;
   product: Product;
   quantity: number;
+  unitPrice: number;
+  options: SelectedBasketOption[];
 };
 
 type PublicMenuPayload = {
@@ -98,6 +110,39 @@ function getEffectiveProductPrice(product: Product) {
   return product.price;
 }
 
+function getProductOptionGroups(product: Product) {
+  return product.optionsConfig?.groups?.filter((group) => group.items.length > 0) ?? [];
+}
+
+function hasProductOptions(product: Product) {
+  return getProductOptionGroups(product).length > 0;
+}
+
+function getSelectedOptions(product: Product, selectedOptionIds: Record<string, string[]>): SelectedBasketOption[] {
+  return getProductOptionGroups(product).flatMap((group) => {
+    const selectedIds = selectedOptionIds[group.id] ?? [];
+
+    return group.items
+      .filter((item) => selectedIds.includes(item.id))
+      .map((item) => ({
+        groupId: group.id,
+        groupName: group.name,
+        itemId: item.id,
+        itemName: item.name,
+        price: Number(item.price ?? 0),
+      }));
+  });
+}
+
+function getOptionsTotal(options: SelectedBasketOption[]) {
+  return options.reduce((sum, option) => sum + option.price, 0);
+}
+
+function buildBasketLineId(productId: string, options: SelectedBasketOption[]) {
+  const optionKey = options.map((option) => `${option.groupId}:${option.itemId}`).join("|");
+  return optionKey ? `${productId}::${optionKey}` : productId;
+}
+
 function getTableNumber(tableName: string) {
   const match = tableName.match(/\d+/);
 
@@ -164,6 +209,9 @@ export function CustomerMenuContent({
   const [confirmedOrderTotal, setConfirmedOrderTotal] = useState<number | null>(null);
   const [trackedOrder, setTrackedOrder] = useState<Order | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
+  const [selectedOptionIds, setSelectedOptionIds] = useState<Record<string, string[]>>({});
+  const [optionValidationMessage, setOptionValidationMessage] = useState("");
 
   const table = initialTable;
   const tableName = table?.name ?? "";
@@ -179,7 +227,7 @@ export function CustomerMenuContent({
       : orderableProducts.filter((product) => product.categoryId === selectedCategoryId);
 
   const itemCount = basket.reduce((sum, line) => sum + line.quantity, 0);
-  const basketTotal = basket.reduce((sum, line) => sum + getEffectiveProductPrice(line.product) * line.quantity, 0);
+  const basketTotal = basket.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const ordersEnabled = publicMenu.ordersEnabled;
 
   useEffect(() => {
@@ -225,39 +273,94 @@ export function CustomerMenuContent({
     };
   }, [confirmedOrderId, restaurantSlug, tableSlug, table]);
 
-  function addToBasket(product: Product) {
+  function addConfiguredProductToBasket(product: Product, options: SelectedBasketOption[]) {
+    const unitPrice = getEffectiveProductPrice(product) + getOptionsTotal(options);
+    const lineId = buildBasketLineId(product.id, options);
+
     setValidationMessage("");
     setBasket((currentBasket) => {
-      const existingLine = currentBasket.find((line) => line.product.id === product.id);
+      const existingLine = currentBasket.find((line) => line.id === lineId);
 
       if (existingLine) {
-        return currentBasket.map((line) =>
-          line.product.id === product.id ? { ...line, quantity: line.quantity + 1 } : line,
-        );
+        return currentBasket.map((line) => (line.id === lineId ? { ...line, quantity: line.quantity + 1 } : line));
       }
 
-      return [...currentBasket, { product, quantity: 1 }];
+      return [...currentBasket, { id: lineId, product, quantity: 1, unitPrice, options }];
     });
   }
 
-  function increaseQuantity(productId: string) {
+  function addToBasket(product: Product) {
+    if (!hasProductOptions(product)) {
+      addConfiguredProductToBasket(product, []);
+      return;
+    }
+
+    setOptionValidationMessage("");
+    setSelectedOptionIds({});
+    setCustomizingProduct(product);
+  }
+
+  function toggleOption(groupId: string, itemId: string, multiple: boolean) {
+    setSelectedOptionIds((current) => {
+      const currentGroupValues = current[groupId] ?? [];
+
+      if (!multiple) {
+        return {
+          ...current,
+          [groupId]: [itemId],
+        };
+      }
+
+      const nextValues = currentGroupValues.includes(itemId)
+        ? currentGroupValues.filter((value) => value !== itemId)
+        : [...currentGroupValues, itemId];
+
+      return {
+        ...current,
+        [groupId]: nextValues,
+      };
+    });
+  }
+
+  function confirmCustomizedProduct() {
+    if (!customizingProduct) return;
+
+    const groups = getProductOptionGroups(customizingProduct);
+    const missingRequiredGroup = groups.find(
+      (group) => group.required && (selectedOptionIds[group.id] ?? []).length === 0,
+    );
+
+    if (missingRequiredGroup) {
+      setOptionValidationMessage(`Choisissez une option pour ${missingRequiredGroup.name}.`);
+      return;
+    }
+
+    const options = getSelectedOptions(customizingProduct, selectedOptionIds);
+
+    addConfiguredProductToBasket(customizingProduct, options);
+    setCustomizingProduct(null);
+    setSelectedOptionIds({});
+    setOptionValidationMessage("");
+  }
+
+  function increaseQuantity(lineId: string) {
     setBasket((currentBasket) =>
-      currentBasket.map((line) => (line.product.id === productId ? { ...line, quantity: line.quantity + 1 } : line)),
+      currentBasket.map((line) => (line.id === lineId ? { ...line, quantity: line.quantity + 1 } : line)),
     );
   }
 
-  function decreaseQuantity(productId: string) {
+  function decreaseQuantity(lineId: string) {
     setBasket((currentBasket) =>
       currentBasket.flatMap((line) => {
-        if (line.product.id !== productId) return [line];
+        if (line.id !== lineId) return [line];
         if (line.quantity <= 1) return [];
         return [{ ...line, quantity: line.quantity - 1 }];
       }),
     );
   }
 
-  function removeItem(productId: string) {
-    setBasket((currentBasket) => currentBasket.filter((line) => line.product.id !== productId));
+  function removeItem(lineId: string) {
+    setBasket((currentBasket) => currentBasket.filter((line) => line.id !== lineId));
   }
 
   async function confirmOrder() {
@@ -449,6 +552,121 @@ export function CustomerMenuContent({
           <p className="mt-2 text-lg font-semibold text-slate-700">Le restaurant mettra bientôt son menu à jour.</p>
         </section>
       )}
+
+      {customizingProduct ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-slate-950/35 px-3 pb-3 pt-10 backdrop-blur-sm sm:items-center sm:justify-center"
+          role="dialog"
+          aria-modal="true"
+        >
+          <section className="max-h-[92dvh] w-full max-w-160 overflow-y-auto rounded-3xl bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-emerald-700">Personnaliser</p>
+                <h2 className="mt-1 text-3xl font-black tracking-tighter text-slate-950">{customizingProduct.name}</h2>
+                <p className="mt-2 text-base font-bold text-emerald-800">
+                  Base : {formatEuro(getEffectiveProductPrice(customizingProduct))}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomizingProduct(null);
+                  setSelectedOptionIds({});
+                  setOptionValidationMessage("");
+                }}
+                className="grid size-12 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-700"
+                aria-label="Fermer"
+              >
+                ?
+              </button>
+            </div>
+
+            <div className="grid gap-4">
+              {getProductOptionGroups(customizingProduct).map((group) => {
+                const multiple = group.type === "multiple_choice" || group.type === "supplement";
+                const selectedIds = selectedOptionIds[group.id] ?? [];
+
+                return (
+                  <section key={group.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h3 className="text-lg font-black text-slate-950">{group.name}</h3>
+                      {group.required ? (
+                        <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">
+                          Obligatoire
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="grid gap-2">
+                      {group.items.map((item) => {
+                        const checked = selectedIds.includes(item.id);
+                        const extraPrice = Number(item.price ?? 0);
+
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => toggleOption(group.id, item.id, multiple)}
+                            className={
+                              (checked
+                                ? "border-emerald-700 bg-emerald-50 text-emerald-900"
+                                : "border-slate-200 bg-white text-slate-700") +
+                              " flex min-h-12 items-center justify-between gap-3 rounded-2xl border px-4 text-left text-base font-bold"
+                            }
+                          >
+                            <span className="min-w-0">
+                              <span className="block">{item.name}</span>
+                              {extraPrice > 0 ? (
+                                <span className="mt-0.5 block text-sm font-black text-emerald-700">
+                                  + {formatEuro(extraPrice)}
+                                </span>
+                              ) : null}
+                            </span>
+
+                            <span className="grid size-6 shrink-0 place-items-center rounded-full border border-current text-sm">
+                              {checked ? "?" : ""}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+
+            {optionValidationMessage ? (
+              <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-base font-bold text-red-700">
+                {optionValidationMessage}
+              </p>
+            ) : null}
+
+            <div className="mt-5 grid gap-2">
+              <button
+                type="button"
+                onClick={confirmCustomizedProduct}
+                className="min-h-14 rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green"
+              >
+                Ajouter au panier
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomizingProduct(null);
+                  setSelectedOptionIds({});
+                  setOptionValidationMessage("");
+                }}
+                className="min-h-12 rounded-2xl border border-slate-200 bg-white px-5 text-base font-black text-slate-700"
+              >
+                Annuler
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       <CustomerCartBar
         itemCount={itemCount}
