@@ -192,7 +192,7 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
       },
       {
         label: "Cuisson steak",
-        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Saignant", "? point", "Bien cuit"]),
+        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Saignant", "À point", "Bien cuit"]),
       },
       {
         label: "Formule menu",
@@ -218,7 +218,7 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
       },
       {
         label: "Pack / menu",
-        group: createOptionGroup("drink-formula", "Formule", "single_choice", ["? l?unit?", "Avec menu", "Pack famille"]),
+        group: createOptionGroup("drink-formula", "Formule", "single_choice", ["À l’unité", "Avec menu", "Pack famille"]),
       },
     ];
   }
@@ -232,7 +232,7 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
   ) {
     return [
       {
-        label: "Taille caf?",
+        label: "Taille café",
         group: createOptionGroup("coffee-size", "Taille", "single_choice", ["Petit", "Moyen", "Grand"]),
       },
       {
@@ -240,8 +240,8 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
         group: createOptionGroup("milk", "Lait", "single_choice", ["Entier", "Avoine", "Soja", "Amande"]),
       },
       {
-        label: "Chaud / glac?",
-        group: createOptionGroup("temperature", "Pr?paration", "single_choice", ["Chaud", "Glac?"]),
+        label: "Chaud / glacé",
+        group: createOptionGroup("temperature", "Préparation", "single_choice", ["Chaud", "Glacé"]),
       },
     ];
   }
@@ -255,15 +255,15 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
     return [
       {
         label: "Cuisson",
-        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Bleu", "Saignant", "? point", "Bien cuit"]),
+        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Bleu", "Saignant", "À point", "Bien cuit"]),
       },
       {
         label: "Sauce",
-        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Poivre", "Roquefort", "B?arnaise"]),
+        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Poivre", "Roquefort", "Béarnaise"]),
       },
       {
         label: "Accompagnement",
-        group: createOptionGroup("side", "Accompagnement", "single_choice", ["Frites", "Salade", "Riz", "L?gumes"]),
+        group: createOptionGroup("side", "Accompagnement", "single_choice", ["Frites", "Salade", "Riz", "Légumes"]),
       },
     ];
   }
@@ -272,7 +272,7 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
     return [
       {
         label: "Sauce soja",
-        group: createOptionGroup("soy", "Sauce soja", "single_choice", ["Sucr?e", "Sal?e"]),
+        group: createOptionGroup("soy", "Sauce soja", "single_choice", ["Sucrée", "Salée"]),
       },
       {
         label: "Wasabi / gingembre",
@@ -289,10 +289,10 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
     return [
       {
         label: "Cuisson Œuf",
-        group: createOptionGroup("egg", "Œuf", "single_choice", ["Miroir", "Brouill?", "Sans Œuf"]),
+        group: createOptionGroup("egg", "Œuf", "single_choice", ["Miroir", "Brouillé", "Sans Œuf"]),
       },
       {
-        label: "Suppléments cr?perie",
+        label: "Suppléments crêperie",
         group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Fromage", "Jambon", "Champignons"]),
       },
       {
@@ -547,7 +547,7 @@ function ProductOptionsEditor({
                           }
                           placeholder="0.00"
                           className="min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 pr-7 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
-                          aria-label="Prix suppl?mentaire"
+                          aria-label="Prix supplémentaire"
                         />
                         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">
                           
@@ -580,7 +580,7 @@ function ProductOptionsEditor({
                           addCustomItem(group);
                         }
                       }}
-                      placeholder="Ajouter une option puis Entr\u00e9e"
+                      placeholder="Ajouter une option puis Entrée"
                       className="min-h-10 min-w-0 flex-1 rounded-xl border border-dashed border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                     />
 
@@ -710,6 +710,7 @@ export function MenuManager({
   const [isPending, startTransition] = useTransition();
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [descriptionAiFeedback, setDescriptionAiFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [search, setSearch] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
@@ -814,6 +815,7 @@ export function MenuManager({
     setCategoryError("");
     setActionError("");
     setActionMessage("");
+    setDescriptionAiFeedback(null);
     setIsUploadingImage(false);
   }
 
@@ -876,7 +878,10 @@ export function MenuManager({
     const productName = productForm.name.trim();
 
     if (!productName) {
-      setActionError("Ajoutez d'abord le nom du produit.");
+      setDescriptionAiFeedback({
+        type: "error",
+        text: "Ajoutez d'abord le nom du produit.",
+      });
       return;
     }
 
@@ -885,6 +890,7 @@ export function MenuManager({
     setIsGeneratingDescription(true);
     setActionError("");
     setActionMessage("");
+    setDescriptionAiFeedback(null);
 
     try {
       const response = await fetch("/api/ai/product-description", {
@@ -899,14 +905,20 @@ export function MenuManager({
         }),
       });
 
-      const result = (await response.json()) as {
+      let result: {
         ok?: boolean;
         description?: string;
         message?: string;
-      };
+      } = {};
+
+      try {
+        result = (await response.json()) as typeof result;
+      } catch {
+        result = {};
+      }
 
       if (!response.ok || !result.ok || !result.description) {
-        throw new Error(result.message ?? "Description IA impossible.");
+        throw new Error(result.message ?? "Description IA impossible pour le moment.");
       }
 
       setProductForm((currentForm) => ({
@@ -914,9 +926,15 @@ export function MenuManager({
         description: result.description ?? currentForm.description,
       }));
 
-      setActionMessage("Description g?n?r?e. Vous pouvez la modifier avant d'enregistrer.");
+      setDescriptionAiFeedback({
+        type: "success",
+        text: "Description générée. Vous pouvez la modifier avant d'enregistrer.",
+      });
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Description IA impossible.");
+      setDescriptionAiFeedback({
+        type: "error",
+        text: error instanceof Error ? error.message : "Description IA impossible pour le moment.",
+      });
     } finally {
       setIsGeneratingDescription(false);
     }
@@ -1307,7 +1325,7 @@ export function MenuManager({
 
             <Field
               label="Description"
-              helper="Ajoutez quelques ingr?dients ou infos, puis laissez l'IA proposer une description courte."
+              helper="Ajoutez quelques ingrédients ou infos, puis laissez l'IA proposer une description courte."
             >
               <textarea
                 value={productForm.description}
@@ -1323,8 +1341,21 @@ export function MenuManager({
                 disabled={isPending || isGeneratingDescription || !productForm.name.trim()}
                 className="mt-2 min-h-11 w-full rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50"
               >
-                {isGeneratingDescription ? "G?n?ration en cours..." : "G?n?rer une description avec IA"}
+                {isGeneratingDescription ? "Génération en cours..." : "Générer une description avec IA"}
               </button>
+
+              {descriptionAiFeedback ? (
+                <p
+                  className={cn(
+                    "mt-2 rounded-2xl px-4 py-3 text-sm font-bold",
+                    descriptionAiFeedback.type === "success"
+                      ? "bg-emerald-50 text-emerald-800"
+                      : "bg-red-50 text-red-700",
+                  )}
+                >
+                  {descriptionAiFeedback.text}
+                </p>
+              ) : null}
             </Field>
 
             <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
