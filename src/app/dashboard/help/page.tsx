@@ -33,6 +33,8 @@ type PilotOrder = {
 
 type PilotTable = {
   id: string;
+  name: string;
+  slug: string;
   is_active: boolean;
 };
 
@@ -190,7 +192,7 @@ export default async function HelpPage() {
   const supabase = await createClient();
 
   const [{ data: tablesData }, { data: productsData }, { data: ordersData }] = await Promise.all([
-    supabase.from("restaurant_tables").select("id, is_active").eq("restaurant_id", restaurant.id).returns<PilotTable[]>(),
+    supabase.from("restaurant_tables").select("id, name, slug, is_active").eq("restaurant_id", restaurant.id).returns<PilotTable[]>(),
     supabase.from("menu_products").select("id, is_available").eq("restaurant_id", restaurant.id).returns<PilotProduct[]>(),
     supabase
       .from("orders")
@@ -205,6 +207,7 @@ export default async function HelpPage() {
   const products = productsData ?? [];
   const recentOrders = ordersData ?? [];
   const activeTablesCount = tables.filter((table) => table.is_active).length;
+  const firstActiveTable = tables.find((table) => table.is_active);
   const availableProductsCount = products.filter((product) => product.is_available).length;
   const lastOrder = recentOrders[0];
 
@@ -238,6 +241,38 @@ export default async function HelpPage() {
 
   const readyCount = pilotChecks.filter((check) => check.ready).length;
   const pilotReady = readyCount === pilotChecks.length;
+  const serviceSteps = [
+    {
+      title: "Avant le service",
+      items: [
+        "Verifier que les commandes QR sont activees.",
+        "Ouvrir un QR de table et confirmer que le menu client s'affiche.",
+        "Masquer les produits en rupture avant les premiers clients.",
+      ],
+      href: firstActiveTable ? `/r/${restaurant.slug}/table/${firstActiveTable.slug}` : "/dashboard/qr",
+      cta: firstActiveTable ? `Tester ${firstActiveTable.name}` : "Creer une table QR",
+    },
+    {
+      title: "Pendant le service",
+      items: [
+        "Garder l'ecran Commandes ouvert.",
+        "Accepter, encaisser, preparer, puis terminer chaque commande.",
+        "Utiliser le refresh si le serveur change d'onglet ou de telephone.",
+      ],
+      href: "/dashboard/orders",
+      cta: "Voir les commandes",
+    },
+    {
+      title: "Fin de service",
+      items: [
+        "Verifier les commandes servies et les avis recus.",
+        "Exporter les commandes du jour en CSV.",
+        "Reactiver les produits remis en stock pour le service suivant.",
+      ],
+      href: "/dashboard/orders/export?period=today",
+      cta: "Exporter aujourd'hui",
+    },
+  ];
 
   return (
     <AppShell>
@@ -302,6 +337,48 @@ export default async function HelpPage() {
                   )} - ${getShortDateTime(lastOrder.created_at)}`
                 : "Aucune commande recente"}
             </p>
+          </div>
+        </SectionCard>
+
+        <SectionCard className="rounded-3xl border-emerald-100 bg-white p-5">
+          <div className="flex items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-blue-50 text-blue-700">
+              <Clock3 className="size-5" aria-hidden="true" />
+            </span>
+
+            <div className="min-w-0">
+              <h2 className="text-lg font-black leading-tight text-slate-950">Rituel de service</h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                Une routine courte pour garder le service fluide, meme quand la salle bouge.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            {serviceSteps.map((step) => (
+              <div key={step.title} className="rounded-2xl border border-slate-200 bg-white p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-slate-950">{step.title}</p>
+                    <ul className="mt-2 grid gap-1 text-sm leading-relaxed text-slate-600">
+                      {step.items.map((item) => (
+                        <li key={item} className="flex gap-2">
+                          <span className="mt-2 size-1.5 shrink-0 rounded-full bg-emerald-700" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <Link
+                    href={step.href}
+                    className="shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition active:scale-[0.99]"
+                  >
+                    {step.cta}
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
         </SectionCard>
 
