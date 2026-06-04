@@ -34,6 +34,7 @@ type PublicMenuPayload = {
 type StoredCustomerOrder = {
   id: string;
   orderNumber: number | null;
+  status: Order["status"];
   total: number;
   savedAt: number;
 };
@@ -41,6 +42,7 @@ type StoredCustomerOrder = {
 const preferredCategoryOrder = ["starters", "mains", "desserts", "drinks"];
 const TRACKING_STORAGE_PREFIX = "tableflash:customer-order";
 const TRACKING_STORAGE_TTL_MS = 12 * 60 * 60 * 1000;
+const TRACKING_REFRESH_INTERVAL_MS = 3_000;
 
 const categoryIcons: Record<string, LucideIcon> = {
   all: Sparkles,
@@ -175,6 +177,7 @@ function readStoredCustomerOrder(storageKey: string): StoredCustomerOrder | null
     return {
       id: parsed.id,
       orderNumber: typeof parsed.orderNumber === "number" ? parsed.orderNumber : null,
+      status: isOrderStatus(parsed.status) ? parsed.status : "new",
       total: typeof parsed.total === "number" ? parsed.total : 0,
       savedAt: parsed.savedAt,
     };
@@ -195,6 +198,37 @@ function writeStoredCustomerOrder(storageKey: string, order: Omit<StoredCustomer
     );
   } catch {
     // Tracking still works for the current tab if storage is unavailable.
+  }
+}
+
+function isOrderStatus(value: unknown): value is Order["status"] {
+  return (
+    value === "new" ||
+    value === "accepted" ||
+    value === "payment_pending" ||
+    value === "paid" ||
+    value === "preparing" ||
+    value === "ready" ||
+    value === "served" ||
+    value === "refused"
+  );
+}
+
+function getOrderIdFromUrl() {
+  try {
+    return new URLSearchParams(window.location.search).get("order")?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function writeOrderIdToUrl(orderId: string) {
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set("order", orderId);
+    window.history.replaceState(null, "", url.toString());
+  } catch {
+    // The saved local order still restores tracking if history is unavailable.
   }
 }
 
@@ -243,6 +277,26 @@ export function CustomerMenuContent({
   useEffect(() => {
     if (!table || confirmedOrderId) return;
 
+    const orderIdFromUrl = getOrderIdFromUrl();
+
+    if (orderIdFromUrl) {
+      const timer = window.setTimeout(() => {
+        setConfirmedOrderId(orderIdFromUrl);
+        setTrackedOrder(
+          buildTrackedOrder({
+            id: orderIdFromUrl,
+            orderNumber: null,
+            status: "new",
+            total: 0,
+            table,
+            restaurantSlug,
+          }),
+        );
+      }, 0);
+
+      return () => window.clearTimeout(timer);
+    }
+
     const storedOrder = readStoredCustomerOrder(trackingStorageKey);
 
     if (!storedOrder) return;
@@ -255,7 +309,7 @@ export function CustomerMenuContent({
         buildTrackedOrder({
           id: storedOrder.id,
           orderNumber: storedOrder.orderNumber,
-          status: "new",
+          status: storedOrder.status,
           total: storedOrder.total,
           table,
           restaurantSlug,
@@ -300,17 +354,28 @@ export function CustomerMenuContent({
       writeStoredCustomerOrder(trackingStorageKey, {
         id: result.order.id,
         orderNumber: result.order.orderNumber,
+        status: result.order.status,
         total: result.order.total,
       });
     }
 
     refreshTracking();
 
-    const timer = window.setInterval(refreshTracking, 10_000);
+    const timer = window.setInterval(refreshTracking, TRACKING_REFRESH_INTERVAL_MS);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refreshTracking();
+      }
+    };
+
+    window.addEventListener("focus", refreshTracking);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       cancelled = true;
       window.clearInterval(timer);
+      window.removeEventListener("focus", refreshTracking);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [confirmedOrderId, restaurantSlug, tableSlug, table, trackingStorageKey]);
 
@@ -394,8 +459,10 @@ export function CustomerMenuContent({
     writeStoredCustomerOrder(trackingStorageKey, {
       id: result.orderId,
       orderNumber: result.orderNumber ?? null,
+      status: "new",
       total: basketTotal,
     });
+    writeOrderIdToUrl(result.orderId);
 
     setConfirmedOrderId(result.orderId);
     setConfirmedOrderNumber(result.orderNumber ?? null);
