@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Bell, ChefHat, Check, CreditCard, Heart, QrCode, Star, Table2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bell, ChefHat, Check, CreditCard, Heart, QrCode, ShoppingBag, Star, Table2 } from "lucide-react";
 import { SectionCard } from "@/components/ui-custom/SectionCard";
 import type { Order, RestaurantSettings } from "@/lib/types";
 import { formatEuro } from "@/lib/utils";
@@ -28,6 +28,16 @@ type SubmitReviewResult = {
   googleReviewUrl?: string;
 };
 
+type StoredReviewState = {
+  message: string;
+  suggestGoogle: boolean;
+  googleReviewUrl: string;
+  savedAt: number;
+};
+
+const REVIEW_STORAGE_PREFIX = "tableflash:review";
+const REVIEW_STORAGE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 function getGoogleReviewUrl(settings?: CustomerReviewSettings) {
   return (
     settings?.reviewsSettings?.googleReviewUrl ||
@@ -44,6 +54,53 @@ function getReviewsEnabled(settings?: CustomerReviewSettings) {
 
 function getSuggestGoogleOnPositive(settings?: CustomerReviewSettings) {
   return settings?.reviewsSettings?.suggestGoogleOnPositive !== false;
+}
+
+function getReviewStorageKey(orderId?: string) {
+  return orderId ? `${REVIEW_STORAGE_PREFIX}:${orderId}` : "";
+}
+
+function readStoredReview(storageKey: string): StoredReviewState | null {
+  if (!storageKey) return null;
+
+  try {
+    const rawValue = window.localStorage.getItem(storageKey);
+
+    if (!rawValue) return null;
+
+    const parsed = JSON.parse(rawValue) as Partial<StoredReviewState>;
+
+    if (typeof parsed.savedAt !== "number" || Date.now() - parsed.savedAt > REVIEW_STORAGE_TTL_MS) {
+      window.localStorage.removeItem(storageKey);
+      return null;
+    }
+
+    return {
+      message: parsed.message || "Merci, votre avis a bien été transmis.",
+      suggestGoogle: Boolean(parsed.suggestGoogle),
+      googleReviewUrl: parsed.googleReviewUrl || "",
+      savedAt: parsed.savedAt,
+    };
+  } catch {
+    window.localStorage.removeItem(storageKey);
+    return null;
+  }
+}
+
+function writeStoredReview(storageKey: string, review: Omit<StoredReviewState, "savedAt">) {
+  if (!storageKey) return;
+
+  try {
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        ...review,
+        savedAt: Date.now(),
+      }),
+    );
+  } catch {
+    // The current tab can still show the final state if storage is unavailable.
+  }
 }
 
 const activeStepByStatus: Record<Order["status"], number> = {
@@ -117,6 +174,7 @@ export function CustomerTrackingPreview({
   orderNumber,
   settings,
   submitReviewAction,
+  startNewOrderAction,
 }: {
   tableName?: string;
   tableArea?: string;
@@ -125,6 +183,7 @@ export function CustomerTrackingPreview({
   orderNumber?: number | null;
   settings?: CustomerReviewSettings;
   submitReviewAction?: (input: { rating: number; comment: string }) => Promise<SubmitReviewResult>;
+  startNewOrderAction?: () => void;
 }) {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
@@ -141,9 +200,26 @@ export function CustomerTrackingPreview({
   const reviewsEnabled = getReviewsEnabled(settings);
   const suggestGoogleOnPositive = getSuggestGoogleOnPositive(settings);
   const displayOrderNumber = orderNumber ?? order?.orderNumber ?? null;
+  const reviewStorageKey = getReviewStorageKey(order?.id);
   const isServed = status === "served";
   const canReview = isServed && reviewsEnabled;
   const shouldShowGoogleButton = reviewSubmitted && reviewSuggestGoogle && suggestGoogleOnPositive && Boolean(googleReviewUrl);
+
+  useEffect(() => {
+    if (!reviewStorageKey) return;
+
+    const storedReview = readStoredReview(reviewStorageKey);
+
+    if (!storedReview) return;
+
+    const timer = window.setTimeout(() => {
+      setReviewSubmitted(true);
+      setReviewMessage(storedReview.message);
+      setReviewSuggestGoogle(storedReview.suggestGoogle);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [reviewStorageKey]);
 
   async function submitReview() {
     if (!submitReviewAction) {
@@ -167,9 +243,16 @@ export function CustomerTrackingPreview({
       return;
     }
 
+    const finalMessage = result.alreadySubmitted ? "Votre avis a déjà été transmis. Merci !" : result.message;
+
     setReviewSubmitted(true);
-    setReviewMessage(result.message);
+    setReviewMessage(finalMessage);
     setReviewSuggestGoogle(Boolean(result.suggestGoogle));
+    writeStoredReview(reviewStorageKey, {
+      message: finalMessage,
+      suggestGoogle: Boolean(result.suggestGoogle),
+      googleReviewUrl: result.googleReviewUrl || googleReviewUrl,
+    });
   }
 
   return (
@@ -318,10 +401,10 @@ export function CustomerTrackingPreview({
 
           {reviewSubmitted ? (
             <div className="grid gap-4">
-              <div className="rounded-2xl bg-emerald-50 px-4 py-4 text-center">
-                <Heart className="mx-auto mb-2 size-8 text-emerald-800" />
-                <p className="text-xl font-black text-emerald-900">Merci pour votre avis !</p>
-                <p className="mt-1 text-base font-semibold text-slate-700">{reviewMessage}</p>
+              <div className="rounded-2xl bg-emerald-50 px-4 py-5 text-center">
+                <Heart className="mx-auto mb-2 size-9 text-emerald-800" />
+                <p className="text-2xl font-black text-emerald-900">Merci pour votre retour</p>
+                <p className="mt-2 text-base font-semibold text-slate-700">{reviewMessage}</p>
               </div>
 
               {shouldShowGoogleButton ? (
@@ -346,6 +429,20 @@ export function CustomerTrackingPreview({
                   Votre avis positif a bien été transmis au restaurant.
                 </p>
               ) : null}
+              <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-center">
+                <p className="text-lg font-black text-slate-950">Vous souhaitez commander autre chose ?</p>
+                <p className="text-sm font-semibold text-slate-600">
+                  Vous pouvez repartir sur le menu de cette table sans renvoyer votre avis.
+                </p>
+                <button
+                  type="button"
+                  onClick={startNewOrderAction}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-700 px-5 text-lg font-black text-emerald-800 transition active:scale-[0.99]"
+                >
+                  <ShoppingBag className="size-5" />
+                  Passer une nouvelle commande
+                </button>
+              </div>
             </div>
           ) : null}
         </SectionCard>

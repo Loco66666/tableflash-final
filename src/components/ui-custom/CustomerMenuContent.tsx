@@ -232,6 +232,16 @@ function writeOrderIdToUrl(orderId: string) {
   }
 }
 
+function clearOrderIdFromUrl() {
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("order");
+    window.history.replaceState(null, "", url.toString());
+  } catch {
+    // Nothing to clean up if history is unavailable.
+  }
+}
+
 export function CustomerMenuContent({
   restaurantSlug,
   tableSlug,
@@ -502,6 +512,22 @@ export function CustomerMenuContent({
     });
   }
 
+  function startNewOrder() {
+    try {
+      window.localStorage.removeItem(trackingStorageKey);
+    } catch {
+      // The in-memory reset below is enough if storage is unavailable.
+    }
+
+    clearOrderIdFromUrl();
+    setConfirmedOrderId(null);
+    setConfirmedOrderNumber(null);
+    setConfirmedOrderTotal(null);
+    setTrackedOrder(undefined);
+    setValidationMessage("");
+    setBasketOpen(false);
+  }
+
   if (!table) {
     return (
       <AppShell showNav={false}>
@@ -540,6 +566,7 @@ export function CustomerMenuContent({
           order={trackedOrder}
           orderNumber={confirmedOrderNumber}
           submitReviewAction={sendCustomerReview}
+          startNewOrderAction={startNewOrder}
           settings={{
             googleReviewUrl: publicMenu.googleReviewUrl,
             reviewsSettings: {
