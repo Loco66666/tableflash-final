@@ -3,7 +3,9 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronRight,
+  CheckCircle2,
   Clock3,
+  ClipboardList,
   Headphones,
   MessageCircle,
   MessageCircleQuestion,
@@ -18,6 +20,26 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SectionCard } from "@/components/ui-custom/SectionCard";
+import { getCurrentRestaurantContext } from "@/lib/restaurant/get-current-restaurant";
+import { createClient } from "@/lib/supabase/server";
+
+type PilotOrder = {
+  id: string;
+  order_number: number | null;
+  status: string;
+  payment_status: string;
+  created_at: string | null;
+};
+
+type PilotTable = {
+  id: string;
+  is_active: boolean;
+};
+
+type PilotProduct = {
+  id: string;
+  is_available: boolean;
+};
 
 const supportWhatsappUrl =
   "https://wa.me/33624737745?text=Bonjour%20TableFlash%2C%20j%E2%80%99ai%20besoin%20d%E2%80%99aide.%0A%0ARestaurant%20%3A%0APage%20concern%C3%A9e%20%3A%0ANum%C3%A9ro%20de%20table%20%3A%0ANum%C3%A9ro%20de%20commande%20%3A%0ADescription%20du%20probl%C3%A8me%20%3A";
@@ -138,12 +160,151 @@ const faqItems = [
 
 const supportChecklist = ["Page concernée", "Numéro de table", "Numéro de commande", "Capture du problème"];
 
-export default function HelpPage() {
+function getPilotStatusLabel(status: string, paymentStatus?: string) {
+  if (status === "pending") return "Nouvelle";
+  if (status === "accepted" && paymentStatus === "paid") return "Payee";
+  if (status === "accepted") return "A encaisser";
+  if (status === "preparing") return "En preparation";
+  if (status === "ready") return "Prete";
+  if (status === "served") return "Servie";
+  if (status === "rejected") return "Refusee";
+  if (status === "cancelled") return "Annulee";
+
+  return status;
+}
+
+function getShortDateTime(value: string | null) {
+  if (!value) return "Aucune date";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Aucune date";
+
+  return date.toLocaleString("fr-FR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+export default async function HelpPage() {
+  const { restaurant, settings } = await getCurrentRestaurantContext();
+  const supabase = await createClient();
+
+  const [{ data: tablesData }, { data: productsData }, { data: ordersData }] = await Promise.all([
+    supabase.from("restaurant_tables").select("id, is_active").eq("restaurant_id", restaurant.id).returns<PilotTable[]>(),
+    supabase.from("menu_products").select("id, is_available").eq("restaurant_id", restaurant.id).returns<PilotProduct[]>(),
+    supabase
+      .from("orders")
+      .select("id, order_number, status, payment_status, created_at")
+      .eq("restaurant_id", restaurant.id)
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .returns<PilotOrder[]>(),
+  ]);
+
+  const tables = tablesData ?? [];
+  const products = productsData ?? [];
+  const recentOrders = ordersData ?? [];
+  const activeTablesCount = tables.filter((table) => table.is_active).length;
+  const availableProductsCount = products.filter((product) => product.is_available).length;
+  const lastOrder = recentOrders[0];
+
+  const pilotChecks = [
+    {
+      label: "Commandes QR activees",
+      ready: settings?.orders_enabled !== false,
+      href: "/dashboard/settings",
+    },
+    {
+      label: "QR actifs",
+      ready: settings?.qr_enabled !== false && activeTablesCount > 0,
+      href: "/dashboard/qr",
+    },
+    {
+      label: "Produits disponibles",
+      ready: availableProductsCount > 0,
+      href: "/dashboard/menu",
+    },
+    {
+      label: "Paiement sur place clair",
+      ready: true,
+      href: "/dashboard/settings",
+    },
+    {
+      label: "Avis clients actives",
+      ready: settings?.reviews_enabled !== false,
+      href: "/dashboard/reviews",
+    },
+  ];
+
+  const readyCount = pilotChecks.filter((check) => check.ready).length;
+  const pilotReady = readyCount === pilotChecks.length;
+
   return (
     <AppShell>
       <PageHeader title="Aide" subtitle="Résoudre rapidement un problème pendant le service" />
 
       <section className="grid min-w-0 grid-cols-1 gap-4 pb-28" aria-label="Centre d’aide TableFlash">
+        <SectionCard className="rounded-3xl border-emerald-100 bg-white p-5">
+          <div className="flex items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-700">
+              <ClipboardList className="size-5" aria-hidden="true" />
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-black leading-tight text-slate-950">Checklist installation pilote</h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                {pilotReady
+                  ? "Le restaurant est pret pour un service accompagne."
+                  : `${readyCount}/${pilotChecks.length} points prets avant le service.`}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2">
+            {pilotChecks.map((check) => (
+              <Link key={check.label} href={check.href} className="block rounded-2xl transition active:scale-[0.99]">
+                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2.5">
+                  <span
+                    className={
+                      check.ready
+                        ? "grid size-8 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-700"
+                        : "grid size-8 shrink-0 place-items-center rounded-full bg-amber-50 text-amber-700"
+                    }
+                  >
+                    {check.ready ? <CheckCircle2 className="size-4" /> : <AlertCircle className="size-4" />}
+                  </span>
+                  <span className="min-w-0 flex-1 text-sm font-black text-slate-900">{check.label}</span>
+                  <ChevronRight className="size-4 shrink-0 text-slate-400" aria-hidden="true" />
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-4 grid gap-2 rounded-2xl bg-slate-50 p-3 text-sm text-slate-700">
+            <p>
+              <span className="font-black text-slate-950">Restaurant :</span> {restaurant.name}
+            </p>
+            <p>
+              <span className="font-black text-slate-950">Slug public :</span> {restaurant.slug}
+            </p>
+            <p>
+              <span className="font-black text-slate-950">Tables actives :</span> {activeTablesCount}/{tables.length}
+            </p>
+            <p>
+              <span className="font-black text-slate-950">Produits disponibles :</span> {availableProductsCount}/{products.length}
+            </p>
+            <p>
+              <span className="font-black text-slate-950">Derniere commande :</span>{" "}
+              {lastOrder
+                ? `n°${lastOrder.order_number ?? lastOrder.id.slice(0, 8)} - ${getPilotStatusLabel(
+                    lastOrder.status,
+                    lastOrder.payment_status,
+                  )} - ${getShortDateTime(lastOrder.created_at)}`
+                : "Aucune commande recente"}
+            </p>
+          </div>
+        </SectionCard>
+
         <SectionCard className="rounded-3xl border-emerald-100 bg-linear-to-br from-white to-emerald-50 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
           <div className="flex items-start gap-3">
             <span className="grid size-10 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-700">
