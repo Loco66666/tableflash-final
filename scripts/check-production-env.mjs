@@ -46,15 +46,6 @@ if (!hasAny(["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"])) {
   missing.push("SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY");
 }
 
-if (
-  !(
-    hasEnv("UPSTASH_REDIS_REST_URL") && hasEnv("UPSTASH_REDIS_REST_TOKEN")
-  ) &&
-  !(hasEnv("KV_REST_API_URL") && hasEnv("KV_REST_API_TOKEN"))
-) {
-  missing.push("UPSTASH_REDIS_REST_URL/TOKEN or KV_REST_API_URL/TOKEN");
-}
-
 if (missing.length > 0) {
   console.error("Production env preflight failed. Missing:");
   for (const name of missing) {
@@ -64,3 +55,12 @@ if (missing.length > 0) {
 }
 
 console.log("Production env preflight passed. No secret values were printed.");
+
+if (
+  !(
+    hasEnv("UPSTASH_REDIS_REST_URL") && hasEnv("UPSTASH_REDIS_REST_TOKEN")
+  ) &&
+  !(hasEnv("KV_REST_API_URL") && hasEnv("KV_REST_API_TOKEN"))
+) {
+  console.warn("Redis env vars are missing; rate limiting will use the in-memory fallback.");
+}
