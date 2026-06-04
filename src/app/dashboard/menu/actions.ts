@@ -2,10 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentRestaurantContext } from "@/lib/restaurant/get-current-restaurant";
+import type { Database } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
 const PRODUCT_IMAGES_BUCKET = "menu-product-images";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const DEFAULT_OPTIONS_CONFIG: Database["public"]["Tables"]["menu_products"]["Insert"]["options_config"] = {
+  groups: [],
+  allergens: [],
+  availability: { enabled: false },
+};
 
 function normalizeText(value: string) {
   return value
@@ -351,13 +357,13 @@ export async function createMenuProduct(input: {
     price,
     promo_price: promoPrice,
     image_url: imageUrl,
-    options_config: input.optionsConfig ?? { groups: [], allergens: [], availability: { enabled: false } },
+    options_config: (input.optionsConfig ?? DEFAULT_OPTIONS_CONFIG) as Database["public"]["Tables"]["menu_products"]["Insert"]["options_config"],
     is_available: input.available ?? true,
     is_featured: input.featured ?? false,
     sort_order: count ?? 0,
   };
 
-  const { error } = await supabase.from("menu_products").insert(productPayload as never);
+  const { error } = await supabase.from("menu_products").insert(productPayload);
 
   if (error) {
     throw new Error("Création du produit impossible.");
@@ -418,7 +424,7 @@ export async function updateMenuProduct(input: {
     price,
     promo_price: promoPrice,
     image_url: imageUrl,
-    options_config: input.optionsConfig ?? { groups: [], allergens: [], availability: { enabled: false } },
+    options_config: (input.optionsConfig ?? DEFAULT_OPTIONS_CONFIG) as Database["public"]["Tables"]["menu_products"]["Update"]["options_config"],
     is_available: input.available ?? true,
     is_featured: input.featured ?? false,
     updated_at: new Date().toISOString(),
@@ -426,7 +432,7 @@ export async function updateMenuProduct(input: {
 
   const { error } = await supabase
     .from("menu_products")
-    .update(productPayload as never)
+    .update(productPayload)
     .eq("id", productId)
     .eq("restaurant_id", restaurant.id);
 

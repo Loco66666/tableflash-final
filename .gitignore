@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+/Microsoft/
 
 # debug
 npm-debug.log*

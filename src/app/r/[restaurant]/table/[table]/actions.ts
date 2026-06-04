@@ -1,6 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { OrderStatus } from "@/lib/types";
 
 type OrderCartItemPayload = {
@@ -117,6 +119,11 @@ const MAX_ITEM_QUANTITY = 99;
 const MAX_CUSTOMER_NAME_LENGTH = 80;
 const MAX_CUSTOMER_NOTE_LENGTH = 500;
 const MAX_REVIEW_COMMENT_LENGTH = 1000;
+const DEFAULT_ORDER_TYPE: CreatePublicOrderPayload["orderType"] = "dine_in";
+const PUBLIC_ORDER_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const PUBLIC_ORDER_RATE_LIMIT_MAX_REQUESTS = 5;
+const PUBLIC_REVIEW_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const PUBLIC_REVIEW_RATE_LIMIT_MAX_REQUESTS = 6;
 
 function cleanText(value: string) {
   return value.trim();
@@ -134,6 +141,43 @@ function cleanId(value: string) {
 
 function normalizeMoney(value: number) {
   return Math.round(value * 100) / 100;
+}
+
+function moneyToCents(value: number) {
+  return Math.round(normalizeMoney(value) * 100);
+}
+
+function normalizeOrderType(value: CreatePublicOrderPayload["orderType"]) {
+  return value === "takeaway" ? "takeaway" : DEFAULT_ORDER_TYPE;
+}
+
+async function getPublicRequestIp() {
+  const headersList = await headers();
+  const forwardedFor = headersList.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const realIp = headersList.get("x-real-ip")?.trim();
+
+  return forwardedFor || realIp || "unknown";
+}
+
+async function checkPublicActionRateLimit(input: {
+  prefix: string;
+  restaurantSlug: string;
+  tableLabel: string;
+  limit: number;
+  windowMs: number;
+  extraKey?: string;
+}) {
+  const ip = await getPublicRequestIp();
+  const keyParts = [ip, cleanId(input.restaurantSlug), cleanId(input.tableLabel), input.extraKey]
+    .filter(Boolean)
+    .join(":");
+
+  return checkRateLimit({
+    key: keyParts,
+    limit: input.limit,
+    windowMs: input.windowMs,
+    prefix: input.prefix,
+  });
 }
 
 function getEffectivePrice(product: MenuProductForOrder) {
@@ -262,6 +306,8 @@ async function getPublicTable(restaurantId: string, tableLabel: string) {
 
 export async function createPublicOrder(payload: CreatePublicOrderPayload): Promise<CreatePublicOrderResult> {
   const customerName = cleanText(payload.customerName);
+  const tableLabel = cleanId(payload.tableLabel);
+  const orderType = normalizeOrderType(payload.orderType);
 
   if (!customerName) {
     return { ok: false, message: "Le nom du client est obligatoire." };
@@ -300,12 +346,27 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
     };
   }
 
-  const table = await getPublicTable(restaurant.id, payload.tableLabel);
+  const table = await getPublicTable(restaurant.id, tableLabel);
 
   if (!table) {
     return {
       ok: false,
       message: "Cette table n'est pas disponible pour le moment.",
+    };
+  }
+
+  const rateLimit = await checkPublicActionRateLimit({
+    prefix: "public-order-create",
+    restaurantSlug: payload.restaurantSlug,
+    tableLabel,
+    limit: PUBLIC_ORDER_RATE_LIMIT_MAX_REQUESTS,
+    windowMs: PUBLIC_ORDER_RATE_LIMIT_WINDOW_MS,
+  });
+
+  if (!rateLimit.allowed) {
+    return {
+      ok: false,
+      message: "Trop de commandes envoyees depuis cette table. Patientez quelques minutes avant de reessayer.",
     };
   }
 
@@ -375,6 +436,7 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
   });
 
   const subtotal = normalizeMoney(lines.reduce((sum, line) => sum + line.total, 0));
+  const subtotalCents = moneyToCents(subtotal);
 
   if (subtotal <= 0) {
     return {
@@ -383,19 +445,27 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
     };
   }
 
+  const orderPayload = {
+    restaurant_id: restaurant.id,
+    table_id: table.id,
+    table_label: tableLabel,
+    order_type: orderType,
+    customer_name: customerName,
+    customer_phone: phone,
+    customer_note: customerNote,
+    subtotal,
+    total: subtotal,
+    subtotal_cents: subtotalCents,
+    total_cents: subtotalCents,
+    currency: "EUR",
+    payment_method: "physical",
+    payment_status: "unpaid",
+    status: "pending",
+  };
+
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .insert({
-      restaurant_id: restaurant.id,
-      table_id: table.id,
-      customer_name: customerName,
-      customer_phone: phone,
-      customer_note: customerNote,
-      subtotal,
-      total: subtotal,
-      payment_status: "unpaid",
-      status: "pending",
-    })
+    .insert(orderPayload)
     .select("id, order_number")
     .returns<CreatedOrder[]>()
     .single();
@@ -416,16 +486,23 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
 
   const orderItems = lines.map((line) => ({
     order_id: order.id,
+    restaurant_id: restaurant.id,
     product_id: line.product_id,
+    menu_item_id: line.product_id,
     product_name: line.product_name,
+    name: line.product_name,
     unit_price: line.unit_price,
+    unit_price_cents: moneyToCents(line.unit_price),
     quantity: line.quantity,
     total: line.total,
+    total_cents: moneyToCents(line.total),
   }));
 
   const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
 
   if (itemsError) {
+    await supabase.from("orders").delete().eq("id", order.id).eq("restaurant_id", restaurant.id);
+
     console.error("[public/orders] order items insert failed", {
       restaurantId: restaurant.id,
       orderId: order.id,
@@ -477,6 +554,22 @@ export async function getPublicOrderTracking(
     return {
       ok: false,
       message: "Table indisponible.",
+    };
+  }
+
+  const rateLimit = await checkPublicActionRateLimit({
+    prefix: "public-review-submit",
+    restaurantSlug: payload.restaurantSlug,
+    tableLabel: payload.tableLabel,
+    extraKey: orderId,
+    limit: PUBLIC_REVIEW_RATE_LIMIT_MAX_REQUESTS,
+    windowMs: PUBLIC_REVIEW_RATE_LIMIT_WINDOW_MS,
+  });
+
+  if (!rateLimit.allowed) {
+    return {
+      ok: false,
+      message: "Trop d'avis envoyes depuis cette table. Patientez quelques minutes avant de reessayer.",
     };
   }
 

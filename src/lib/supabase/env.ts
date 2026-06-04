@@ -7,4 +7,5 @@ export const hasSupabaseAdminEnv =
   Boolean(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 export const isAuthBypassEnabled =
-  process.env.NEXT_PUBLIC_TABLEFLASH_AUTH_BYPASS === "true";
+  process.env.NODE_ENV !== "production" &&
+  (process.env.TABLEFLASH_AUTH_BYPASS === "true" || process.env.NEXT_PUBLIC_TABLEFLASH_AUTH_BYPASS === "true");

@@ -1,9 +1,30 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { getCurrentProfileResult, getCurrentUser } from "@/lib/auth/get-current-user";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const MAX_TEXT_LENGTH = 500;
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 12;
+
+function jsonError(message: string, status: number, headers?: HeadersInit) {
+  return NextResponse.json(
+    {
+      ok: false,
+      message,
+    },
+    { status, headers },
+  );
+}
 
 function cleanText(value: unknown) {
   return String(value ?? "").trim().slice(0, MAX_TEXT_LENGTH);
+}
+
+function getRateLimitKey(request: NextRequest, userId: string) {
+  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const realIp = request.headers.get("x-real-ip")?.trim();
+
+  return `${userId}:${forwardedFor || realIp || "unknown"}`;
 }
 
 function fallbackDescription(name: string, categoryName: string, descriptionDraft: string) {
@@ -16,34 +37,62 @@ function fallbackDescription(name: string, categoryName: string, descriptionDraf
   return base.length > 155 ? `${base.slice(0, 152).trim()}...` : base;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const user = await getCurrentUser();
 
-    if (!apiKey) {
-      return NextResponse.json(
+    if (!user) {
+      return jsonError("Connectez-vous pour utiliser la génération IA.", 401);
+    }
+
+    const profileResult = await getCurrentProfileResult(user.id);
+
+    if (!profileResult.ok) {
+      return jsonError("Votre profil ne permet pas d'utiliser la génération IA.", 403);
+    }
+
+    if (!["restaurant_owner", "restaurant_staff", "super_admin"].includes(profileResult.profile.role)) {
+      return jsonError("Vous n'avez pas accès à la génération IA.", 403);
+    }
+
+    const rateLimit = await checkRateLimit({
+      key: getRateLimitKey(request, user.id),
+      limit: RATE_LIMIT_MAX_REQUESTS,
+      windowMs: RATE_LIMIT_WINDOW_MS,
+      prefix: "ai-product-description",
+    });
+
+    if (!rateLimit.allowed) {
+      return jsonError(
+        "Génération IA limitée temporairement. Réessayez dans quelques minutes.",
+        429,
         {
-          ok: false,
-          message: "Clé OpenAI absente côté serveur.",
+          "Retry-After": String(rateLimit.retryAfterSeconds),
         },
-        { status: 500 },
       );
     }
 
-    const body = await request.json();
+    const apiKey = process.env.OPENAI_API_KEY;
 
-    const name = cleanText(body.name);
-    const categoryName = cleanText(body.categoryName);
-    const descriptionDraft = cleanText(body.descriptionDraft);
+    if (!apiKey) {
+      return jsonError("Clé OpenAI absente côté serveur.", 500);
+    }
+
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return jsonError("Requête IA invalide.", 400);
+    }
+
+    const bodyData = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+    const name = cleanText(bodyData.name);
+    const categoryName = cleanText(bodyData.categoryName);
+    const descriptionDraft = cleanText(bodyData.descriptionDraft);
 
     if (!name) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message: "Le nom du produit est obligatoire pour générer une description.",
-        },
-        { status: 400 },
-      );
+      return jsonError("Le nom du produit est obligatoire pour générer une description.", 400);
     }
 
     const prompt = [
@@ -85,19 +134,14 @@ export async function POST(request: Request) {
         errorText,
       });
 
-      return NextResponse.json(
-        {
-          ok: false,
-          message: "Génération IA impossible pour le moment.",
-        },
-        { status: 502 },
-      );
+      return jsonError("Génération IA impossible pour le moment.", 502);
     }
 
     const data = await response.json();
     const rawDescription =
       data.output_text ??
-      data.output?.flatMap((item: { content?: { text?: string }[] }) => item.content ?? [])
+      data.output
+        ?.flatMap((item: { content?: { text?: string }[] }) => item.content ?? [])
         ?.map((content: { text?: string }) => content.text ?? "")
         ?.join(" ") ??
       "";
@@ -111,12 +155,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[ai/product-description] unexpected error", error);
 
-    return NextResponse.json(
-      {
-        ok: false,
-        message: "Génération IA impossible pour le moment.",
-      },
-      { status: 500 },
-    );
+    return jsonError("Génération IA impossible pour le moment.", 500);
   }
 }
