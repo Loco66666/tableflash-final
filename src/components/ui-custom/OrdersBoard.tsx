@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Download, RefreshCw } from "lucide-react";
 import { OrderCard } from "@/components/ui-custom/OrderCard";
 import { updateDashboardOrderStatus } from "@/app/dashboard/orders/actions";
 import type { Order, OrderStatus } from "@/lib/types";
@@ -26,6 +27,8 @@ export function OrdersBoard({
   const [activeFilter, setActiveFilter] = useState<OrderFilter>(initialFilter);
   const [orders, setOrders] = useState<Order[]>(() => normalizeOrders(initialOrders));
   const [actionError, setActionError] = useState("");
+  const [exportPeriod, setExportPeriod] = useState("today");
+  const [lastRefreshLabel, setLastRefreshLabel] = useState("");
 
   const visibleOrders = useMemo(
     () => orders.filter((order) => orderMatchesFilter(order, activeFilter)),
@@ -33,10 +36,51 @@ export function OrdersBoard({
   );
 
   const emptyLabel = orderFilters.find((filter) => filter.value === activeFilter)?.emptyLabel ?? "Aucune commande";
+  const exportHref = `/dashboard/orders/export?period=${exportPeriod}`;
+
+  useEffect(() => {
+    const refreshOrders = () => {
+      startTransition(() => {
+        router.refresh();
+        setLastRefreshLabel(
+          new Date().toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        );
+      });
+    };
+
+    const timer = window.setInterval(refreshOrders, 10_000);
+    window.addEventListener("focus", refreshOrders);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshOrders);
+    };
+  }, [router, startTransition]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setOrders(normalizeOrders(initialOrders)), 0);
+
+    return () => window.clearTimeout(timer);
+  }, [initialOrders]);
 
   function selectFilter(nextFilter: OrderFilter) {
     setActiveFilter(nextFilter);
     router.replace(`/dashboard/orders?filter=${nextFilter}`, { scroll: false });
+  }
+
+  function refreshNow() {
+    startTransition(() => {
+      router.refresh();
+      setLastRefreshLabel(
+        new Date().toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      );
+    });
   }
 
   function updateOrderStatus(orderId: string, nextStatus: OrderStatus) {
@@ -85,6 +129,48 @@ export function OrdersBoard({
           {actionError}
         </div>
       ) : null}
+
+      <div className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-card min-[430px]:grid-cols-[1fr_auto] min-[430px]:items-center">
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <select
+            value={exportPeriod}
+            onChange={(event) => setExportPeriod(event.target.value)}
+            className="min-h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+            aria-label="Période d'export"
+          >
+            <option value="today">Aujourd&apos;hui</option>
+            <option value="7d">7 jours</option>
+            <option value="30d">30 jours</option>
+          </select>
+
+          <a
+            href={exportHref}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 text-sm font-black text-white shadow-green transition active:scale-[0.99]"
+          >
+            <Download className="size-5" />
+            CSV
+          </a>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 min-[430px]:justify-end">
+          {lastRefreshLabel ? (
+            <span className="text-xs font-semibold text-slate-500">Mis à jour {lastRefreshLabel}</span>
+          ) : (
+            <span className="text-xs font-semibold text-slate-500">Actualisation active</span>
+          )}
+
+          <button
+            type="button"
+            onClick={refreshNow}
+            disabled={isPending}
+            className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-200 px-3 text-slate-700 transition active:scale-[0.99] disabled:opacity-60"
+            aria-label="Actualiser les commandes"
+            title="Actualiser"
+          >
+            <RefreshCw className={`size-5 ${isPending ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+      </div>
 
       <div className="mb-6 -mx-1 overflow-x-auto px-1 pb-1 scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="inline-flex min-w-full gap-2 rounded-[1.2rem] border border-slate-200 bg-white p-1.5 shadow-card min-[430px]:grid min-[430px]:grid-cols-4">
