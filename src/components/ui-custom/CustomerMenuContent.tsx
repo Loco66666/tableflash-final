@@ -31,7 +31,16 @@ type PublicMenuPayload = {
   products: Product[];
 };
 
+type StoredCustomerOrder = {
+  id: string;
+  orderNumber: number | null;
+  total: number;
+  savedAt: number;
+};
+
 const preferredCategoryOrder = ["starters", "mains", "desserts", "drinks"];
+const TRACKING_STORAGE_PREFIX = "tableflash:customer-order";
+const TRACKING_STORAGE_TTL_MS = 12 * 60 * 60 * 1000;
 
 const categoryIcons: Record<string, LucideIcon> = {
   all: Sparkles,
@@ -141,6 +150,54 @@ function buildTrackedOrder({
   };
 }
 
+function getTrackingStorageKey(restaurantSlug: string, tableSlug: string) {
+  return `${TRACKING_STORAGE_PREFIX}:${restaurantSlug}:${tableSlug}`;
+}
+
+function readStoredCustomerOrder(storageKey: string): StoredCustomerOrder | null {
+  try {
+    const rawValue = window.localStorage.getItem(storageKey);
+
+    if (!rawValue) return null;
+
+    const parsed = JSON.parse(rawValue) as Partial<StoredCustomerOrder>;
+
+    if (!parsed.id || typeof parsed.savedAt !== "number") {
+      window.localStorage.removeItem(storageKey);
+      return null;
+    }
+
+    if (Date.now() - parsed.savedAt > TRACKING_STORAGE_TTL_MS) {
+      window.localStorage.removeItem(storageKey);
+      return null;
+    }
+
+    return {
+      id: parsed.id,
+      orderNumber: typeof parsed.orderNumber === "number" ? parsed.orderNumber : null,
+      total: typeof parsed.total === "number" ? parsed.total : 0,
+      savedAt: parsed.savedAt,
+    };
+  } catch {
+    window.localStorage.removeItem(storageKey);
+    return null;
+  }
+}
+
+function writeStoredCustomerOrder(storageKey: string, order: Omit<StoredCustomerOrder, "savedAt">) {
+  try {
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        ...order,
+        savedAt: Date.now(),
+      }),
+    );
+  } catch {
+    // Tracking still works for the current tab if storage is unavailable.
+  }
+}
+
 export function CustomerMenuContent({
   restaurantSlug,
   tableSlug,
@@ -172,6 +229,7 @@ export function CustomerMenuContent({
   const subtitle = table ? (tableArea ? `${tableName} • ${tableArea}` : tableName) : "QR de table";
   const orderableProducts = useMemo(() => publicMenu.products.filter(isCustomerOrderable), [publicMenu.products]);
   const visibleCategories = useMemo(() => getVisibleCategories(publicMenu.categories), [publicMenu.categories]);
+  const trackingStorageKey = useMemo(() => getTrackingStorageKey(restaurantSlug, tableSlug), [restaurantSlug, tableSlug]);
 
   const visibleProducts =
     selectedCategoryId === "all"
@@ -181,6 +239,32 @@ export function CustomerMenuContent({
   const itemCount = basket.reduce((sum, line) => sum + line.quantity, 0);
   const basketTotal = basket.reduce((sum, line) => sum + getEffectiveProductPrice(line.product) * line.quantity, 0);
   const ordersEnabled = publicMenu.ordersEnabled;
+
+  useEffect(() => {
+    if (!table || confirmedOrderId) return;
+
+    const storedOrder = readStoredCustomerOrder(trackingStorageKey);
+
+    if (!storedOrder) return;
+
+    const timer = window.setTimeout(() => {
+      setConfirmedOrderId(storedOrder.id);
+      setConfirmedOrderNumber(storedOrder.orderNumber);
+      setConfirmedOrderTotal(storedOrder.total);
+      setTrackedOrder(
+        buildTrackedOrder({
+          id: storedOrder.id,
+          orderNumber: storedOrder.orderNumber,
+          status: "new",
+          total: storedOrder.total,
+          table,
+          restaurantSlug,
+        }),
+      );
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [confirmedOrderId, restaurantSlug, table, trackingStorageKey]);
 
   useEffect(() => {
     if (!confirmedOrderId || !table) return;
@@ -213,6 +297,11 @@ export function CustomerMenuContent({
 
       setConfirmedOrderNumber(result.order.orderNumber ?? null);
       setConfirmedOrderTotal(result.order.total);
+      writeStoredCustomerOrder(trackingStorageKey, {
+        id: result.order.id,
+        orderNumber: result.order.orderNumber,
+        total: result.order.total,
+      });
     }
 
     refreshTracking();
@@ -223,7 +312,7 @@ export function CustomerMenuContent({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [confirmedOrderId, restaurantSlug, tableSlug, table]);
+  }, [confirmedOrderId, restaurantSlug, tableSlug, table, trackingStorageKey]);
 
   function addToBasket(product: Product) {
     setValidationMessage("");
@@ -301,6 +390,12 @@ export function CustomerMenuContent({
       setBasketOpen(true);
       return;
     }
+
+    writeStoredCustomerOrder(trackingStorageKey, {
+      id: result.orderId,
+      orderNumber: result.orderNumber ?? null,
+      total: basketTotal,
+    });
 
     setConfirmedOrderId(result.orderId);
     setConfirmedOrderNumber(result.orderNumber ?? null);

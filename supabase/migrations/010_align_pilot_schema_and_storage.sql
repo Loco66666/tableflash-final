@@ -149,6 +149,34 @@ alter table public.order_items
 create index if not exists idx_order_items_restaurant_id on public.order_items(restaurant_id);
 create index if not exists idx_order_items_menu_item_id on public.order_items(menu_item_id);
 
+create or replace function public.normalize_order_item_for_insert()
+returns trigger
+language plpgsql
+as $$
+declare
+  order_restaurant_id uuid;
+begin
+  select o.restaurant_id
+  into order_restaurant_id
+  from public.orders o
+  where o.id = new.order_id;
+
+  new.restaurant_id = coalesce(new.restaurant_id, order_restaurant_id);
+  new.menu_item_id = coalesce(new.menu_item_id, new.product_id);
+  new.name = coalesce(nullif(new.name, ''), nullif(new.product_name, ''), 'Produit');
+  new.unit_price_cents = coalesce(nullif(new.unit_price_cents, 0), round(new.unit_price * 100)::integer, 0);
+  new.total_cents = coalesce(nullif(new.total_cents, 0), round(new.total * 100)::integer, 0);
+  new.selected_options = coalesce(new.selected_options, '[]'::jsonb);
+
+  return new;
+end;
+$$;
+
+drop trigger if exists normalize_order_item_before_insert on public.order_items;
+create trigger normalize_order_item_before_insert
+before insert on public.order_items
+for each row execute function public.normalize_order_item_for_insert();
+
 create table if not exists public.restaurant_reviews (
   id uuid primary key default gen_random_uuid(),
   restaurant_id uuid not null references public.restaurants(id) on delete cascade,
