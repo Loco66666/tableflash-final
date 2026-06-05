@@ -809,9 +809,30 @@ export function MenuManager({
   }, [products, search, selectedCategoryId]);
 
   const selectedProductCount = selectedProductIds.size;
-  const visibleProductIds = useMemo(() => filteredProducts.map((product) => product.id), [filteredProducts]);
+  const selectedFilterCategory = useMemo(
+    () => (selectedCategoryId === "all" || selectedCategoryId === "unavailable" ? null : categoryById.get(selectedCategoryId)),
+    [categoryById, selectedCategoryId],
+  );
+  const selectableProductIds = useMemo(
+    () =>
+      filteredProducts
+        .filter((product) => selectedCategoryId === "unavailable" || product.available !== false)
+        .map((product) => product.id),
+    [filteredProducts, selectedCategoryId],
+  );
+  const selectableProductCount = selectableProductIds.length;
   const allVisibleProductsSelected =
-    visibleProductIds.length > 0 && visibleProductIds.every((productId) => selectedProductIds.has(productId));
+    selectableProductIds.length > 0 && selectableProductIds.every((productId) => selectedProductIds.has(productId));
+  const selectionContextLabel = selectedFilterCategory
+    ? `Produits disponibles de ${selectedFilterCategory.name}`
+    : selectedCategoryId === "unavailable"
+      ? "Produits indisponibles"
+      : "Produits disponibles affichés";
+  const selectVisibleButtonLabel = selectedFilterCategory
+    ? `Sélectionner ${selectedFilterCategory.name}`
+    : selectedCategoryId === "unavailable"
+      ? "Sélectionner les indisponibles"
+      : "Sélectionner la vue";
   const categoryEditProducts = useMemo(
     () => (categoryForm.id ? products.filter((product) => product.categoryId === categoryForm.id) : []),
     [categoryForm.id, products],
@@ -1292,7 +1313,7 @@ export function MenuManager({
   }
 
   function selectVisibleProducts() {
-    setSelectedProductIds((currentSelection) => new Set([...currentSelection, ...visibleProductIds]));
+    setSelectedProductIds((currentSelection) => new Set([...currentSelection, ...selectableProductIds]));
   }
 
   function clearProductSelection() {
@@ -1561,7 +1582,10 @@ export function MenuManager({
           <button
             key={category.id}
             type="button"
-            onClick={() => setSelectedCategoryId(category.id)}
+            onClick={() => {
+              setSelectedCategoryId(category.id);
+              clearProductSelection();
+            }}
             className={cn(
               "min-h-12 shrink-0 rounded-2xl px-5 text-lg font-semibold",
               selectedCategoryId === category.id
@@ -1575,7 +1599,10 @@ export function MenuManager({
 
         <button
           type="button"
-          onClick={() => setSelectedCategoryId("unavailable")}
+          onClick={() => {
+            setSelectedCategoryId("unavailable");
+            clearProductSelection();
+          }}
           className={cn(
             "min-h-12 shrink-0 rounded-2xl px-5 text-lg font-semibold",
             selectedCategoryId === "unavailable"
@@ -1590,20 +1617,25 @@ export function MenuManager({
       {filteredProducts.length > 0 ? (
         <div className="mb-4 grid gap-3 rounded-[1.2rem] border border-slate-200 bg-white p-3 shadow-card">
           <div className="flex flex-col gap-2 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between">
-            <p className="text-sm font-black text-slate-700">
-              {selectedProductCount > 0
-                ? `${selectedProductCount} produit(s) sélectionné(s)`
-                : "Sélection rapide des produits"}
-            </p>
+            <div>
+              <p className="text-sm font-black text-slate-700">
+                {selectedProductCount > 0 ? `${selectedProductCount} produit(s) sélectionné(s)` : selectionContextLabel}
+              </p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">
+                {selectedCategoryId === "unavailable"
+                  ? `${filteredProducts.length} produit(s) indisponible(s) affiché(s)`
+                  : `${selectableProductCount} produit(s) disponible(s) sélectionnable(s)`}
+              </p>
+            </div>
 
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={allVisibleProductsSelected ? clearProductSelection : selectVisibleProducts}
-                disabled={isPending}
+                disabled={isPending || selectableProductCount === 0}
                 className="min-h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-black text-slate-700 disabled:opacity-60"
               >
-                {allVisibleProductsSelected ? "Tout désélectionner" : "Sélectionner la vue"}
+                {allVisibleProductsSelected ? "Tout désélectionner" : selectVisibleButtonLabel}
               </button>
 
               {selectedProductCount > 0 ? (
