@@ -732,6 +732,7 @@ export function MenuManager({
   const [search, setSearch] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(() => new Set());
+  const [selectedCategoryProductIds, setSelectedCategoryProductIds] = useState<Set<string>>(() => new Set());
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(emptyProductForm);
@@ -811,6 +812,18 @@ export function MenuManager({
   const visibleProductIds = useMemo(() => filteredProducts.map((product) => product.id), [filteredProducts]);
   const allVisibleProductsSelected =
     visibleProductIds.length > 0 && visibleProductIds.every((productId) => selectedProductIds.has(productId));
+  const categoryEditProducts = useMemo(
+    () => (categoryForm.id ? products.filter((product) => product.categoryId === categoryForm.id) : []),
+    [categoryForm.id, products],
+  );
+  const selectedCategoryProductCount = selectedCategoryProductIds.size;
+  const categoryEditProductIds = useMemo(
+    () => categoryEditProducts.map((product) => product.id),
+    [categoryEditProducts],
+  );
+  const allCategoryProductsSelected =
+    categoryEditProductIds.length > 0 &&
+    categoryEditProductIds.every((productId) => selectedCategoryProductIds.has(productId));
 
   function openAddProduct() {
     setEditingProductId(null);
@@ -1180,6 +1193,7 @@ export function MenuManager({
           }
 
           setCategoryForm(emptyCategoryForm);
+          setSelectedCategoryProductIds(new Set());
 
           if (panelMode === "add-category") {
             closePanel();
@@ -1197,6 +1211,7 @@ export function MenuManager({
       name: category.name,
       isActive: category.isActive !== false,
     });
+    setSelectedCategoryProductIds(new Set());
     setCategoryError("");
     setActionError("");
     setActionMessage("");
@@ -1254,6 +1269,7 @@ export function MenuManager({
           }
 
           setCategoryForm(emptyCategoryForm);
+          setSelectedCategoryProductIds(new Set());
         } catch (error) {
           setActionError(error instanceof Error ? error.message : "Suppression impossible.");
         }
@@ -1281,6 +1297,28 @@ export function MenuManager({
 
   function clearProductSelection() {
     setSelectedProductIds(new Set());
+  }
+
+  function toggleCategoryProductSelection(productId: string) {
+    setSelectedCategoryProductIds((currentSelection) => {
+      const nextSelection = new Set(currentSelection);
+
+      if (nextSelection.has(productId)) {
+        nextSelection.delete(productId);
+      } else {
+        nextSelection.add(productId);
+      }
+
+      return nextSelection;
+    });
+  }
+
+  function selectAllCategoryProducts() {
+    setSelectedCategoryProductIds(new Set(categoryEditProductIds));
+  }
+
+  function clearCategoryProductSelection() {
+    setSelectedCategoryProductIds(new Set());
   }
 
   function bulkDisableSelection() {
@@ -1337,6 +1375,43 @@ export function MenuManager({
 
           setSelectedProductIds(new Set());
           setActionMessage(`${result.archivedProducts} produit(s) archivé(s).`);
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Archivage groupé impossible.");
+        }
+      })();
+    });
+  }
+
+  function bulkArchiveCategoryProductSelection() {
+    const productIds = Array.from(selectedCategoryProductIds);
+
+    if (productIds.length === 0) return;
+
+    const confirmed = window.confirm(
+      `Archiver ${productIds.length} produit(s) de cette catégorie ?\n\nIls seront retirés du menu et rendus indisponibles, mais l'historique des commandes sera conservé.`,
+    );
+
+    if (!confirmed) return;
+
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+          setActionMessage("");
+
+          const result = await bulkArchiveMenuProducts({
+            productIds,
+          });
+
+          setSelectedCategoryProductIds(new Set());
+          setSelectedProductIds((currentSelection) => {
+            const nextSelection = new Set(currentSelection);
+            for (const productId of productIds) {
+              nextSelection.delete(productId);
+            }
+            return nextSelection;
+          });
+          setActionMessage(`${result.archivedProducts} produit(s) archivé(s) dans cette catégorie.`);
         } catch (error) {
           setActionError(error instanceof Error ? error.message : "Archivage groupé impossible.");
         }
@@ -1997,6 +2072,90 @@ export function MenuManager({
                 />
               ) : null}
 
+              {categoryForm.id ? (
+                <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3">
+                  <div className="flex flex-col gap-2 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between">
+                    <div>
+                      <p className="text-sm font-black text-slate-800">Produits de cette catégorie</p>
+                      <p className="mt-1 text-xs font-semibold text-slate-500">
+                        {categoryEditProducts.length} produit(s) dans {categoryForm.name || "cette catégorie"}
+                      </p>
+                    </div>
+
+                    {categoryEditProducts.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={allCategoryProductsSelected ? clearCategoryProductSelection : selectAllCategoryProducts}
+                        disabled={isPending}
+                        className="min-h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-black text-slate-700 disabled:opacity-60"
+                      >
+                        {allCategoryProductsSelected ? "Tout désélectionner" : "Tout sélectionner"}
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {categoryEditProducts.length > 0 ? (
+                    <div className="grid gap-2">
+                      {categoryEditProducts.map((product) => {
+                        const isSelected = selectedCategoryProductIds.has(product.id);
+                        const isAvailable = typeof product.available === "boolean" ? product.available : true;
+
+                        return (
+                          <button
+                            key={product.id}
+                            type="button"
+                            onClick={() => toggleCategoryProductSelection(product.id)}
+                            disabled={isPending}
+                            className={cn(
+                              "grid min-h-12 grid-cols-[24px_1fr_auto] items-center gap-3 rounded-xl border px-3 text-left disabled:opacity-60",
+                              isSelected
+                                ? "border-emerald-200 bg-emerald-50"
+                                : "border-slate-200 bg-white",
+                            )}
+                            aria-pressed={isSelected}
+                          >
+                            <span
+                              className={cn(
+                                "grid size-5 place-items-center rounded-md border",
+                                isSelected ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-300 bg-white",
+                              )}
+                            >
+                              {isSelected ? <Check className="size-3.5" /> : null}
+                            </span>
+
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-black text-slate-900">{product.name}</span>
+                              <span className="mt-0.5 block text-xs font-semibold text-slate-500">
+                                {isAvailable ? "Disponible" : "Indisponible"}
+                              </span>
+                            </span>
+
+                            <span className="text-sm font-black text-slate-700">
+                              {formatPriceInput(product.promoPrice ?? product.price)} €
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm font-bold text-slate-500">
+                      Aucun produit dans cette catégorie.
+                    </p>
+                  )}
+
+                  {selectedCategoryProductCount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={bulkArchiveCategoryProductSelection}
+                      disabled={isPending}
+                      className="min-h-11 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 disabled:opacity-60"
+                    >
+                      Archiver {selectedCategoryProductCount} produit(s) sélectionné(s)
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
               <button
                 type="submit"
                 disabled={isPending}
@@ -2010,6 +2169,7 @@ export function MenuManager({
                   type="button"
                   onClick={() => {
                     setCategoryForm(emptyCategoryForm);
+                    setSelectedCategoryProductIds(new Set());
                     setCategoryError("");
                   }}
                   className="min-h-11 rounded-2xl border border-slate-200 bg-white px-5 text-base font-bold text-slate-700"
