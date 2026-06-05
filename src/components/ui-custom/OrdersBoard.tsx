@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Download, RefreshCw } from "lucide-react";
+import { Bell, Download, RefreshCw, Volume2, VolumeX } from "lucide-react";
 import { OrderCard } from "@/components/ui-custom/OrderCard";
 import { updateDashboardOrderStatus } from "@/app/dashboard/orders/actions";
 import type { Order, OrderStatus } from "@/lib/types";
@@ -14,6 +14,40 @@ import {
   orderMatchesFilter,
   type OrderFilter,
 } from "@/lib/orders";
+
+function playOrderSound() {
+  const AudioContextConstructor =
+    window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+  if (!AudioContextConstructor) return;
+
+  const audioContext = new AudioContextConstructor();
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+  oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.12);
+  gain.gain.setValueAtTime(0.001, audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.18, audioContext.currentTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.42);
+
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + 0.45);
+
+  window.setTimeout(() => void audioContext.close(), 650);
+}
+
+function showBrowserNotification(title: string, customerName?: string) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  new Notification(title, {
+    body: customerName ? `Client : ${customerName}` : "Une commande vient d'arriver.",
+    tag: "tableflash-new-order",
+  });
+}
 
 export function OrdersBoard({
   initialFilter,
@@ -29,6 +63,11 @@ export function OrdersBoard({
   const [actionError, setActionError] = useState("");
   const [exportPeriod, setExportPeriod] = useState("today");
   const [lastRefreshLabel, setLastRefreshLabel] = useState("");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    () => typeof window !== "undefined" && window.localStorage.getItem("tableflash:orders-sound") === "enabled",
+  );
+  const [incomingAlert, setIncomingAlert] = useState("");
+  const knownOrderIdsRef = useRef<Set<string> | null>(null);
 
   const visibleOrders = useMemo(
     () => orders.filter((order) => orderMatchesFilter(order, activeFilter)),
@@ -61,10 +100,49 @@ export function OrdersBoard({
   }, [router, startTransition]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setOrders(normalizeOrders(initialOrders)), 0);
+    const normalizedOrders = normalizeOrders(initialOrders);
+    const nextOrderIds = new Set(normalizedOrders.map((order) => order.id));
+    const previousOrderIds = knownOrderIdsRef.current;
+
+    if (previousOrderIds) {
+      const newActiveOrders = normalizedOrders.filter(
+        (order) => !previousOrderIds.has(order.id) && ["new", "payment_pending", "paid"].includes(order.status),
+      );
+
+      if (newActiveOrders.length > 0) {
+        const latestOrder = newActiveOrders[0];
+        const label = latestOrder.orderNumber ? `Commande n°${latestOrder.orderNumber}` : "Nouvelle commande";
+
+        setIncomingAlert(`${label} à traiter`);
+
+        if (notificationsEnabled) {
+          playOrderSound();
+          showBrowserNotification(label, latestOrder.customerName);
+        }
+      }
+    }
+
+    knownOrderIdsRef.current = nextOrderIds;
+
+    const timer = window.setTimeout(() => setOrders(normalizedOrders), 0);
 
     return () => window.clearTimeout(timer);
-  }, [initialOrders]);
+  }, [initialOrders, notificationsEnabled]);
+
+  async function enableNotifications() {
+    window.localStorage.setItem("tableflash:orders-sound", "enabled");
+    setNotificationsEnabled(true);
+    playOrderSound();
+
+    if ("Notification" in window && Notification.permission === "default") {
+      await Notification.requestPermission();
+    }
+  }
+
+  function disableNotifications() {
+    window.localStorage.removeItem("tableflash:orders-sound");
+    setNotificationsEnabled(false);
+  }
 
   function selectFilter(nextFilter: OrderFilter) {
     setActiveFilter(nextFilter);
@@ -130,6 +208,16 @@ export function OrdersBoard({
         </div>
       ) : null}
 
+      {incomingAlert ? (
+        <div className="mb-4 flex items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-bold text-orange-800">
+          <Bell className="size-5 shrink-0" />
+          <span className="min-w-0 flex-1">{incomingAlert}</span>
+          <button type="button" onClick={() => setIncomingAlert("")} className="text-xs font-black text-orange-900">
+            OK
+          </button>
+        </div>
+      ) : null}
+
       <div className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-card min-[430px]:grid-cols-[1fr_auto] min-[430px]:items-center">
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <select
@@ -158,6 +246,21 @@ export function OrdersBoard({
           ) : (
             <span className="text-xs font-semibold text-slate-500">Actualisation active</span>
           )}
+
+          <button
+            type="button"
+            onClick={notificationsEnabled ? disableNotifications : enableNotifications}
+            className={cn(
+              "inline-flex min-h-12 items-center justify-center rounded-xl border px-3 transition active:scale-[0.99]",
+              notificationsEnabled
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-slate-200 text-slate-700",
+            )}
+            aria-label={notificationsEnabled ? "Couper le son des commandes" : "Activer le son des commandes"}
+            title={notificationsEnabled ? "Son commandes actif" : "Activer le son commandes"}
+          >
+            {notificationsEnabled ? <Volume2 className="size-5" /> : <VolumeX className="size-5" />}
+          </button>
 
           <button
             type="button"

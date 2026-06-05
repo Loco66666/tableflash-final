@@ -1,6 +1,6 @@
 # TableFlash - Roadmap MVP Restaurant Pilote
 
-Version: 2026-06-04
+Version: 2026-06-05
 
 Objectif: amener TableFlash d'un produit proche MVP a une plateforme fiable, exploitable par un restaurant pilote, puis capable d'accueillir progressivement 10, 50, 100, puis 1000 restaurants sans rupture produit, technique ou operationnelle.
 
@@ -128,13 +128,23 @@ Traite le 2026-06-04:
 - `npm.cmd run build` OK.
 - Grep mojibake OK.
 
-Reste a traiter avant pilote:
+Valide le 2026-06-05:
 
-- Appliquer la migration `010` sur l'environnement Supabase cible: le schema distant est partiellement aligne, mais il manque encore les colonnes normalisees `orders` et `order_items`.
-- Tester le parcours restaurant complet sur une vraie base.
-- Ajouter ou ameliorer le temps reel commandes.
-- Ajouter export commandes.
-- Ajouter vraie gestion stock/86 structuree.
+- Migration `010` appliquee sur l'environnement Supabase cible.
+- Parcours QR complet valide sur vraie base: client scanne, commande, suivi, commande servie, avis post-repas.
+- Dashboard restaurateur valide: commandes recues, transitions de statut, paiement sur place, refresh intelligent.
+- Export commandes CSV disponible depuis `/dashboard/orders`.
+- Aide restaurateur enrichie: checklist pilote, support, rituel avant/pendant/fin de service.
+- Redis retire du chemin critique: fallback memoire accepte pour le pilote leger.
+- Deploiement Vercel valide apres suppression de l'integration Redis suspendue.
+
+Reste a traiter avant pilote terrain:
+
+- Onboarder un vrai restaurant pilote avec nom, slug, tables et menu reels.
+- Observer un service accompagne avec un restaurateur.
+- Noter uniquement les frictions reelles observees pendant le service.
+- Corriger les petites finitions terrain sans ajouter de feature lourde.
+- Reporter Stripe, fidelite, stock quantitatif et refontes design apres retour terrain.
 - Reporter Stripe hors MVP pilote, sauf decision business contraire.
 
 ---
@@ -1086,6 +1096,12 @@ Mesures techniques:
 
 ## 18. Checklist go/no-go restaurant pilote
 
+Statut au 2026-06-05:
+
+- Go technique MVP pilote atteint sur le parcours complet teste.
+- Prochaine validation: service accompagne avec un vrai restaurant.
+- Gel fonctionnel recommande jusqu'au premier retour terrain.
+
 Go pilote si:
 
 - Lint OK.
@@ -1118,29 +1134,54 @@ No-go pilote si:
 
 ---
 
+## 18.1 Gel fonctionnel avant retour terrain
+
+Jusqu'au premier service accompagne, ne pas lancer:
+
+- Stripe.
+- Fidelite.
+- Stock quantitatif avance.
+- Refonte design.
+- Nouvelle logique complexe de caisse, impression ou multi-site.
+- Fonctionnalite non demandee par le restaurant pilote.
+
+Autorise pendant le gel:
+
+- Corrections de bugs reels observes.
+- Wording court si un restaurateur ou client ne comprend pas une action.
+- Petites ameliorations support qui reduisent un risque pendant le service.
+- Documentation d'installation et checklist terrain.
+
+Regle:
+
+Si une idee ne vient pas d'une friction observee en service, elle est mise en attente.
+
+---
+
 ## 19. Ordre de travail recommande
 
 Ne pas commencer par Stripe, fidelite ou design.
 
 Ordre strict:
 
-1. Stabiliser schema Supabase.
-2. Corriger mojibake.
-3. Valider lint/build.
-4. Tester onboarding admin.
-5. Tester settings restaurant.
-6. Tester menu dashboard.
-7. Tester QR dashboard.
-8. Tester commande client.
-9. Tester dashboard orders.
-10. Tester suivi client.
-11. Tester avis.
-12. Ajouter exports commandes.
-13. Ajouter refresh/live commandes.
-14. Preparer pilote.
-15. Collecter retours terrain.
-16. Prioriser seulement les douleurs reelles.
-17. Ensuite seulement: Stripe SaaS, fidelite, stock avance.
+1. Stabiliser schema Supabase. Fait.
+2. Corriger mojibake. Fait.
+3. Valider lint/build. Fait.
+4. Tester onboarding admin. A refaire sur vrai restaurant pilote.
+5. Tester settings restaurant. Valide sur base actuelle.
+6. Tester menu dashboard. Valide sur base actuelle.
+7. Tester QR dashboard. Valide sur base actuelle.
+8. Tester commande client. Valide sur base actuelle.
+9. Tester dashboard orders. Valide sur base actuelle.
+10. Tester suivi client. Valide sur base actuelle.
+11. Tester avis. Valide sur base actuelle.
+12. Ajouter exports commandes. Fait.
+13. Ajouter refresh/live commandes. Refresh intelligent fait.
+14. Preparer pilote terrain.
+15. Observer un service accompagne.
+16. Collecter retours terrain.
+17. Prioriser seulement les douleurs reelles.
+18. Ensuite seulement: Stripe SaaS, fidelite, stock avance.
 
 ---
 
@@ -1197,11 +1238,14 @@ La prochaine reprise de developpement doit commencer par:
 1. Lire ce fichier.
 2. Lire `docs/AUDIT_FOLLOW_UP.md`.
 3. Verifier ou creer `CODEX_AUDIT_CONTEXT.md`.
-4. Corriger les incoherences Supabase critiques.
-5. Lancer lint/build.
+4. Verifier que le dernier deploiement Vercel est vert.
+5. Lancer lint/build avant toute modification.
+6. Ne pas ajouter de feature lourde avant retour terrain.
 
 Priorite absolue:
 
-- Schema Supabase coherent.
-- Build OK.
-- Parcours QR complet OK.
+- Onboarder un vrai restaurant pilote.
+- Configurer nom, slug, menu, photos, tables et QR reels.
+- Faire un service accompagne.
+- Observer les frictions reelles.
+- Corriger seulement les bugs ou incomprehensions detectes pendant ce service.

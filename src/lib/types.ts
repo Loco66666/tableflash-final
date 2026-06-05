@@ -76,6 +76,8 @@ export type Order = {
   paid: boolean;
   paymentStatus?: "on_site_pending" | "paid" | "cancelled" | "not_paid";
   paymentMethod?: "on_site";
+  customerName?: string;
+  customerPhone?: string;
   customerNote?: string;
   serviceDate: string;
   serviceTime?: string;

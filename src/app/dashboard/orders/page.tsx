@@ -114,6 +114,8 @@ function buildOrderViewModel({
     paid,
     paymentStatus: paid ? "paid" : order.payment_status === "cancelled" ? "cancelled" : "on_site_pending",
     paymentMethod: "on_site",
+    customerName: order.customer_name || "Client",
+    customerPhone: order.customer_phone ?? undefined,
     customerNote: order.customer_note ?? undefined,
     serviceDate: getServiceDate(order.created_at),
     serviceTime: getServiceTime(order.created_at),

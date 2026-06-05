@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChefHat, ClipboardList, Clock3, HandPlatter, Package, Table2, X } from "lucide-react";
+import { Check, ChefHat, ClipboardList, Clock3, HandPlatter, Package, Table2, UserRound, X } from "lucide-react";
 import type { Order, OrderStatus } from "@/lib/types";
 import { formatEuro } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui-custom/StatusBadge";
@@ -100,7 +100,10 @@ export function OrderCard({ order, statusChangeAction, refuseAction }: OrderCard
               <h2 className="text-xl font-black tracking-tight min-[390px]:text-2xl">
                 Commande {orderDisplayNumber}
               </h2>
-              {timestampLabel ? <p className="mt-1 text-sm font-semibold text-slate-500">{timestampLabel}</p> : null}
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold text-slate-500">
+                {timestampLabel ? <span>{timestampLabel}</span> : null}
+                {order.customerName ? <span>Client : {order.customerName}</span> : null}
+              </div>
             </div>
 
             <StatusBadge label={getOrderStatusLabel(order.status)} tone={getOrderStatusBadgeTone(order.status)} />
@@ -113,6 +116,16 @@ export function OrderCard({ order, statusChangeAction, refuseAction }: OrderCard
                 ? `${order.tableName ?? `Table ${order.table}`} • ${order.tableArea}`
                 : order.tableName ?? `Table ${order.table}`}
             </p>
+
+            {order.customerName ? (
+              <p className="flex items-center gap-2.5">
+                <UserRound className="size-5 text-emerald-800 min-[390px]:size-6" />
+                <span className="truncate">
+                  {order.customerName}
+                  {order.customerPhone ? ` · ${order.customerPhone}` : ""}
+                </span>
+              </p>
+            ) : null}
 
             <p className="flex items-center gap-2.5">
               <Package className="size-5 text-emerald-800 min-[390px]:size-6" />

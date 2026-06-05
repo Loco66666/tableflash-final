@@ -188,6 +188,7 @@ export default async function DashboardPage() {
       averageRating: averageRating > 0 ? formatRating(averageRating) : "0/5",
       reviewsCount: todayReviewsCount,
       activeTablesCount,
+      productsCount: products.length,
     },
   };
 

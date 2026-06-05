@@ -1,5 +1,7 @@
 import {
+  Bell,
   Check,
+  CheckCircle2,
   ClipboardList,
   CreditCard,
   PackageOpen,
@@ -50,6 +52,7 @@ export type DashboardClientData = {
     averageRating: string;
     reviewsCount: number;
     activeTablesCount: number;
+    productsCount: number;
   };
 };
 
@@ -180,6 +183,40 @@ function pluralize(value: number, singular: string, plural: string) {
 
 export default function DashboardClient({ data }: { data: DashboardClientData }) {
   const serviceStatus = getServiceStatus(data.settings, data.tasks);
+  const urgentOrdersCount = data.tasks.ordersToAccept + data.tasks.ordersToCollect;
+  const cockpitItems = [
+    {
+      icon: Bell,
+      label: "Commandes",
+      value: urgentOrdersCount > 0 ? `${urgentOrdersCount} à traiter` : "Aucune attente",
+      ready: urgentOrdersCount === 0,
+      href: "/dashboard/orders?filter=a-traiter",
+    },
+    {
+      icon: PackageOpen,
+      label: "Menu",
+      value:
+        data.today.productsCount > 0
+          ? `${data.today.productsCount - data.tasks.unavailableProducts}/${data.today.productsCount} produits actifs`
+          : "Aucun produit",
+      ready: data.today.productsCount > 0 && data.tasks.unavailableProducts === 0,
+      href: "/dashboard/menu",
+    },
+    {
+      icon: QrCode,
+      label: "QR tables",
+      value: data.settings.qrEnabled ? `${data.today.activeTablesCount} actifs` : "QR désactivés",
+      ready: data.settings.qrEnabled && data.today.activeTablesCount > 0,
+      href: "/dashboard/qr",
+    },
+    {
+      icon: Star,
+      label: "Avis",
+      value: data.tasks.reviewsToHandle > 0 ? `${data.tasks.reviewsToHandle} à répondre` : "À jour",
+      ready: data.tasks.reviewsToHandle === 0,
+      href: "/dashboard/reviews",
+    },
+  ];
 
   return (
     <AppShell>
@@ -217,6 +254,42 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
           ) : null}
         </div>
       </SectionCard>
+
+      <section className="mb-7">
+        <h2 className="mb-4 text-2xl font-black tracking-tight">Cockpit service</h2>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          {cockpitItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <a
+                key={item.label}
+                href={item.href}
+                className="flex min-h-20 items-center gap-4 rounded-[1.15rem] border border-slate-200 bg-white px-4 shadow-card transition active:scale-[0.99]"
+              >
+                <span
+                  className={
+                    "grid size-12 shrink-0 place-items-center rounded-full " +
+                    (item.ready ? "bg-emerald-50 text-emerald-800" : "bg-orange-50 text-orange-600")
+                  }
+                >
+                  <Icon className="size-7" />
+                </span>
+
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-black uppercase tracking-wide text-slate-500">{item.label}</span>
+                  <span className="block truncate text-lg font-semibold leading-tight text-slate-950">{item.value}</span>
+                </span>
+
+                <CheckCircle2
+                  className={"size-6 shrink-0 " + (item.ready ? "text-emerald-700" : "text-orange-500")}
+                />
+              </a>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="mb-7">
         <h2 className="mb-4 text-2xl font-black tracking-tight">À faire maintenant</h2>
