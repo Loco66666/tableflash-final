@@ -165,15 +165,15 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
     return [
       {
         label: "Tailles 29 cm / 33 cm",
-        group: createOptionGroup("sizes", "Taille", "single_choice", ["29 cm", "33 cm", "Méga 40 cm"], true),
+        group: createOptionGroup("sizes", "Taille", "single_choice", ["29 cm", "33 cm", "MÃ©ga 40 cm"], true),
       },
       {
-        label: "Base tomate / crème",
-        group: createOptionGroup("base", "Base", "single_choice", ["Base tomate", "Base crème"], false),
+        label: "Base tomate / crÃ¨me",
+        group: createOptionGroup("base", "Base", "single_choice", ["Base tomate", "Base crÃ¨me"], false),
       },
       {
-        label: "Suppléments pizza",
-        group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Fromage", "Œuf", "Champignons", "Jambon", "Poulet"]),
+        label: "SupplÃ©ments pizza",
+        group: createOptionGroup("supplements", "SupplÃ©ments", "multiple_choice", ["Fromage", "Å’uf", "Champignons", "Jambon", "Poulet"]),
       },
     ];
   }
@@ -186,7 +186,7 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
       },
       {
         label: "Choix de sauce",
-        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Blanche", "Algérienne", "Samouraï", "Andalouse"], true),
+        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Blanche", "AlgÃ©rienne", "SamouraÃ¯", "Andalouse"], true),
       },
       {
         label: "Formule seul / menu",
@@ -198,12 +198,12 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
   if (normalizedCategory.includes("burger") || normalizedCategory.includes("hamburger")) {
     return [
       {
-        label: "Suppléments burger",
-        group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Cheddar", "Bacon", "Œuf", "Double steak"]),
+        label: "SupplÃ©ments burger",
+        group: createOptionGroup("supplements", "SupplÃ©ments", "multiple_choice", ["Cheddar", "Bacon", "Å’uf", "Double steak"]),
       },
       {
         label: "Cuisson steak",
-        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Saignant", "À point", "Bien cuit"]),
+        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Saignant", "Ã€ point", "Bien cuit"]),
       },
       {
         label: "Formule menu",
@@ -224,12 +224,12 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
         group: createOptionGroup("drink-size", "Format", "single_choice", ["33 cl", "50 cl", "1 L", "1,5 L", "2 L"]),
       },
       {
-        label: "Glaçons / citron",
-        group: createOptionGroup("drink-options", "Options boisson", "multiple_choice", ["Glaçons", "Sans glaçons", "Citron", "Paille"]),
+        label: "GlaÃ§ons / citron",
+        group: createOptionGroup("drink-options", "Options boisson", "multiple_choice", ["GlaÃ§ons", "Sans glaÃ§ons", "Citron", "Paille"]),
       },
       {
         label: "Pack / menu",
-        group: createOptionGroup("drink-formula", "Formule", "single_choice", ["À l’unité", "Avec menu", "Pack famille"]),
+        group: createOptionGroup("drink-formula", "Formule", "single_choice", ["Ã€ lâ€™unitÃ©", "Avec menu", "Pack famille"]),
       },
     ];
   }
@@ -243,7 +243,7 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
   ) {
     return [
       {
-        label: "Taille café",
+        label: "Taille cafÃ©",
         group: createOptionGroup("coffee-size", "Taille", "single_choice", ["Petit", "Moyen", "Grand"]),
       },
       {
@@ -251,8 +251,8 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
         group: createOptionGroup("milk", "Lait", "single_choice", ["Entier", "Avoine", "Soja", "Amande"]),
       },
       {
-        label: "Chaud / glacé",
-        group: createOptionGroup("temperature", "Préparation", "single_choice", ["Chaud", "Glacé"]),
+        label: "Chaud / glacÃ©",
+        group: createOptionGroup("temperature", "PrÃ©paration", "single_choice", ["Chaud", "GlacÃ©"]),
       },
     ];
   }
@@ -266,15 +266,15 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
     return [
       {
         label: "Cuisson",
-        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Bleu", "Saignant", "À point", "Bien cuit"]),
+        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Bleu", "Saignant", "Ã€ point", "Bien cuit"]),
       },
       {
         label: "Sauce",
-        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Poivre", "Roquefort", "Béarnaise"]),
+        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Poivre", "Roquefort", "BÃ©arnaise"]),
       },
       {
         label: "Accompagnement",
-        group: createOptionGroup("side", "Accompagnement", "single_choice", ["Frites", "Salade", "Riz", "Légumes"]),
+        group: createOptionGroup("side", "Accompagnement", "single_choice", ["Frites", "Salade", "Riz", "LÃ©gumes"]),
       },
     ];
   }
@@ -283,15 +283,15 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
     return [
       {
         label: "Sauce soja",
-        group: createOptionGroup("soy", "Sauce soja", "single_choice", ["Sucrée", "Salée"]),
+        group: createOptionGroup("soy", "Sauce soja", "single_choice", ["SucrÃ©e", "SalÃ©e"]),
       },
       {
         label: "Wasabi / gingembre",
         group: createOptionGroup("wasabi-ginger", "Accompagnements", "multiple_choice", ["Wasabi", "Gingembre"]),
       },
       {
-        label: "Suppléments japonais",
-        group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Soupe miso", "Riz", "Salade de chou"]),
+        label: "SupplÃ©ments japonais",
+        group: createOptionGroup("supplements", "SupplÃ©ments", "multiple_choice", ["Soupe miso", "Riz", "Salade de chou"]),
       },
     ];
   }
@@ -299,12 +299,12 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
   if (normalizedCategory.includes("crepe") || normalizedCategory.includes("galette")) {
     return [
       {
-        label: "Cuisson Œuf",
-        group: createOptionGroup("egg", "Œuf", "single_choice", ["Miroir", "Brouillé", "Sans Œuf"]),
+        label: "Cuisson Å’uf",
+        group: createOptionGroup("egg", "Å’uf", "single_choice", ["Miroir", "BrouillÃ©", "Sans Å’uf"]),
       },
       {
-        label: "Suppléments crêperie",
-        group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Fromage", "Jambon", "Champignons"]),
+        label: "SupplÃ©ments crÃªperie",
+        group: createOptionGroup("supplements", "SupplÃ©ments", "multiple_choice", ["Fromage", "Jambon", "Champignons"]),
       },
       {
         label: "Formule",
@@ -340,12 +340,12 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
       group: createOptionGroup("choice", "Choix client", "single_choice", ["Option 1", "Option 2"]),
     },
     {
-      label: "Supplément",
-      group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Supplément 1", "Supplément 2"]),
+      label: "SupplÃ©ment",
+      group: createOptionGroup("supplements", "SupplÃ©ments", "multiple_choice", ["SupplÃ©ment 1", "SupplÃ©ment 2"]),
     },
     {
-      label: "Allergènes",
-      group: createOptionGroup("allergens", "Allergènes", "multiple_choice", ["Gluten", "Lait", "Œufs", "Fruits à coque"]),
+      label: "AllergÃ¨nes",
+      group: createOptionGroup("allergens", "AllergÃ¨nes", "multiple_choice", ["Gluten", "Lait", "Å’ufs", "Fruits Ã  coque"]),
     },
   ];
 }
@@ -454,9 +454,9 @@ function ProductOptionsEditor({
     <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3">
         <div className="min-w-0">
-          <p className="text-base font-black text-slate-950">Ajouter des options avancées</p>
+          <p className="text-base font-black text-slate-950">Ajouter des options avancÃ©es</p>
           <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-500">
-            Tailles, sauces, suppléments, formules, disponibilité et allergènes.
+            Tailles, sauces, supplÃ©ments, formules, disponibilitÃ© et allergÃ¨nes.
           </p>
         </div>
 
@@ -473,7 +473,7 @@ function ProductOptionsEditor({
                 {categoryName ? `Suggestions pour ${categoryName}` : "Suggestions intelligentes"}
               </p>
               <p className="mt-1 text-xs font-semibold leading-relaxed text-emerald-800/80">
-                Cliquez sur un modèle pour créer une section modifiable.
+                Cliquez sur un modÃ¨le pour crÃ©er une section modifiable.
               </p>
             </div>
           </div>
@@ -491,7 +491,7 @@ function ProductOptionsEditor({
                   className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 text-xs font-black text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 disabled:opacity-50"
                 >
                   <Plus className="size-4" />
-                  {alreadyAdded ? "Ajouté" : suggestion.label}
+                  {alreadyAdded ? "AjoutÃ©" : suggestion.label}
                 </button>
               );
             })}
@@ -500,7 +500,7 @@ function ProductOptionsEditor({
 
         {optionsConfig.groups.length > 0 ? (
           <div className="grid gap-2">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Options ajoutées</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Options ajoutÃ©es</p>
 
             {optionsConfig.groups.map((group) => (
               <div key={group.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
@@ -558,7 +558,7 @@ function ProductOptionsEditor({
                           }
                           placeholder="0.00"
                           className="min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 pr-7 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
-                          aria-label="Prix supplémentaire"
+                          aria-label="Prix supplÃ©mentaire"
                         />
                         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">
                           
@@ -591,7 +591,7 @@ function ProductOptionsEditor({
                           addCustomItem(group);
                         }
                       }}
-                      placeholder="Ajouter une option puis Entrée"
+                      placeholder="Ajouter une option puis EntrÃ©e"
                       className="min-h-10 min-w-0 flex-1 rounded-xl border border-dashed border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                     />
 
@@ -609,7 +609,7 @@ function ProductOptionsEditor({
           </div>
         ) : (
           <p className="text-xs font-semibold leading-relaxed text-slate-500">
-            Aucun groupe ajouté pour le moment. Le produit peut rester simple si vous n&apos;avez pas besoin
+            Aucun groupe ajoutÃ© pour le moment. Le produit peut rester simple si vous n&apos;avez pas besoin
             d&apos;options.
           </p>
         )}
@@ -767,10 +767,21 @@ export function MenuManager({
     () =>
       initialProducts.map((product) => ({
         ...product,
-        categoryName: categoryById.get(product.categoryId)?.name ?? "Catégorie",
+        categoryName: categoryById.get(product.categoryId)?.name ?? "CatÃ©gorie",
       })),
     [categoryById, initialProducts],
   );
+
+  const productCountByCategoryId = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const product of initialProducts) {
+      if (!product.categoryId) continue;
+      counts.set(product.categoryId, (counts.get(product.categoryId) ?? 0) + 1);
+    }
+
+    return counts;
+  }, [initialProducts]);
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = normalizeText(search);
@@ -852,7 +863,7 @@ export function MenuManager({
     const promoPrice = productForm.promoPrice.trim() ? parsePrice(productForm.promoPrice) : null;
 
     if (!productForm.name.trim()) nextErrors.name = "Le nom est requis.";
-    if (!productForm.categoryId) nextErrors.categoryId = "La catégorie est requise.";
+    if (!productForm.categoryId) nextErrors.categoryId = "La catÃ©gorie est requise.";
     if (!productForm.price.trim() || !Number.isFinite(price) || price <= 0) {
       nextErrors.price = "Indiquez un prix positif.";
     }
@@ -862,7 +873,7 @@ export function MenuManager({
     }
 
     if (promoPrice !== null && Number.isFinite(price) && promoPrice >= price) {
-      nextErrors.promoPrice = "Le prix promo doit être inférieur au prix normal.";
+      nextErrors.promoPrice = "Le prix promo doit Ãªtre infÃ©rieur au prix normal.";
     }
 
     setProductErrors(nextErrors);
@@ -892,7 +903,7 @@ export function MenuManager({
         ...currentForm,
         imageUrl: result.imageUrl,
       }));
-      setActionMessage("Photo ajoutée au produit.");
+      setActionMessage("Photo ajoutÃ©e au produit.");
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Upload impossible.");
     } finally {
@@ -955,7 +966,7 @@ export function MenuManager({
 
       setDescriptionAiFeedback({
         type: "success",
-        text: "Description générée. Vous pouvez la modifier avant d'enregistrer.",
+        text: "Description gÃ©nÃ©rÃ©e. Vous pouvez la modifier avant d'enregistrer.",
       });
     } catch (error) {
       setDescriptionAiFeedback({
@@ -975,7 +986,7 @@ export function MenuManager({
     const unsupportedFile = files.find((file) => !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type));
 
     if (unsupportedFile) {
-      setActionError("Format non supporté pour l'import IA. Utilisez JPG, PNG ou WebP.");
+      setActionError("Format non supportÃ© pour l'import IA. Utilisez JPG, PNG ou WebP.");
       event.target.value = "";
       return;
     }
@@ -1021,13 +1032,13 @@ export function MenuManager({
         result.products.map((product, index) => ({
           id: `${Date.now()}-${index}`,
           name: product.name ?? "",
-          categoryName: product.categoryName ?? "À classer",
+          categoryName: product.categoryName ?? "Ã€ classer",
           price: typeof product.price === "number" ? formatPriceInput(product.price) : "",
           description: product.description ?? "",
         })),
       );
       setExpandedImportProductId(null);
-      setActionMessage(`${result.products.length} produit(s) détecté(s). Vérifiez avant import.`);
+      setActionMessage(`${result.products.length} produit(s) dÃ©tectÃ©(s). VÃ©rifiez avant import.`);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Lecture IA du menu impossible.");
       setMenuImportDraftProducts([]);
@@ -1058,7 +1069,7 @@ export function MenuManager({
       .filter((product) => product.name && product.categoryName && Number.isFinite(product.price) && product.price > 0);
 
     if (productsToImport.length === 0) {
-      setActionError("Aucun produit valide à importer.");
+      setActionError("Aucun produit valide Ã  importer.");
       return;
     }
 
@@ -1073,7 +1084,7 @@ export function MenuManager({
           });
 
           setActionMessage(
-            `${result.importedProducts} produit(s) importé(s). ${result.createdCategories} catégorie(s) créée(s).`,
+            `${result.importedProducts} produit(s) importÃ©(s). ${result.createdCategories} catÃ©gorie(s) crÃ©Ã©e(s).`,
           );
           closePanel();
         } catch (error) {
@@ -1138,7 +1149,7 @@ export function MenuManager({
     );
 
     if (duplicate) {
-      setCategoryError("Cette catégorie existe déjà.");
+      setCategoryError("Cette catÃ©gorie existe dÃ©jÃ .");
       return;
     }
 
@@ -1194,16 +1205,20 @@ export function MenuManager({
             isActive: !(category.isActive !== false),
           });
         } catch (error) {
-          setActionError(error instanceof Error ? error.message : "Mise à jour impossible.");
+          setActionError(error instanceof Error ? error.message : "Mise Ã  jour impossible.");
         }
       })();
     });
   }
 
   function removeCategory(category: MenuCategory) {
-    const confirmed = window.confirm(
-      `Supprimer la catégorie "${category.name}" ?\n\nSi elle contient des produits, la suppression sera refusée.`,
-    );
+    const productCount = productCountByCategoryId.get(category.id) ?? 0;
+    const confirmed =
+      productCount > 0
+        ? window.confirm(
+            `Supprimer la catÃ©gorie "${category.name}" ?\n\nElle contient ${productCount} produit(s). Ils seront archivÃ©s, rendus indisponibles et retirÃ©s de cette catÃ©gorie.`,
+          )
+        : window.confirm(`Supprimer la catÃ©gorie "${category.name}" ?`);
 
     if (!confirmed) return;
 
@@ -1212,7 +1227,16 @@ export function MenuManager({
         try {
           setActionError("");
           setActionMessage("");
-          await deleteMenuCategory({ categoryId: category.id });
+
+          const result = await deleteMenuCategory({
+            categoryId: category.id,
+            archiveProducts: productCount > 0,
+          });
+
+          if (result.archivedProducts > 0) {
+            setActionMessage(`${result.archivedProducts} produit(s) archivÃ©(s). CatÃ©gorie supprimÃ©e.`);
+          }
+
           setCategoryForm(emptyCategoryForm);
         } catch (error) {
           setActionError(error instanceof Error ? error.message : "Suppression impossible.");
@@ -1220,7 +1244,6 @@ export function MenuManager({
       })();
     });
   }
-
   function toggleAvailability(product: Product) {
     const nextAvailable = !(typeof product.available === "boolean" ? product.available : true);
 
@@ -1235,7 +1258,7 @@ export function MenuManager({
             available: nextAvailable,
           });
         } catch (error) {
-          setActionError(error instanceof Error ? error.message : "Mise à jour impossible.");
+          setActionError(error instanceof Error ? error.message : "Mise Ã  jour impossible.");
         }
       })();
     });
@@ -1243,7 +1266,7 @@ export function MenuManager({
 
   function deleteProduct(product: Product) {
     const confirmed = window.confirm(
-      `Supprimer "${product.name}" ?\n\nSi ce produit a déjà été commandé, il sera rendu indisponible au lieu d’être supprimé.`,
+      `Supprimer "${product.name}" ?\n\nSi ce produit a dÃ©jÃ  Ã©tÃ© commandÃ©, il sera rendu indisponible au lieu dâ€™Ãªtre supprimÃ©.`,
     );
 
     if (!confirmed) return;
@@ -1314,7 +1337,7 @@ export function MenuManager({
           >
             <span className="inline-flex items-center gap-3">
               <FolderPlus className="size-7" />
-              Ajouter catégorie
+              Ajouter catÃ©gorie
             </span>
           </button>
 
@@ -1326,7 +1349,7 @@ export function MenuManager({
           >
             <span className="inline-flex items-center gap-3">
               <FolderCog className="size-7" />
-              Gérer catégories
+              GÃ©rer catÃ©gories
             </span>
           </button>
         </div>
@@ -1334,9 +1357,9 @@ export function MenuManager({
 
       {activeCategories.length === 0 ? (
         <section className="mt-6 rounded-[1.35rem] border border-dashed border-emerald-200 bg-emerald-50/70 p-6 text-center">
-          <h2 className="text-2xl font-black tracking-tight text-emerald-900">Commencez par créer une catégorie</h2>
+          <h2 className="text-2xl font-black tracking-tight text-emerald-900">Commencez par crÃ©er une catÃ©gorie</h2>
           <p className="mt-2 text-base font-semibold text-slate-600">
-            Ajoutez vos premières catégories et plats pour préparer votre menu QR.
+            Ajoutez vos premiÃ¨res catÃ©gories et plats pour prÃ©parer votre menu QR.
           </p>
         </section>
       ) : null}
@@ -1413,7 +1436,7 @@ export function MenuManager({
           ))
         ) : (
           <section className="rounded-[1.35rem] border border-dashed border-emerald-200 bg-emerald-50/70 p-6 text-center">
-            <h2 className="text-2xl font-black tracking-tight text-emerald-900">Aucun produit trouvé</h2>
+            <h2 className="text-2xl font-black tracking-tight text-emerald-900">Aucun produit trouvÃ©</h2>
             <p className="mt-2 text-base font-semibold text-slate-600">
               Modifiez la recherche ou ajoutez un produit.
             </p>
@@ -1435,7 +1458,7 @@ export function MenuManager({
               />
             </Field>
 
-            <Field label="Catégorie" error={productErrors.categoryId}>
+            <Field label="CatÃ©gorie" error={productErrors.categoryId}>
               <select
                 value={productForm.categoryId}
                 onChange={(event) =>
@@ -1447,7 +1470,7 @@ export function MenuManager({
                 }
                 className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
               >
-                <option value="">Choisir une catégorie</option>
+                <option value="">Choisir une catÃ©gorie</option>
                 {activeCategories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -1457,7 +1480,7 @@ export function MenuManager({
             </Field>
 
             <div className="grid gap-3">
-          <Field label="Prix" error={productErrors.price} helper="Prix affiché au client">
+          <Field label="Prix" error={productErrors.price} helper="Prix affichÃ© au client">
                 <input
                   inputMode="decimal"
                   value={productForm.price}
@@ -1467,7 +1490,7 @@ export function MenuManager({
                 />
               </Field>
 
-              <Field label="Prix promo" error={productErrors.promoPrice} helper="Optionnel, doit être inférieur au prix normal">
+              <Field label="Prix promo" error={productErrors.promoPrice} helper="Optionnel, doit Ãªtre infÃ©rieur au prix normal">
                 <input
                   inputMode="decimal"
                   value={productForm.promoPrice}
@@ -1480,7 +1503,7 @@ export function MenuManager({
 
             <Field
               label="Description"
-              helper="Ajoutez quelques ingrédients ou infos, puis laissez l'IA proposer une description courte."
+              helper="Ajoutez quelques ingrÃ©dients ou infos, puis laissez l'IA proposer une description courte."
             >
               <textarea
                 value={productForm.description}
@@ -1496,7 +1519,7 @@ export function MenuManager({
                 disabled={isPending || isGeneratingDescription || !productForm.name.trim()}
                 className="mt-2 min-h-11 w-full rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50"
               >
-                {isGeneratingDescription ? "Génération en cours..." : "Générer une description avec IA"}
+                {isGeneratingDescription ? "GÃ©nÃ©ration en cours..." : "GÃ©nÃ©rer une description avec IA"}
               </button>
 
               {descriptionAiFeedback ? (
@@ -1517,7 +1540,7 @@ export function MenuManager({
               <div>
                 <p className="text-base font-black text-slate-800">Photo du produit</p>
                 <p className="mt-1 text-sm font-semibold text-slate-500">
-                  Ajoutez une photo depuis le téléphone ou prenez une photo directement.
+                  Ajoutez une photo depuis le tÃ©lÃ©phone ou prenez une photo directement.
                 </p>
               </div>
 
@@ -1601,13 +1624,13 @@ export function MenuManager({
             <div className="grid gap-3 rounded-2xl bg-slate-50 p-3">
               <Toggle
                 label="Produit disponible"
-                sublabel={productForm.available ? "Visible sur le menu client" : "Masqué du menu client"}
+                sublabel={productForm.available ? "Visible sur le menu client" : "MasquÃ© du menu client"}
                 checked={productForm.available}
                 onChange={(checked) => setProductForm({ ...productForm, available: checked })}
               />
 
               <Toggle
-                label="Produit recommandé"
+                label="Produit recommandÃ©"
                 sublabel={productForm.featured ? "Mis en avant sur le menu client" : "Affichage normal"}
                 checked={productForm.featured}
                 onChange={(checked) => setProductForm({ ...productForm, featured: checked })}
@@ -1662,13 +1685,13 @@ export function MenuManager({
               </button>
             </div>
 
-            {menuImportImageName ? <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">Photo analysée : {menuImportImageName}</p> : null}
+            {menuImportImageName ? <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">Photo analysÃ©e : {menuImportImageName}</p> : null}
             {isExtractingMenuPhoto ? <p className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-center text-sm font-black text-emerald-800">Analyse du menu en cours...</p> : null}
 
             {menuImportDraftProducts.length > 0 ? (
               <div className="grid gap-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-black uppercase tracking-wide text-slate-500">Produits détectés ({menuImportDraftProducts.length})</p>
+                  <p className="text-sm font-black uppercase tracking-wide text-slate-500">Produits dÃ©tectÃ©s ({menuImportDraftProducts.length})</p>
                   <p className="text-xs font-semibold text-slate-500">Corrigez avant import</p>
                 </div>
 
@@ -1687,9 +1710,9 @@ export function MenuManager({
                       </div>
 
                       <div className="grid grid-cols-[1fr_auto] gap-2">
-                        <input value={product.categoryName} onChange={(event) => updateMenuImportProduct(product.id, "categoryName", event.target.value)} placeholder="Catégorie" className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+                        <input value={product.categoryName} onChange={(event) => updateMenuImportProduct(product.id, "categoryName", event.target.value)} placeholder="CatÃ©gorie" className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
                         <button type="button" onClick={() => setExpandedImportProductId(expanded ? null : product.id)} className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600">
-                          {expanded ? "Fermer" : "Détail"}
+                          {expanded ? "Fermer" : "DÃ©tail"}
                         </button>
                       </div>
 
@@ -1702,13 +1725,13 @@ export function MenuManager({
               </div>
             ) : (
               <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
-                <span className="grid gap-2 text-sm font-bold text-slate-500"><ImageIcon className="mx-auto size-8" />Aucun produit détecté pour le moment</span>
+                <span className="grid gap-2 text-sm font-bold text-slate-500"><ImageIcon className="mx-auto size-8" />Aucun produit dÃ©tectÃ© pour le moment</span>
               </div>
             )}
 
             <div className="sticky bottom-0 z-10 -mx-1 grid gap-2 border-t border-slate-200 bg-white/95 px-1 pt-3 backdrop-blur">
               <button type="button" onClick={importMenuDraftProducts} disabled={isPending || isExtractingMenuPhoto || menuImportDraftProducts.length === 0} className="min-h-12 rounded-2xl bg-emerald-700 px-5 text-base font-black text-white shadow-green disabled:opacity-60">
-                <span className="inline-flex items-center gap-2"><Check className="size-5" />Importer les produits validés</span>
+                <span className="inline-flex items-center gap-2"><Check className="size-5" />Importer les produits validÃ©s</span>
               </button>
               <button type="button" onClick={closePanel} className="min-h-11 rounded-2xl border border-slate-200 bg-white px-5 text-base font-bold text-slate-700">Annuler</button>
             </div>
@@ -1717,9 +1740,9 @@ export function MenuManager({
       ) : null}
 
       {panelMode === "add-category" ? (
-        <Panel title="Ajouter une catégorie" onClose={closePanel}>
+        <Panel title="Ajouter une catÃ©gorie" onClose={closePanel}>
           <form className="grid gap-4" onSubmit={saveCategory}>
-            <Field label="Nom de la catégorie" error={categoryError}>
+            <Field label="Nom de la catÃ©gorie" error={categoryError}>
               <input
                 value={categoryForm.name}
                 onChange={(event) => {
@@ -1735,7 +1758,7 @@ export function MenuManager({
               disabled={isPending}
               className="min-h-14 rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green disabled:opacity-60"
             >
-              Enregistrer la catégorie
+              Enregistrer la catÃ©gorie
             </button>
 
             <button
@@ -1750,11 +1773,11 @@ export function MenuManager({
       ) : null}
 
       {panelMode === "manage-categories" ? (
-        <Panel title="Gérer les catégories" onClose={closePanel}>
+        <Panel title="GÃ©rer les catÃ©gories" onClose={closePanel}>
           <div className="grid gap-5">
             <form className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3" onSubmit={saveCategory}>
               <Field
-                label={categoryForm.id ? "Modifier la catégorie" : "Nouvelle catégorie"}
+                label={categoryForm.id ? "Modifier la catÃ©gorie" : "Nouvelle catÃ©gorie"}
                 error={categoryError}
               >
                 <input
@@ -1770,8 +1793,8 @@ export function MenuManager({
 
               {categoryForm.id ? (
                 <Toggle
-                  label="Catégorie active"
-                  sublabel={categoryForm.isActive ? "Visible dans les menus" : "Masquée des menus"}
+                  label="CatÃ©gorie active"
+                  sublabel={categoryForm.isActive ? "Visible dans les menus" : "MasquÃ©e des menus"}
                   checked={categoryForm.isActive}
                   onChange={(checked) => setCategoryForm({ ...categoryForm, isActive: checked })}
                 />
@@ -1782,7 +1805,7 @@ export function MenuManager({
                 disabled={isPending}
                 className="min-h-12 rounded-2xl bg-emerald-700 px-5 text-base font-black text-white shadow-green disabled:opacity-60"
               >
-                {categoryForm.id ? "Enregistrer la catégorie" : "Ajouter la catégorie"}
+                {categoryForm.id ? "Enregistrer la catÃ©gorie" : "Ajouter la catÃ©gorie"}
               </button>
 
               {categoryForm.id ? (
@@ -1808,7 +1831,7 @@ export function MenuManager({
                   <div>
                     <h3 className="text-xl font-black text-slate-950">{category.name}</h3>
                     <p className="mt-1 text-sm font-semibold text-slate-500">
-                      {category.isActive === false ? "Catégorie masquée" : "Catégorie active"}
+                      {category.isActive === false ? "Catégorie masquée" : "Catégorie active"} ·{" "}{productCountByCategoryId.get(category.id) ?? 0} produit(s)
                     </p>
                   </div>
 

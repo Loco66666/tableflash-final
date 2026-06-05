@@ -263,7 +263,7 @@ export async function updateMenuCategory(input: {
   return { ok: true };
 }
 
-export async function deleteMenuCategory(input: { categoryId: string }) {
+export async function deleteMenuCategory(input: { categoryId: string; archiveProducts?: boolean }) {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
 
@@ -286,7 +286,23 @@ export async function deleteMenuCategory(input: { categoryId: string }) {
   }
 
   if ((count ?? 0) > 0) {
-    throw new Error("Cette catégorie contient des produits. Déplacez-les ou supprimez-les avant.");
+    if (!input.archiveProducts) {
+      throw new Error(`Cette catégorie contient ${count} produit(s). Masquez ou archivez les produits avant suppression.`);
+    }
+
+    const { error: archiveError } = await supabase
+      .from("menu_products")
+      .update({
+        category_id: null,
+        is_available: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("restaurant_id", restaurant.id)
+      .eq("category_id", categoryId);
+
+    if (archiveError) {
+      throw new Error("Archivage des produits de la catégorie impossible.");
+    }
   }
 
   const { error } = await supabase
@@ -301,9 +317,11 @@ export async function deleteMenuCategory(input: { categoryId: string }) {
 
   revalidateMenuPaths(restaurant.slug);
 
-  return { ok: true };
+  return {
+    ok: true,
+    archivedProducts: count ?? 0,
+  };
 }
-
 export async function createMenuProduct(input: {
   name: string;
   categoryId: string;
