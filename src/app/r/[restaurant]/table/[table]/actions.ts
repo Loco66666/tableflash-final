@@ -3,11 +3,15 @@
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
-import type { OrderStatus } from "@/lib/types";
+import type { OrderStatus, ProductOptionsConfig, SelectedProductOption } from "@/lib/types";
 
 type OrderCartItemPayload = {
   menuItemId: string;
   quantity: number;
+  selectedOptions?: {
+    groupId: string;
+    itemId: string;
+  }[];
 };
 
 type CreatePublicOrderPayload = {
@@ -83,6 +87,7 @@ type MenuProductForOrder = {
   price: number | null;
   promo_price: number | null;
   is_available: boolean;
+  options_config?: ProductOptionsConfig | null;
 };
 
 type CreatedOrder = {
@@ -190,6 +195,67 @@ function getEffectivePrice(product: MenuProductForOrder) {
   return normalizeMoney(Number(product.price ?? 0));
 }
 
+function getSelectedOptionsFromConfig(
+  product: MenuProductForOrder,
+  selectedOptionIds: { groupId: string; itemId: string }[],
+): { ok: true; options: SelectedProductOption[]; optionTotal: number } | { ok: false } {
+  const groups = product.options_config?.groups ?? [];
+  const knownGroupIds = new Set(groups.map((group) => group.id));
+  const selectedByGroupId = new Map<string, string[]>();
+
+  for (const option of selectedOptionIds) {
+    if (!knownGroupIds.has(option.groupId)) {
+      return { ok: false };
+    }
+
+    const selectedItems = selectedByGroupId.get(option.groupId) ?? [];
+    if (!selectedItems.includes(option.itemId)) {
+      selectedItems.push(option.itemId);
+    }
+    selectedByGroupId.set(option.groupId, selectedItems);
+  }
+
+  const selectedOptions: SelectedProductOption[] = [];
+
+  for (const group of groups) {
+    const selectedItemIds = selectedByGroupId.get(group.id) ?? [];
+
+    if (group.required && selectedItemIds.length === 0) {
+      return { ok: false };
+    }
+
+    const allowsMultiple = group.type === "multiple_choice" || group.type === "supplement";
+
+    if (!allowsMultiple && selectedItemIds.length > 1) {
+      return { ok: false };
+    }
+
+    for (const itemId of selectedItemIds) {
+      const item = group.items.find((optionItem) => optionItem.id === itemId);
+
+      if (!item) {
+        return { ok: false };
+      }
+
+      selectedOptions.push({
+        groupId: group.id,
+        groupName: group.name,
+        itemId: item.id,
+        itemName: item.name,
+        price: normalizeMoney(Number(item.price ?? 0)),
+      });
+    }
+  }
+
+  const optionTotal = normalizeMoney(selectedOptions.reduce((total, option) => total + Math.max(0, option.price), 0));
+
+  return {
+    ok: true,
+    options: selectedOptions,
+    optionTotal,
+  };
+}
+
 function clampRating(value: number) {
   if (!Number.isFinite(value)) return 5;
   if (value <= 1) return 1;
@@ -214,26 +280,44 @@ function mapDbStatusToCustomerStatus(status: string, paymentStatus: string): Ord
 }
 
 function normalizeCartItems(items: OrderCartItemPayload[]) {
-  const quantitiesByProductId = new Map<string, number>();
+  const quantitiesByLineKey = new Map<
+    string,
+    {
+      menuItemId: string;
+      quantity: number;
+      selectedOptions: { groupId: string; itemId: string }[];
+    }
+  >();
 
   for (const item of items) {
     const menuItemId = cleanId(item.menuItemId);
     const quantity = Math.floor(Number(item.quantity));
+    const selectedOptions = (item.selectedOptions ?? [])
+      .map((option) => ({
+        groupId: cleanId(option.groupId),
+        itemId: cleanId(option.itemId),
+      }))
+      .filter((option) => option.groupId && option.itemId)
+      .slice(0, 20)
+      .sort((first, second) => `${first.groupId}:${first.itemId}`.localeCompare(`${second.groupId}:${second.itemId}`));
+    const lineKey = `${menuItemId}:${selectedOptions.map((option) => `${option.groupId}:${option.itemId}`).join("|")}`;
 
     if (!menuItemId || !Number.isFinite(quantity) || quantity <= 0) {
       continue;
     }
 
-    const currentQuantity = quantitiesByProductId.get(menuItemId) ?? 0;
+    const currentLine = quantitiesByLineKey.get(lineKey);
+    const currentQuantity = currentLine?.quantity ?? 0;
     const nextQuantity = Math.min(currentQuantity + quantity, MAX_ITEM_QUANTITY);
 
-    quantitiesByProductId.set(menuItemId, nextQuantity);
+    quantitiesByLineKey.set(lineKey, {
+      menuItemId,
+      quantity: nextQuantity,
+      selectedOptions,
+    });
   }
 
-  return [...quantitiesByProductId.entries()].slice(0, MAX_CART_LINES).map(([menuItemId, quantity]) => ({
-    menuItemId,
-    quantity,
-  }));
+  return [...quantitiesByLineKey.values()].slice(0, MAX_CART_LINES);
 }
 
 async function getPublicRestaurantForOrder(restaurantSlug: string) {
@@ -394,7 +478,7 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
 
   const { data: menuItems, error: menuItemsError } = await supabase
     .from("menu_products")
-    .select("id, name, price, promo_price, is_available")
+    .select("id, name, price, promo_price, is_available, options_config")
     .eq("restaurant_id", restaurant.id)
     .in("id", ids)
     .returns<MenuProductForOrder[]>();
@@ -423,7 +507,13 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
 
   const lines = normalizedItems.map((item) => {
     const menuItem = byId.get(item.menuItemId)!;
-    const unitPrice = getEffectivePrice(menuItem);
+    const selectedOptionsResult = getSelectedOptionsFromConfig(menuItem, item.selectedOptions);
+
+    if (!selectedOptionsResult.ok) {
+      return null;
+    }
+
+    const unitPrice = normalizeMoney(getEffectivePrice(menuItem) + selectedOptionsResult.optionTotal);
     const total = normalizeMoney(unitPrice * item.quantity);
 
     return {
@@ -432,10 +522,20 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
       quantity: item.quantity,
       unit_price: unitPrice,
       total,
+      selected_options: selectedOptionsResult.options,
     };
   });
 
-  const subtotal = normalizeMoney(lines.reduce((sum, line) => sum + line.total, 0));
+  if (lines.some((line) => line === null)) {
+    return {
+      ok: false,
+      message: "Un ou plusieurs choix produit ne sont plus disponibles.",
+    };
+  }
+
+  const validLines = lines as NonNullable<(typeof lines)[number]>[];
+
+  const subtotal = normalizeMoney(validLines.reduce((sum, line) => sum + line.total, 0));
   const subtotalCents = moneyToCents(subtotal);
 
   if (subtotal <= 0) {
@@ -484,7 +584,7 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
     };
   }
 
-  const orderItems = lines.map((line) => ({
+  const orderItems = validLines.map((line) => ({
     order_id: order.id,
     restaurant_id: restaurant.id,
     product_id: line.product_id,
@@ -496,6 +596,7 @@ export async function createPublicOrder(payload: CreatePublicOrderPayload): Prom
     quantity: line.quantity,
     total: line.total,
     total_cents: moneyToCents(line.total),
+    selected_options: line.selected_options,
   }));
 
   const { error: itemsError } = await supabase.from("order_items").insert(orderItems);

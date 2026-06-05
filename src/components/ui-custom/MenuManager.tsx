@@ -63,6 +63,7 @@ type MenuImportDraftProduct = {
   categoryName: string;
   price: string;
   description: string;
+  optionsConfig: ProductOptionsConfig;
 };
 
 type PanelMode = "add-product" | "edit-product" | "add-category" | "manage-categories" | "import-menu" | null;
@@ -1058,6 +1059,7 @@ export function MenuManager({
           categoryName?: string;
           price?: number;
           description?: string;
+          optionsConfig?: ProductOptionsConfig;
         }[];
         message?: string;
       } = {};
@@ -1079,6 +1081,7 @@ export function MenuManager({
           categoryName: product.categoryName ?? "À classer",
           price: typeof product.price === "number" ? formatPriceInput(product.price) : "",
           description: product.description ?? "",
+          optionsConfig: product.optionsConfig ?? createEmptyOptionsConfig(),
         })),
       );
       setExpandedImportProductId(null);
@@ -1109,6 +1112,7 @@ export function MenuManager({
         categoryName: product.categoryName.trim(),
         price: parsePrice(product.price),
         description: product.description.trim(),
+        optionsConfig: product.optionsConfig,
       }))
       .filter((product) => product.name && product.categoryName && Number.isFinite(product.price) && product.price > 0);
 
@@ -1996,6 +2000,7 @@ export function MenuManager({
 
                 {menuImportDraftProducts.map((product, index) => {
                   const expanded = expandedImportProductId === product.id;
+                  const optionGroupCount = product.optionsConfig.groups.length;
 
                   return (
                     <article key={product.id} className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
@@ -2015,8 +2020,27 @@ export function MenuManager({
                         </button>
                       </div>
 
+                      {optionGroupCount > 0 ? (
+                        <p className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
+                          Ce produit a peut-être des options : {optionGroupCount} groupe(s) détecté(s)
+                        </p>
+                      ) : null}
+
                       {expanded ? (
-                        <textarea value={product.description} onChange={(event) => updateMenuImportProduct(product.id, "description", event.target.value)} rows={2} placeholder="Description optionnelle" className="min-h-20 resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+                        <div className="grid gap-2">
+                          <textarea value={product.description} onChange={(event) => updateMenuImportProduct(product.id, "description", event.target.value)} rows={2} placeholder="Description optionnelle" className="min-h-20 resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+
+                          {optionGroupCount > 0 ? (
+                            <div className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3">
+                              <p className="text-xs font-black uppercase tracking-wide text-slate-500">Options à valider après import</p>
+                              {product.optionsConfig.groups.map((group) => (
+                                <p key={group.id} className="text-sm font-bold text-slate-700">
+                                  {group.name} : {group.items.map((item) => item.name).join(", ")}
+                                </p>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
                       ) : null}
                     </article>
                   );

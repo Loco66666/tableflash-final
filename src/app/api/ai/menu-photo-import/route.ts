@@ -15,6 +15,23 @@ type ExtractedMenuProduct = {
   categoryName: string;
   price: number;
   description?: string;
+  optionsConfig?: {
+    groups: {
+      id: string;
+      name: string;
+      type: "single_choice" | "multiple_choice" | "supplement" | "formula";
+      required: boolean;
+      items: {
+        id: string;
+        name: string;
+        price?: number;
+      }[];
+    }[];
+    allergens: string[];
+    availability: {
+      enabled: boolean;
+    };
+  };
 };
 
 function jsonError(message: string, status: number, headers?: HeadersInit) {
@@ -36,6 +53,16 @@ function getRateLimitKey(request: NextRequest, userId: string) {
 
 function cleanText(value: unknown, maxLength = 90) {
   return String(value ?? "").trim().replace(/\s+/g, " ").slice(0, maxLength);
+}
+
+function slugify(value: string) {
+  return value
+    .toLocaleLowerCase("fr-FR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
 }
 
 function parsePrice(value: unknown) {
@@ -84,18 +111,65 @@ function normalizeProducts(value: unknown): ExtractedMenuProduct[] {
   const products = Array.isArray(data.products) ? data.products : [];
 
   return products
-    .map((item) => {
+    .map((item, productIndex) => {
       const product = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
       const name = cleanText(product.name);
       const categoryName = cleanText(product.categoryName || product.category || "À classer");
       const price = Math.round(parsePrice(product.price) * 100) / 100;
       const description = cleanText(product.description, 160);
+      const rawOptionsConfig =
+        product.optionsConfig && typeof product.optionsConfig === "object"
+          ? (product.optionsConfig as Record<string, unknown>)
+          : {};
+      const rawGroups = Array.isArray(rawOptionsConfig.groups) ? rawOptionsConfig.groups : [];
+      const groups = rawGroups
+        .map((groupValue, groupIndex) => {
+          const group = groupValue && typeof groupValue === "object" ? (groupValue as Record<string, unknown>) : {};
+          const groupName = cleanText(group.name, 60);
+          const rawType = String(group.type ?? "single_choice");
+          const type = ["single_choice", "multiple_choice", "supplement", "formula"].includes(rawType)
+            ? (rawType as "single_choice" | "multiple_choice" | "supplement" | "formula")
+            : "single_choice";
+          const rawItems = Array.isArray(group.items) ? group.items : [];
+          const items = rawItems
+            .map((itemValue, itemIndex) => {
+              const option = itemValue && typeof itemValue === "object" ? (itemValue as Record<string, unknown>) : {};
+              const optionName = cleanText(option.name, 60);
+              const optionPrice = Math.max(0, Math.round(parsePrice(option.price ?? 0) * 100) / 100);
+
+              return {
+                id: slugify(`${groupName}-${optionName}`) || `option-${itemIndex + 1}`,
+                name: optionName,
+                price: Number.isFinite(optionPrice) ? optionPrice : 0,
+              };
+            })
+            .filter((option) => option.name)
+            .slice(0, 16);
+
+          return {
+            id: slugify(groupName) || `group-${productIndex + 1}-${groupIndex + 1}`,
+            name: groupName,
+            type,
+            required: Boolean(group.required),
+            items,
+          };
+        })
+        .filter((group) => group.name && group.items.length > 0)
+        .slice(0, 6);
 
       return {
         name,
         categoryName,
         price,
         description,
+        optionsConfig:
+          groups.length > 0
+            ? {
+                groups,
+                allergens: [],
+                availability: { enabled: false },
+              }
+            : undefined,
       };
     })
     .filter((product) => product.name && product.categoryName && Number.isFinite(product.price) && product.price > 0)
@@ -180,7 +254,7 @@ export async function POST(request: NextRequest) {
       "Tu extrais un menu de restaurant depuis une ou plusieurs photos.",
       "Retourne uniquement un JSON valide, sans markdown.",
       "Schéma attendu :",
-      '{ "products": [{ "name": "string", "categoryName": "string", "price": 12.9, "description": "string optionnel" }] }',
+      '{ "products": [{ "name": "string", "categoryName": "string", "price": 12.9, "description": "string optionnel", "optionsConfig": { "groups": [{ "id": "string", "name": "string", "type": "single_choice|multiple_choice|supplement|formula", "required": true, "items": [{ "id": "string", "name": "string", "price": 0 }] }], "allergens": [], "availability": { "enabled": false } } }] }',
       "Règles strictes :",
       "- français naturel",
       "- parcours toutes les colonnes, tous les encadrés et toutes les photos",
@@ -192,6 +266,13 @@ export async function POST(request: NextRequest) {
       "- les sections Formules, Menus, Menu enfant, Menus midi ou offres avec boisson/frites/dessert doivent devenir des produits importables",
       "- range ces offres dans une catégorie appelée Menus et formules sauf si une catégorie plus précise est écrite",
       "- mets le détail de la formule dans description quand il est lisible, par exemple boisson, frites, dessert, choix inclus",
+      "- si un produit demande un choix client, remplis optionsConfig.groups",
+      "- exemples d'options : taille pizza, sauce, viande, cuisson, boisson incluse, suppléments, formule seul/menu",
+      "- required true uniquement quand le choix semble obligatoire",
+      "- type formula pour seul/menu ou formule avec boisson/frites/dessert",
+      "- type supplement pour extras payants",
+      "- type multiple_choice pour sauces ou suppléments multiples",
+      "- mets price à 0 pour les choix inclus, et le supplément en euros pour les choix payants",
       "- si une catégorie est absente, déduis une catégorie simple comme Entrées, Plats, Desserts, Boissons",
       "- n'invente pas de produits ni de prix",
       "- si un même produit apparaît plusieurs fois, garde une seule ligne",

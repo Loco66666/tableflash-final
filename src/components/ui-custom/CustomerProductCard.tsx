@@ -18,6 +18,7 @@ export function CustomerProductCard({ product, onAdd }: CustomerProductCardProps
   const allergensLabel = formatAllergens(product.allergens);
   const hasPromoPrice = typeof product.promoPrice === "number" && product.promoPrice > 0;
   const isFeatured = Boolean(product.featured ?? product.promoted);
+  const hasOptions = (product.optionsConfig?.groups?.length ?? 0) > 0;
 
   return (
     <article className="grid grid-cols-[7.4rem_1fr] gap-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-card max-[370px]:grid-cols-[6.6rem_1fr]">
@@ -71,7 +72,7 @@ export function CustomerProductCard({ product, onAdd }: CustomerProductCardProps
           >
             <span className="inline-flex items-center gap-2">
               <Plus className="size-5" />
-              Ajouter
+              {hasOptions ? "Choisir" : "Ajouter"}
             </span>
           </button>
         </div>

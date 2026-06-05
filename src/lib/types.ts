@@ -21,6 +21,14 @@ export type ProductOptionsConfig = {
   };
 };
 
+export type SelectedProductOption = {
+  groupId: string;
+  groupName: string;
+  itemId: string;
+  itemName: string;
+  price: number;
+};
+
 export type OrderStatus = "new" | "accepted" | "payment_pending" | "paid" | "preparing" | "ready" | "served" | "refused";
 
 export type Category = {
@@ -55,6 +63,7 @@ export type OrderLine = {
   quantity: number;
   name?: string;
   unitPrice?: number;
+  selectedOptions?: SelectedProductOption[];
 };
 
 export type Order = {

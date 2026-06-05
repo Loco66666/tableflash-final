@@ -4,7 +4,7 @@ import { OrdersBoard } from "@/components/ui-custom/OrdersBoard";
 import { getCurrentRestaurantContext } from "@/lib/restaurant/get-current-restaurant";
 import { normalizeOrderFilterSlug } from "@/lib/orders";
 import { createClient } from "@/lib/supabase/server";
-import type { Order, OrderLine, OrderStatus } from "@/lib/types";
+import type { Order, OrderLine, OrderStatus, SelectedProductOption } from "@/lib/types";
 
 type OrdersPageProps = {
   searchParams: Promise<{ filter?: string | string[] }>;
@@ -34,6 +34,7 @@ type DbOrderItem = {
   unit_price: number;
   quantity: number;
   total: number;
+  selected_options?: SelectedProductOption[] | null;
   created_at: string | null;
 };
 
@@ -96,6 +97,7 @@ function buildOrderViewModel({
     quantity: line.quantity,
     name: line.product_name,
     unitPrice: Number(line.unit_price ?? 0),
+    selectedOptions: Array.isArray(line.selected_options) ? line.selected_options : [],
   }));
 
   return {
@@ -154,7 +156,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     orderIds.length > 0
       ? await supabase
           .from("order_items")
-          .select("id, order_id, product_id, product_name, unit_price, quantity, total, created_at")
+          .select("id, order_id, product_id, product_name, unit_price, quantity, total, selected_options, created_at")
           .in("order_id", orderIds)
           .returns<DbOrderItem[]>()
       : { data: [] as DbOrderItem[], error: null };

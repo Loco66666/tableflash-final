@@ -402,6 +402,7 @@ export async function importMenuProductsFromSuggestions(input: {
     categoryName: string;
     price: number;
     description?: string;
+    optionsConfig?: unknown;
   }[];
 }) {
   const { restaurant } = await getCurrentRestaurantContext();
@@ -412,6 +413,7 @@ export async function importMenuProductsFromSuggestions(input: {
       categoryName: product.categoryName.trim(),
       price: product.price,
       description: product.description?.trim() || null,
+      optionsConfig: product.optionsConfig ?? DEFAULT_OPTIONS_CONFIG,
     }))
     .filter((product) => product.name && product.categoryName);
 
@@ -500,7 +502,7 @@ export async function importMenuProductsFromSuggestions(input: {
       price,
       promo_price: null,
       image_url: null,
-      options_config: DEFAULT_OPTIONS_CONFIG,
+      options_config: suggestion.optionsConfig as Database["public"]["Tables"]["menu_products"]["Insert"]["options_config"],
       is_available: true,
       is_featured: false,
       sort_order: nextProductSortOrder,

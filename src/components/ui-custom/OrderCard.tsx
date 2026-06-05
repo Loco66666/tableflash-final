@@ -76,7 +76,14 @@ export function OrderCard({ order, statusChangeAction, refuseAction }: OrderCard
   const elapsedMinutes = useMemo(() => (now ? getElapsedMinutes(order, now) : null), [now, order]);
   const waitingLabel = useMemo(() => (now ? getWaitingLabel(order, now) : null), [now, order]);
   const waitingTone = elapsedMinutes === null ? "text-slate-500" : getWaitingToneClass(elapsedMinutes);
-  const itemPreviewLines = (order.lines ?? []).slice(0, 3).map((line) => `${line.quantity}× ${line.name ?? "Article"}`);
+  const itemPreviewLines = (order.lines ?? []).slice(0, 3).map((line) => {
+    const optionsLabel = (line.selectedOptions ?? [])
+      .map((option) => option.itemName)
+      .filter(Boolean)
+      .join(", ");
+
+    return `${line.quantity}× ${line.name ?? "Article"}${optionsLabel ? ` · ${optionsLabel}` : ""}`;
+  });
   const hiddenItemCount = Math.max(0, (order.lines?.length ?? 0) - itemPreviewLines.length);
 
   function handlePrimaryAction() {

@@ -1,10 +1,13 @@
 import { ChevronRight, Minus, Plus, ShoppingBasket, Trash2, X } from "lucide-react";
-import type { Product } from "@/lib/types";
+import type { Product, SelectedProductOption } from "@/lib/types";
 import { formatEuro } from "@/lib/utils";
 
 type BasketLine = {
+  id: string;
   product: Product;
   quantity: number;
+  selectedOptions: SelectedProductOption[];
+  unitPrice: number;
 };
 
 type CustomerCartBarProps = {
@@ -28,14 +31,6 @@ type CustomerCartBarProps = {
   onCustomerPhoneChange: (value: string) => void;
   onConfirm: () => void;
 };
-
-function getEffectiveProductPrice(product: Product) {
-  if (typeof product.promoPrice === "number" && product.promoPrice > 0) {
-    return product.promoPrice;
-  }
-
-  return product.price;
-}
 
 export function CustomerCartBar({
   itemCount,
@@ -131,14 +126,24 @@ export function CustomerCartBar({
             {lines.length > 0 ? (
               <div className="grid gap-3">
                 {lines.map((line) => {
-                  const unitPrice = getEffectiveProductPrice(line.product);
+                  const unitPrice = line.unitPrice;
 
                   return (
-                    <article key={line.product.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
+                    <article key={line.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h3 className="text-xl font-black leading-tight text-slate-950">{line.product.name}</h3>
                           <p className="mt-1 text-base font-bold text-(--tf-primary-800)">{formatEuro(unitPrice)} pièce</p>
+                          {line.selectedOptions.length > 0 ? (
+                            <ul className="mt-2 grid gap-1 text-sm font-semibold text-slate-500">
+                              {line.selectedOptions.map((option) => (
+                                <li key={`${option.groupId}-${option.itemId}`}>
+                                  {option.groupName} : {option.itemName}
+                                  {option.price > 0 ? ` (+ ${formatEuro(option.price)})` : ""}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
                         </div>
 
                         <strong className="shrink-0 text-xl font-black text-slate-950">
@@ -150,7 +155,7 @@ export function CustomerCartBar({
                         <div className="flex items-center gap-2 rounded-2xl bg-slate-50 p-1">
                           <button
                             type="button"
-                            onClick={() => onDecrease(line.product.id)}
+                            onClick={() => onDecrease(line.id)}
                             className="grid size-11 place-items-center rounded-xl bg-white text-slate-700 shadow-card"
                             aria-label={`Diminuer ${line.product.name}`}
                           >
@@ -161,7 +166,7 @@ export function CustomerCartBar({
 
                           <button
                             type="button"
-                            onClick={() => onIncrease(line.product.id)}
+                            onClick={() => onIncrease(line.id)}
                             className="grid size-11 place-items-center rounded-xl bg-white text-(--tf-primary-800) shadow-card"
                             aria-label={`Ajouter ${line.product.name}`}
                           >
@@ -171,7 +176,7 @@ export function CustomerCartBar({
 
                         <button
                           type="button"
-                          onClick={() => onRemove(line.product.id)}
+                          onClick={() => onRemove(line.id)}
                           className="min-h-11 rounded-xl px-3 text-red-600"
                           aria-label={`Retirer ${line.product.name}`}
                         >
