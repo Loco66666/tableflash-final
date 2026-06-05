@@ -41,6 +41,10 @@ function cleanId(value: string) {
   return value.trim();
 }
 
+function cleanIds(values: string[]) {
+  return [...new Set(values.map(cleanId).filter(Boolean))];
+}
+
 function getImageExtension(file: File) {
   const nameExtension = file.name.split(".").pop()?.toLowerCase();
 
@@ -655,6 +659,82 @@ export async function deleteMenuProduct(input: { productId: string }) {
     ok: true,
     mode: "deleted",
     message: "Produit supprimé.",
+  };
+}
+
+export async function bulkUpdateMenuProductsAvailability(input: {
+  productIds: string[];
+  available: boolean;
+}) {
+  const { restaurant } = await getCurrentRestaurantContext();
+  const supabase = await createClient();
+  const productIds = cleanIds(input.productIds);
+
+  if (productIds.length === 0) {
+    throw new Error("Aucun produit sélectionné.");
+  }
+
+  if (productIds.length > 120) {
+    throw new Error("Sélection limitée à 120 produits à la fois.");
+  }
+
+  const { data, error } = await supabase
+    .from("menu_products")
+    .update({
+      is_available: input.available,
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", productIds)
+    .eq("restaurant_id", restaurant.id)
+    .select("id")
+    .returns<{ id: string }[]>();
+
+  if (error) {
+    throw new Error("Mise à jour de la sélection impossible.");
+  }
+
+  revalidateMenuPaths(restaurant.slug);
+
+  return {
+    ok: true,
+    updatedProducts: data?.length ?? 0,
+  };
+}
+
+export async function bulkArchiveMenuProducts(input: { productIds: string[] }) {
+  const { restaurant } = await getCurrentRestaurantContext();
+  const supabase = await createClient();
+  const productIds = cleanIds(input.productIds);
+
+  if (productIds.length === 0) {
+    throw new Error("Aucun produit sélectionné.");
+  }
+
+  if (productIds.length > 120) {
+    throw new Error("Sélection limitée à 120 produits à la fois.");
+  }
+
+  const { data, error } = await supabase
+    .from("menu_products")
+    .update({
+      category_id: null,
+      is_available: false,
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", productIds)
+    .eq("restaurant_id", restaurant.id)
+    .select("id")
+    .returns<{ id: string }[]>();
+
+  if (error) {
+    throw new Error("Archivage de la sélection impossible.");
+  }
+
+  revalidateMenuPaths(restaurant.slug);
+
+  return {
+    ok: true,
+    archivedProducts: data?.length ?? 0,
   };
 }
 

@@ -19,6 +19,8 @@ import { ProductCard } from "@/components/ui-custom/ProductCard";
 import type { Category, Product, ProductOptionGroup, ProductOptionsConfig } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
+  bulkArchiveMenuProducts,
+  bulkUpdateMenuProductsAvailability,
   createMenuCategory,
   createMenuProduct,
   deleteMenuCategory,
@@ -727,6 +729,7 @@ export function MenuManager({
   const [descriptionAiFeedback, setDescriptionAiFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [search, setSearch] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(() => new Set());
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(emptyProductForm);
@@ -801,6 +804,11 @@ export function MenuManager({
       return matchesSearch && matchesCategory;
     });
   }, [products, search, selectedCategoryId]);
+
+  const selectedProductCount = selectedProductIds.size;
+  const visibleProductIds = useMemo(() => filteredProducts.map((product) => product.id), [filteredProducts]);
+  const allVisibleProductsSelected =
+    visibleProductIds.length > 0 && visibleProductIds.every((productId) => selectedProductIds.has(productId));
 
   function openAddProduct() {
     setEditingProductId(null);
@@ -1244,6 +1252,90 @@ export function MenuManager({
       })();
     });
   }
+
+  function toggleProductSelection(productId: string) {
+    setSelectedProductIds((currentSelection) => {
+      const nextSelection = new Set(currentSelection);
+
+      if (nextSelection.has(productId)) {
+        nextSelection.delete(productId);
+      } else {
+        nextSelection.add(productId);
+      }
+
+      return nextSelection;
+    });
+  }
+
+  function selectVisibleProducts() {
+    setSelectedProductIds((currentSelection) => new Set([...currentSelection, ...visibleProductIds]));
+  }
+
+  function clearProductSelection() {
+    setSelectedProductIds(new Set());
+  }
+
+  function bulkDisableSelection() {
+    const productIds = Array.from(selectedProductIds);
+
+    if (productIds.length === 0) return;
+
+    const confirmed = window.confirm(
+      `Rendre ${productIds.length} produit(s) indisponible(s) ?\n\nIls resteront dans votre catalogue, mais ne seront plus commandables côté client.`,
+    );
+
+    if (!confirmed) return;
+
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+          setActionMessage("");
+
+          const result = await bulkUpdateMenuProductsAvailability({
+            productIds,
+            available: false,
+          });
+
+          setSelectedProductIds(new Set());
+          setActionMessage(`${result.updatedProducts} produit(s) rendu(s) indisponible(s).`);
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Action groupée impossible.");
+        }
+      })();
+    });
+  }
+
+  function bulkArchiveSelection() {
+    const productIds = Array.from(selectedProductIds);
+
+    if (productIds.length === 0) return;
+
+    const confirmed = window.confirm(
+      `Archiver ${productIds.length} produit(s) ?\n\nIls seront retirés du menu et rendus indisponibles, mais l'historique des commandes sera conservé.`,
+    );
+
+    if (!confirmed) return;
+
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+          setActionMessage("");
+
+          const result = await bulkArchiveMenuProducts({
+            productIds,
+          });
+
+          setSelectedProductIds(new Set());
+          setActionMessage(`${result.archivedProducts} produit(s) archivé(s).`);
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Archivage groupé impossible.");
+        }
+      })();
+    });
+  }
+
   function toggleAvailability(product: Product) {
     const nextAvailable = !(typeof product.available === "boolean" ? product.available : true);
 
@@ -1278,6 +1370,12 @@ export function MenuManager({
           setActionMessage("");
 
           const result = await deleteMenuProduct({ productId: product.id });
+
+          setSelectedProductIds((currentSelection) => {
+            const nextSelection = new Set(currentSelection);
+            nextSelection.delete(product.id);
+            return nextSelection;
+          });
 
           if (result.message) {
             setActionMessage(result.message);
@@ -1406,34 +1504,120 @@ export function MenuManager({
         </button>
       </div>
 
+      {filteredProducts.length > 0 ? (
+        <div className="mb-4 grid gap-3 rounded-[1.2rem] border border-slate-200 bg-white p-3 shadow-card">
+          <div className="flex flex-col gap-2 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between">
+            <p className="text-sm font-black text-slate-700">
+              {selectedProductCount > 0
+                ? `${selectedProductCount} produit(s) sélectionné(s)`
+                : "Sélection rapide des produits"}
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={allVisibleProductsSelected ? clearProductSelection : selectVisibleProducts}
+                disabled={isPending}
+                className="min-h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-black text-slate-700 disabled:opacity-60"
+              >
+                {allVisibleProductsSelected ? "Tout désélectionner" : "Sélectionner la vue"}
+              </button>
+
+              {selectedProductCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={clearProductSelection}
+                  disabled={isPending}
+                  className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 disabled:opacity-60"
+                >
+                  Annuler
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {selectedProductCount > 0 ? (
+            <div className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-2">
+              <button
+                type="button"
+                onClick={bulkDisableSelection}
+                disabled={isPending}
+                className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 disabled:opacity-60"
+              >
+                Rendre indisponibles
+              </button>
+
+              <button
+                type="button"
+                onClick={bulkArchiveSelection}
+                disabled={isPending}
+                className="min-h-11 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 disabled:opacity-60"
+              >
+                Archiver la sélection
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="grid gap-4">
         {filteredProducts.length > 0 ? (
-          filteredProducts.map((product) => (
-            <div key={product.id} className="grid gap-2">
-              <ProductCard product={product} onEdit={openEditProduct} />
+          filteredProducts.map((product) => {
+            const isSelected = selectedProductIds.has(product.id);
 
-              <div className="flex flex-wrap gap-2">
+            return (
+              <div key={product.id} className="grid gap-2">
                 <button
                   type="button"
+                  onClick={() => toggleProductSelection(product.id)}
                   disabled={isPending}
-                  onClick={() => toggleAvailability(product)}
-                  className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-card disabled:opacity-60"
+                  className={cn(
+                    "flex min-h-11 items-center justify-between gap-3 rounded-xl border px-4 text-left text-sm font-black shadow-card transition disabled:opacity-60",
+                    isSelected
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                      : "border-slate-200 bg-white text-slate-600",
+                  )}
+                  aria-pressed={isSelected}
                 >
-                  {product.available ? "Rendre indisponible" : "Remettre disponible"}
+                  <span className="inline-flex min-w-0 items-center gap-3">
+                    <span
+                      className={cn(
+                        "grid size-5 shrink-0 place-items-center rounded-md border",
+                        isSelected ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-300 bg-white",
+                      )}
+                    >
+                      {isSelected ? <Check className="size-3.5" /> : null}
+                    </span>
+                    <span className="truncate">{isSelected ? "Sélectionné" : "Sélectionner ce produit"}</span>
+                  </span>
+                  <span className="min-w-0 truncate text-xs font-black text-slate-400">{product.name}</span>
                 </button>
 
-                <button
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => deleteProduct(product)}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 shadow-card disabled:opacity-60"
-                >
-                  <Trash2 className="size-4" />
-                  Supprimer
-                </button>
+                <ProductCard product={product} onEdit={openEditProduct} />
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => toggleAvailability(product)}
+                    className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-card disabled:opacity-60"
+                  >
+                    {product.available ? "Rendre indisponible" : "Remettre disponible"}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => deleteProduct(product)}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 shadow-card disabled:opacity-60"
+                  >
+                    <Trash2 className="size-4" />
+                    Supprimer
+                  </button>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <section className="rounded-[1.35rem] border border-dashed border-emerald-200 bg-emerald-50/70 p-6 text-center">
             <h2 className="text-2xl font-black tracking-tight text-emerald-900">Aucun produit trouvé</h2>
