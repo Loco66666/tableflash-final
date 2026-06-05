@@ -821,9 +821,15 @@ export function MenuManager({
         .map((product) => product.id),
     [filteredProducts, selectedCategoryId],
   );
+  const allAvailableProductIds = useMemo(
+    () => products.filter((product) => product.available !== false).map((product) => product.id),
+    [products],
+  );
   const selectableProductCount = selectableProductIds.length;
   const allVisibleProductsSelected =
     selectableProductIds.length > 0 && selectableProductIds.every((productId) => selectedProductIds.has(productId));
+  const allMenuProductsSelected =
+    allAvailableProductIds.length > 0 && allAvailableProductIds.every((productId) => selectedProductIds.has(productId));
   const selectionContextLabel = selectedFilterCategory
     ? `Produits disponibles de ${selectedFilterCategory.name}`
     : selectedCategoryId === "unavailable"
@@ -1320,6 +1326,10 @@ export function MenuManager({
     setSelectedProductIds((currentSelection) => new Set([...currentSelection, ...selectableProductIds]));
   }
 
+  function selectAllMenuProducts() {
+    setSelectedProductIds(new Set(allAvailableProductIds));
+  }
+
   function clearProductSelection() {
     setSelectedProductIds(new Set());
   }
@@ -1383,7 +1393,7 @@ export function MenuManager({
     if (productIds.length === 0) return;
 
     const confirmed = window.confirm(
-      `Archiver ${productIds.length} produit(s) ?\n\nIls seront retirés du menu et rendus indisponibles, mais l'historique des commandes sera conservé.`,
+      `Supprimer ${productIds.length} produit(s) du menu ?\n\nIls seront retirés du menu et rendus indisponibles, mais l'historique des commandes sera conservé.`,
     );
 
     if (!confirmed) return;
@@ -1399,7 +1409,7 @@ export function MenuManager({
           });
 
           setSelectedProductIds(new Set());
-          setActionMessage(`${result.archivedProducts} produit(s) archivé(s).`);
+          setActionMessage(`${result.archivedProducts} produit(s) retiré(s) du menu.`);
         } catch (error) {
           setActionError(error instanceof Error ? error.message : "Archivage groupé impossible.");
         }
@@ -1642,6 +1652,15 @@ export function MenuManager({
                 {allVisibleProductsSelected ? "Tout désélectionner" : selectVisibleButtonLabel}
               </button>
 
+              <button
+                type="button"
+                onClick={allMenuProductsSelected ? clearProductSelection : selectAllMenuProducts}
+                disabled={isPending || allAvailableProductIds.length === 0}
+                className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 disabled:opacity-60"
+              >
+                {allMenuProductsSelected ? "Désélectionner le menu" : "Sélectionner tout le menu"}
+              </button>
+
               {selectedProductCount > 0 ? (
                 <button
                   type="button"
@@ -1672,7 +1691,7 @@ export function MenuManager({
                 disabled={isPending}
                 className="min-h-11 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 disabled:opacity-60"
               >
-                Archiver la sélection
+                Supprimer/retirer la sélection
               </button>
             </div>
           ) : null}
@@ -1707,7 +1726,7 @@ export function MenuManager({
                     >
                       {isSelected ? <Check className="size-3.5" /> : null}
                     </span>
-                    <span className="truncate">{isSelected ? "Sélectionné" : "Sélectionner ce produit"}</span>
+                    <span className="truncate">{isSelected ? "Prêt à supprimer" : "Cocher pour suppression"}</span>
                   </span>
                   <span className="min-w-0 truncate text-xs font-black text-slate-400">{product.name}</span>
                 </button>
