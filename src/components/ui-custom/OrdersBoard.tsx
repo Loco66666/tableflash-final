@@ -15,29 +15,55 @@ import {
   type OrderFilter,
 } from "@/lib/orders";
 
-function playOrderSound() {
+const ORDER_SOUND_STORAGE_KEY = "tableflash:orders-sound";
+const SEEN_ORDER_IDS_STORAGE_KEY = "tableflash:seen-order-alerts";
+
+function readSeenOrderIds() {
+  try {
+    const rawValue = window.localStorage.getItem(SEEN_ORDER_IDS_STORAGE_KEY);
+    const parsedValue = rawValue ? JSON.parse(rawValue) : [];
+
+    return new Set(Array.isArray(parsedValue) ? parsedValue.filter((value) => typeof value === "string") : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function saveSeenOrderIds(orderIds: Set<string>) {
+  window.localStorage.setItem(SEEN_ORDER_IDS_STORAGE_KEY, JSON.stringify([...orderIds].slice(-80)));
+}
+
+async function playOrderSound() {
   const AudioContextConstructor =
     window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
 
   if (!AudioContextConstructor) return;
 
   const audioContext = new AudioContextConstructor();
-  const oscillator = audioContext.createOscillator();
-  const gain = audioContext.createGain();
 
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-  oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.12);
-  gain.gain.setValueAtTime(0.001, audioContext.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.18, audioContext.currentTime + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.42);
+  if (audioContext.state === "suspended") {
+    await audioContext.resume();
+  }
 
-  oscillator.connect(gain);
-  gain.connect(audioContext.destination);
-  oscillator.start();
-  oscillator.stop(audioContext.currentTime + 0.45);
+  [0, 0.42, 0.84].forEach((offset) => {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const startAt = audioContext.currentTime + offset;
 
-  window.setTimeout(() => void audioContext.close(), 650);
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(1046, startAt);
+    oscillator.frequency.setValueAtTime(784, startAt + 0.14);
+    gain.gain.setValueAtTime(0.001, startAt);
+    gain.gain.exponentialRampToValueAtTime(0.55, startAt + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.32);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + 0.34);
+  });
+
+  window.setTimeout(() => void audioContext.close(), 1_500);
 }
 
 function showBrowserNotification(title: string, customerName?: string) {
@@ -64,7 +90,7 @@ export function OrdersBoard({
   const [exportPeriod, setExportPeriod] = useState("today");
   const [lastRefreshLabel, setLastRefreshLabel] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(
-    () => typeof window !== "undefined" && window.localStorage.getItem("tableflash:orders-sound") === "enabled",
+    () => typeof window !== "undefined" && window.localStorage.getItem(ORDER_SOUND_STORAGE_KEY) === "enabled",
   );
   const [incomingAlert, setIncomingAlert] = useState("");
   const knownOrderIdsRef = useRef<Set<string> | null>(null);
@@ -103,22 +129,31 @@ export function OrdersBoard({
     const normalizedOrders = normalizeOrders(initialOrders);
     const nextOrderIds = new Set(normalizedOrders.map((order) => order.id));
     const previousOrderIds = knownOrderIdsRef.current;
+    const seenOrderIds = readSeenOrderIds();
 
-    if (previousOrderIds) {
-      const newActiveOrders = normalizedOrders.filter(
-        (order) => !previousOrderIds.has(order.id) && ["new", "payment_pending", "paid"].includes(order.status),
-      );
+    const newActiveOrders = normalizedOrders.filter((order) => {
+      const isActive = ["new", "payment_pending", "paid"].includes(order.status);
+      const wasAlreadyInThisTab = previousOrderIds?.has(order.id) ?? false;
+      const wasAlreadyAlerted = seenOrderIds.has(order.id);
 
-      if (newActiveOrders.length > 0) {
-        const latestOrder = newActiveOrders[0];
-        const label = latestOrder.orderNumber ? `Commande n°${latestOrder.orderNumber}` : "Nouvelle commande";
+      return isActive && !wasAlreadyInThisTab && !wasAlreadyAlerted;
+    });
 
-        setIncomingAlert(`${label} à traiter`);
+    if (newActiveOrders.length > 0) {
+      const latestOrder = newActiveOrders[0];
+      const label = latestOrder.orderNumber ? `Commande n°${latestOrder.orderNumber}` : "Nouvelle commande";
 
-        if (notificationsEnabled) {
-          playOrderSound();
-          showBrowserNotification(label, latestOrder.customerName);
-        }
+      setIncomingAlert(`${label} à traiter`);
+
+      for (const order of newActiveOrders) {
+        seenOrderIds.add(order.id);
+      }
+
+      saveSeenOrderIds(seenOrderIds);
+
+      if (notificationsEnabled) {
+        void playOrderSound();
+        showBrowserNotification(label, latestOrder.customerName);
       }
     }
 
@@ -130,9 +165,9 @@ export function OrdersBoard({
   }, [initialOrders, notificationsEnabled]);
 
   async function enableNotifications() {
-    window.localStorage.setItem("tableflash:orders-sound", "enabled");
+    window.localStorage.setItem(ORDER_SOUND_STORAGE_KEY, "enabled");
     setNotificationsEnabled(true);
-    playOrderSound();
+    await playOrderSound();
 
     if ("Notification" in window && Notification.permission === "default") {
       await Notification.requestPermission();
@@ -140,7 +175,7 @@ export function OrdersBoard({
   }
 
   function disableNotifications() {
-    window.localStorage.removeItem("tableflash:orders-sound");
+    window.localStorage.removeItem(ORDER_SOUND_STORAGE_KEY);
     setNotificationsEnabled(false);
   }
 
@@ -241,17 +276,16 @@ export function OrdersBoard({
         </div>
 
         <div className="flex items-center justify-between gap-3 min-[430px]:justify-end">
-          {lastRefreshLabel ? (
-            <span className="text-xs font-semibold text-slate-500">Mis à jour {lastRefreshLabel}</span>
-          ) : (
-            <span className="text-xs font-semibold text-slate-500">Actualisation active</span>
-          )}
+          <span className="min-w-0 text-xs font-semibold text-slate-500">
+            {lastRefreshLabel ? `Mis à jour ${lastRefreshLabel}` : "Actualisation active"}
+            {!notificationsEnabled ? " · activez le son avant service" : ""}
+          </span>
 
           <button
             type="button"
             onClick={notificationsEnabled ? disableNotifications : enableNotifications}
             className={cn(
-              "inline-flex min-h-12 items-center justify-center rounded-xl border px-3 transition active:scale-[0.99]",
+              "inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-black transition active:scale-[0.99]",
               notificationsEnabled
                 ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                 : "border-slate-200 text-slate-700",
@@ -260,6 +294,7 @@ export function OrdersBoard({
             title={notificationsEnabled ? "Son commandes actif" : "Activer le son commandes"}
           >
             {notificationsEnabled ? <Volume2 className="size-5" /> : <VolumeX className="size-5" />}
+            <span className="hidden sm:inline">{notificationsEnabled ? "Alertes ON" : "Alertes OFF"}</span>
           </button>
 
           <button
