@@ -120,6 +120,38 @@ function formatPriceInput(value: number) {
   });
 }
 
+function getMenuFamily(categoryName: string) {
+  const normalizedName = normalizeText(categoryName);
+
+  if (normalizedName.includes("pizza")) return { id: "family-pizza", name: "Pizza" };
+  if (
+    normalizedName.includes("sandwich") ||
+    normalizedName.includes("burger") ||
+    normalizedName.includes("wrap")
+  ) {
+    return { id: "family-sandwich", name: "Sandwich" };
+  }
+  if (normalizedName.includes("tacos")) return { id: "family-tacos", name: "Tacos" };
+  if (normalizedName.includes("salade")) return { id: "family-salades", name: "Salades" };
+  if (normalizedName.includes("assiette")) return { id: "family-assiettes", name: "Assiettes" };
+  if (normalizedName.includes("pate")) return { id: "family-pates", name: "Pâtes" };
+  if (normalizedName.includes("plat")) return { id: "family-plats", name: "Plats" };
+  if (normalizedName.includes("menu") || normalizedName.includes("formule")) {
+    return { id: "family-menus", name: "Menus et formules" };
+  }
+  if (normalizedName.includes("boisson") || normalizedName.includes("soda") || normalizedName.includes("eau")) {
+    return { id: "family-boissons", name: "Boissons" };
+  }
+  if (normalizedName.includes("dessert") || normalizedName.includes("glace")) {
+    return { id: "family-desserts", name: "Desserts" };
+  }
+
+  return {
+    id: `family-${normalizedName || "autres"}`,
+    name: categoryName || "Autres",
+  };
+}
+
 function getProductForm(product: Product): ProductFormState {
   return {
     name: product.name ?? "",
@@ -760,22 +792,41 @@ export function MenuManager({
     [menuCategories],
   );
 
-  const filterCategories = useMemo(
-    () => [{ id: "all", name: "Tous", icon: "sparkles", isActive: true }, ...activeCategories],
-    [activeCategories],
-  );
-
   const categoryById = useMemo(
     () => new Map(menuCategories.map((category) => [category.id, category])),
     [menuCategories],
   );
 
+  const filterCategories = useMemo(() => {
+    const familyById = new Map<string, { id: string; name: string; icon: string; isActive: boolean }>();
+
+    for (const category of activeCategories) {
+      const family = getMenuFamily(category.name);
+      if (!familyById.has(family.id)) {
+        familyById.set(family.id, {
+          ...family,
+          icon: "sparkles",
+          isActive: true,
+        });
+      }
+    }
+
+    return [{ id: "all", name: "Tous", icon: "sparkles", isActive: true }, ...familyById.values()];
+  }, [activeCategories]);
+
   const products = useMemo(
     () =>
-      initialProducts.map((product) => ({
-        ...product,
-        categoryName: categoryById.get(product.categoryId)?.name ?? "Catégorie",
-      })),
+      initialProducts.map((product) => {
+        const categoryName = categoryById.get(product.categoryId)?.name ?? "Catégorie";
+        const family = getMenuFamily(categoryName);
+
+        return {
+          ...product,
+          categoryName,
+          categoryFamilyId: family.id,
+          categoryFamilyName: family.name,
+        };
+      }),
     [categoryById, initialProducts],
   );
 
@@ -806,7 +857,7 @@ export function MenuManager({
           ? isAvailable
           : selectedCategoryId === "unavailable"
             ? !isAvailable
-            : isAvailable && product.categoryId === selectedCategoryId;
+            : isAvailable && product.categoryFamilyId === selectedCategoryId;
 
       return matchesSearch && matchesCategory;
     });
@@ -814,8 +865,11 @@ export function MenuManager({
 
   const selectedProductCount = selectedProductIds.size;
   const selectedFilterCategory = useMemo(
-    () => (selectedCategoryId === "all" || selectedCategoryId === "unavailable" ? null : categoryById.get(selectedCategoryId)),
-    [categoryById, selectedCategoryId],
+    () =>
+      selectedCategoryId === "all" || selectedCategoryId === "unavailable"
+        ? null
+        : filterCategories.find((category) => category.id === selectedCategoryId) ?? null,
+    [filterCategories, selectedCategoryId],
   );
   const selectableProductIds = useMemo(
     () =>
@@ -843,6 +897,36 @@ export function MenuManager({
     : selectedCategoryId === "unavailable"
       ? "Sélectionner les indisponibles"
       : "Sélectionner la vue";
+  const productSections = useMemo(() => {
+    const shouldGroupBySubcategory = selectedCategoryId !== "all" && selectedCategoryId !== "unavailable";
+
+    if (!shouldGroupBySubcategory) {
+      return [
+        {
+          id: "all-products",
+          title: null as string | null,
+          products: filteredProducts,
+        },
+      ];
+    }
+
+    const sections = new Map<string, { id: string; title: string; products: typeof filteredProducts }>();
+
+    for (const product of filteredProducts) {
+      const title = product.categoryName ?? "Autres";
+      const id = normalizeText(title) || "autres";
+      const section = sections.get(id) ?? {
+        id,
+        title,
+        products: [],
+      };
+
+      section.products.push(product);
+      sections.set(id, section);
+    }
+
+    return [...sections.values()];
+  }, [filteredProducts, selectedCategoryId]);
   const categoryEditProducts = useMemo(
     () => (categoryForm.id ? products.filter((product) => product.categoryId === categoryForm.id) : []),
     [categoryForm.id, products],
@@ -1707,62 +1791,75 @@ export function MenuManager({
 
       <div className="grid gap-4">
         {filteredProducts.length > 0 ? (
-          filteredProducts.map((product) => {
-            const isSelected = selectedProductIds.has(product.id);
-
-            return (
-              <div key={product.id} className="grid gap-2">
-                <button
-                  type="button"
-                  onClick={() => toggleProductSelection(product.id)}
-                  disabled={isPending}
-                  className={cn(
-                    "flex min-h-11 items-center justify-between gap-3 rounded-xl border px-4 text-left text-sm font-black shadow-card transition disabled:opacity-60",
-                    isSelected
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                      : "border-slate-200 bg-white text-slate-600",
-                  )}
-                  aria-pressed={isSelected}
-                >
-                  <span className="inline-flex min-w-0 items-center gap-3">
-                    <span
-                      className={cn(
-                        "grid size-5 shrink-0 place-items-center rounded-md border",
-                        isSelected ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-300 bg-white",
-                      )}
-                    >
-                      {isSelected ? <Check className="size-3.5" /> : null}
-                    </span>
-                    <span className="truncate">{isSelected ? "Prêt à supprimer" : "Cocher pour suppression"}</span>
+          productSections.map((section) => (
+            <section key={section.id} className="grid gap-3">
+              {section.title ? (
+                <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2">
+                  <h2 className="text-lg font-black text-slate-950">{section.title}</h2>
+                  <span className="shrink-0 text-xs font-black uppercase tracking-wide text-slate-400">
+                    {section.products.length} produit(s)
                   </span>
-                  <span className="min-w-0 truncate text-xs font-black text-slate-400">{product.name}</span>
-                </button>
-
-                <ProductCard product={product} onEdit={openEditProduct} />
-
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => toggleAvailability(product)}
-                    className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-card disabled:opacity-60"
-                  >
-                    {product.available ? "Rendre indisponible" : "Remettre disponible"}
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => deleteProduct(product)}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 shadow-card disabled:opacity-60"
-                  >
-                    <Trash2 className="size-4" />
-                    Supprimer
-                  </button>
                 </div>
-              </div>
-            );
-          })
+              ) : null}
+
+              {section.products.map((product) => {
+                const isSelected = selectedProductIds.has(product.id);
+
+                return (
+                  <div key={product.id} className="grid gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleProductSelection(product.id)}
+                      disabled={isPending}
+                      className={cn(
+                        "flex min-h-11 items-center justify-between gap-3 rounded-xl border px-4 text-left text-sm font-black shadow-card transition disabled:opacity-60",
+                        isSelected
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                          : "border-slate-200 bg-white text-slate-600",
+                      )}
+                      aria-pressed={isSelected}
+                    >
+                      <span className="inline-flex min-w-0 items-center gap-3">
+                        <span
+                          className={cn(
+                            "grid size-5 shrink-0 place-items-center rounded-md border",
+                            isSelected ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-300 bg-white",
+                          )}
+                        >
+                          {isSelected ? <Check className="size-3.5" /> : null}
+                        </span>
+                        <span className="truncate">{isSelected ? "Prêt à supprimer" : "Cocher pour suppression"}</span>
+                      </span>
+                      <span className="min-w-0 truncate text-xs font-black text-slate-400">{product.name}</span>
+                    </button>
+
+                    <ProductCard product={product} onEdit={openEditProduct} />
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => toggleAvailability(product)}
+                        className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-card disabled:opacity-60"
+                      >
+                        {product.available ? "Rendre indisponible" : "Remettre disponible"}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => deleteProduct(product)}
+                        className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 shadow-card disabled:opacity-60"
+                      >
+                        <Trash2 className="size-4" />
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </section>
+          ))
         ) : (
           <section className="rounded-[1.35rem] border border-dashed border-emerald-200 bg-emerald-50/70 p-6 text-center">
             <h2 className="text-2xl font-black tracking-tight text-emerald-900">Aucun produit trouvé</h2>
