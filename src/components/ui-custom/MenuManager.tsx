@@ -722,6 +722,8 @@ export function MenuManager({
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const menuImportFileInputRef = useRef<HTMLInputElement | null>(null);
   const menuImportCameraInputRef = useRef<HTMLInputElement | null>(null);
+  const categoryFormRef = useRef<HTMLFormElement | null>(null);
+  const categoryNameInputRef = useRef<HTMLInputElement | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
@@ -1198,6 +1200,12 @@ export function MenuManager({
     setCategoryError("");
     setActionError("");
     setActionMessage("");
+
+    window.requestAnimationFrame(() => {
+      categoryFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      categoryNameInputRef.current?.focus();
+      categoryNameInputRef.current?.select();
+    });
   }
 
   function toggleCategory(category: MenuCategory) {
@@ -1959,12 +1967,17 @@ export function MenuManager({
       {panelMode === "manage-categories" ? (
         <Panel title="Gérer les catégories" onClose={closePanel}>
           <div className="grid gap-5">
-            <form className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3" onSubmit={saveCategory}>
+            <form
+              ref={categoryFormRef}
+              className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3"
+              onSubmit={saveCategory}
+            >
               <Field
                 label={categoryForm.id ? "Modifier la catégorie" : "Nouvelle catégorie"}
                 error={categoryError}
               >
                 <input
+                  ref={categoryNameInputRef}
                   value={categoryForm.name}
                   onChange={(event) => {
                     setCategoryForm({ ...categoryForm, name: event.target.value });
