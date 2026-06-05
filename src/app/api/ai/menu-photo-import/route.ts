@@ -3,6 +3,8 @@ import { getCurrentProfileResult, getCurrentUser } from "@/lib/auth/get-current-
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
+const MAX_TOTAL_IMAGE_SIZE = 24 * 1024 * 1024;
+const MAX_IMAGES = 8;
 const MAX_PRODUCTS = 80;
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 8;
@@ -138,35 +140,58 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const file = formData.get("file");
+    const files = [...formData.getAll("files"), formData.get("file")].filter(
+      (value): value is File => value instanceof File && value.size > 0,
+    );
 
-    if (!(file instanceof File)) {
-      return jsonError("Ajoutez une photo de menu.", 400);
+    if (files.length === 0) {
+      return jsonError("Ajoutez au moins une photo de menu.", 400);
     }
 
-    if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
-      return jsonError("Format non supporté. Utilisez une photo JPG, PNG ou WebP.", 400);
+    if (files.length > MAX_IMAGES) {
+      return jsonError(`Import limité à ${MAX_IMAGES} photos à la fois.`, 400);
     }
 
-    if (file.size > MAX_IMAGE_SIZE) {
-      return jsonError("Photo trop lourde. Maximum 8 Mo.", 400);
+    const totalSize = files.reduce((total, file) => total + file.size, 0);
+
+    if (totalSize > MAX_TOTAL_IMAGE_SIZE) {
+      return jsonError("Photos trop lourdes. Maximum 24 Mo au total.", 400);
     }
 
-    const imageBase64 = Buffer.from(await file.arrayBuffer()).toString("base64");
-    const imageUrl = `data:${file.type};base64,${imageBase64}`;
+    for (const file of files) {
+      if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
+        return jsonError("Format non supporté. Utilisez des photos JPG, PNG ou WebP.", 400);
+      }
+
+      if (file.size > MAX_IMAGE_SIZE) {
+        return jsonError("Une photo est trop lourde. Maximum 8 Mo par photo.", 400);
+      }
+    }
+
+    const imageInputs = await Promise.all(
+      files.map(async (file) => ({
+        type: "input_image",
+        image_url: `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`,
+        detail: "high",
+      })),
+    );
 
     const prompt = [
-      "Tu extrais un menu de restaurant depuis une photo.",
+      "Tu extrais un menu de restaurant depuis une ou plusieurs photos.",
       "Retourne uniquement un JSON valide, sans markdown.",
       "Schéma attendu :",
       '{ "products": [{ "name": "string", "categoryName": "string", "price": 12.9, "description": "string optionnel" }] }',
       "Règles strictes :",
       "- français naturel",
-      "- ne garde que les produits avec un prix lisible",
+      "- parcours toutes les colonnes, tous les encadrés et toutes les photos",
+      "- extrais chaque produit visible, sans te limiter aux premiers éléments",
+      "- ne garde que les produits avec un prix lisible ou un prix de section clairement applicable",
       "- prix en euros sous forme de nombre",
       "- regroupe dans des catégories courtes et utiles",
+      "- garde les noms commerciaux courts tels qu'ils apparaissent",
       "- si une catégorie est absente, déduis une catégorie simple comme Entrées, Plats, Desserts, Boissons",
       "- n'invente pas de produits ni de prix",
+      "- si un même produit apparaît plusieurs fois, garde une seule ligne",
       "- limite à 80 produits",
     ].join("\n");
 
@@ -177,7 +202,7 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MENU_IMPORT_MODEL || "gpt-4o-mini",
+        model: process.env.OPENAI_MENU_IMPORT_MODEL || "gpt-4.1-mini",
         input: [
           {
             role: "user",
@@ -186,15 +211,11 @@ export async function POST(request: NextRequest) {
                 type: "input_text",
                 text: prompt,
               },
-              {
-                type: "input_image",
-                image_url: imageUrl,
-                detail: "high",
-              },
+              ...imageInputs,
             ],
           },
         ],
-        max_output_tokens: 3500,
+        max_output_tokens: 9000,
       }),
     });
 

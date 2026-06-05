@@ -735,6 +735,7 @@ export function MenuManager({
   const [categoryError, setCategoryError] = useState("");
   const [menuImportDraftProducts, setMenuImportDraftProducts] = useState<MenuImportDraftProduct[]>([]);
   const [menuImportImageName, setMenuImportImageName] = useState("");
+  const [expandedImportProductId, setExpandedImportProductId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
 
@@ -827,6 +828,7 @@ export function MenuManager({
   function openMenuImport() {
     setMenuImportDraftProducts([]);
     setMenuImportImageName("");
+    setExpandedImportProductId(null);
     setActionError("");
     setActionMessage("");
     setPanelMode("import-menu");
@@ -966,23 +968,27 @@ export function MenuManager({
   }
 
   async function extractMenuPhoto(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files ?? []);
 
-    if (!file) return;
+    if (files.length === 0) return;
 
-    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+    const unsupportedFile = files.find((file) => !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type));
+
+    if (unsupportedFile) {
       setActionError("Format non supporté pour l'import IA. Utilisez JPG, PNG ou WebP.");
       event.target.value = "";
       return;
     }
 
     const formData = new FormData();
-    formData.append("file", file);
+    for (const file of files) {
+      formData.append("files", file);
+    }
 
     setIsExtractingMenuPhoto(true);
     setActionError("");
     setActionMessage("");
-    setMenuImportImageName(file.name);
+    setMenuImportImageName(files.length === 1 ? files[0].name : `${files.length} photos`);
 
     try {
       const response = await fetch("/api/ai/menu-photo-import", {
@@ -1020,6 +1026,7 @@ export function MenuManager({
           description: product.description ?? "",
         })),
       );
+      setExpandedImportProductId(null);
       setActionMessage(`${result.products.length} produit(s) détecté(s). Vérifiez avant import.`);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Lecture IA du menu impossible.");
@@ -1643,7 +1650,7 @@ export function MenuManager({
               </p>
             </div>
 
-            <input ref={menuImportFileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={extractMenuPhoto} />
+            <input ref={menuImportFileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="hidden" onChange={extractMenuPhoto} />
             <input ref={menuImportCameraInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" capture="environment" className="hidden" onChange={extractMenuPhoto} />
 
             <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-2">
@@ -1651,7 +1658,7 @@ export function MenuManager({
                 <span className="inline-flex items-center gap-2"><Camera className="size-5" />Prendre photo</span>
               </button>
               <button type="button" onClick={() => menuImportFileInputRef.current?.click()} disabled={isExtractingMenuPhoto || isPending} className="min-h-12 rounded-2xl border border-slate-200 bg-white px-4 text-base font-black text-emerald-800 disabled:opacity-60">
-                <span className="inline-flex items-center gap-2"><Upload className="size-5" />Choisir photo</span>
+                <span className="inline-flex items-center gap-2"><Upload className="size-5" />Choisir photos</span>
               </button>
             </div>
 
@@ -1665,22 +1672,33 @@ export function MenuManager({
                   <p className="text-xs font-semibold text-slate-500">Corrigez avant import</p>
                 </div>
 
-                {menuImportDraftProducts.map((product, index) => (
-                  <article key={product.id} className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-xs font-black text-emerald-800">{index + 1}</span>
-                      <button type="button" onClick={() => removeMenuImportProduct(product.id)} className="grid size-9 shrink-0 place-items-center rounded-xl border border-red-100 bg-white text-red-600" aria-label="Retirer ce produit">
-                        <X className="size-4" />
-                      </button>
-                    </div>
-                    <input value={product.name} onChange={(event) => updateMenuImportProduct(product.id, "name", event.target.value)} placeholder="Nom du produit" className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
-                    <div className="grid gap-2 min-[430px]:grid-cols-[1fr_112px]">
-                      <input value={product.categoryName} onChange={(event) => updateMenuImportProduct(product.id, "categoryName", event.target.value)} placeholder="Catégorie" className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
-                      <input value={product.price} inputMode="decimal" onChange={(event) => updateMenuImportProduct(product.id, "price", event.target.value)} placeholder="Prix" className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
-                    </div>
-                    <textarea value={product.description} onChange={(event) => updateMenuImportProduct(product.id, "description", event.target.value)} rows={2} placeholder="Description optionnelle" className="min-h-20 resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
-                  </article>
-                ))}
+                {menuImportDraftProducts.map((product, index) => {
+                  const expanded = expandedImportProductId === product.id;
+
+                  return (
+                    <article key={product.id} className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                      <div className="grid grid-cols-[32px_1fr_92px_40px] items-center gap-2">
+                        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-xs font-black text-emerald-800">{index + 1}</span>
+                        <input value={product.name} onChange={(event) => updateMenuImportProduct(product.id, "name", event.target.value)} placeholder="Produit" className="min-h-10 min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+                        <input value={product.price} inputMode="decimal" onChange={(event) => updateMenuImportProduct(product.id, "price", event.target.value)} placeholder="Prix" className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+                        <button type="button" onClick={() => removeMenuImportProduct(product.id)} className="grid size-10 shrink-0 place-items-center rounded-xl border border-red-100 bg-white text-red-600" aria-label="Retirer ce produit">
+                          <X className="size-4" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
+                        <input value={product.categoryName} onChange={(event) => updateMenuImportProduct(product.id, "categoryName", event.target.value)} placeholder="Catégorie" className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+                        <button type="button" onClick={() => setExpandedImportProductId(expanded ? null : product.id)} className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600">
+                          {expanded ? "Fermer" : "Détail"}
+                        </button>
+                      </div>
+
+                      {expanded ? (
+                        <textarea value={product.description} onChange={(event) => updateMenuImportProduct(product.id, "description", event.target.value)} rows={2} placeholder="Description optionnelle" className="min-h-20 resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+                      ) : null}
+                    </article>
+                  );
+                })}
               </div>
             ) : (
               <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
