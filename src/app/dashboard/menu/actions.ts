@@ -716,27 +716,64 @@ export async function bulkArchiveMenuProducts(input: { productIds: string[] }) {
     throw new Error("Sélection limitée à 120 produits à la fois.");
   }
 
-  const { data, error } = await supabase
-    .from("menu_products")
-    .update({
-      category_id: null,
-      is_available: false,
-      updated_at: new Date().toISOString(),
-    })
-    .in("id", productIds)
-    .eq("restaurant_id", restaurant.id)
-    .select("id")
-    .returns<{ id: string }[]>();
+  const { data: usedItems, error: usedItemsError } = await supabase
+    .from("order_items")
+    .select("product_id")
+    .in("product_id", productIds)
+    .returns<{ product_id: string | null }[]>();
 
-  if (error) {
-    throw new Error("Archivage de la sélection impossible.");
+  if (usedItemsError) {
+    throw new Error("Vérification des commandes impossible.");
+  }
+
+  const usedProductIds = new Set((usedItems ?? []).map((item) => item.product_id).filter(Boolean));
+  const productIdsToArchive = productIds.filter((productId) => usedProductIds.has(productId));
+  const productIdsToDelete = productIds.filter((productId) => !usedProductIds.has(productId));
+  let archivedProducts = 0;
+  let deletedProducts = 0;
+
+  if (productIdsToArchive.length > 0) {
+    const { data, error } = await supabase
+      .from("menu_products")
+      .update({
+        category_id: null,
+        is_available: false,
+        updated_at: new Date().toISOString(),
+      })
+      .in("id", productIdsToArchive)
+      .eq("restaurant_id", restaurant.id)
+      .select("id")
+      .returns<{ id: string }[]>();
+
+    if (error) {
+      throw new Error("Archivage de la sélection impossible.");
+    }
+
+    archivedProducts = data?.length ?? 0;
+  }
+
+  if (productIdsToDelete.length > 0) {
+    const { data, error } = await supabase
+      .from("menu_products")
+      .delete()
+      .in("id", productIdsToDelete)
+      .eq("restaurant_id", restaurant.id)
+      .select("id")
+      .returns<{ id: string }[]>();
+
+    if (error) {
+      throw new Error("Suppression de la sélection impossible.");
+    }
+
+    deletedProducts = data?.length ?? 0;
   }
 
   revalidateMenuPaths(restaurant.slug);
 
   return {
     ok: true,
-    archivedProducts: data?.length ?? 0,
+    archivedProducts,
+    deletedProducts,
   };
 }
 

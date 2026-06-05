@@ -802,8 +802,11 @@ export function MenuManager({
       const isAvailable = typeof product.available === "boolean" ? product.available : true;
 
       const matchesCategory =
-        selectedCategoryId === "all" ||
-        (selectedCategoryId === "unavailable" ? !isAvailable : product.categoryId === selectedCategoryId);
+        selectedCategoryId === "all"
+          ? isAvailable
+          : selectedCategoryId === "unavailable"
+            ? !isAvailable
+            : isAvailable && product.categoryId === selectedCategoryId;
 
       return matchesSearch && matchesCategory;
     });
@@ -1409,7 +1412,9 @@ export function MenuManager({
           });
 
           setSelectedProductIds(new Set());
-          setActionMessage(`${result.archivedProducts} produit(s) retiré(s) du menu.`);
+          setActionMessage(
+            `${result.deletedProducts} produit(s) supprimé(s). ${result.archivedProducts} produit(s) conservé(s) pour l'historique et retiré(s) du menu.`,
+          );
         } catch (error) {
           setActionError(error instanceof Error ? error.message : "Archivage groupé impossible.");
         }
@@ -1446,7 +1451,9 @@ export function MenuManager({
             }
             return nextSelection;
           });
-          setActionMessage(`${result.archivedProducts} produit(s) archivé(s) dans cette catégorie.`);
+          setActionMessage(
+            `${result.deletedProducts} produit(s) supprimé(s). ${result.archivedProducts} produit(s) conservé(s) pour l'historique et retiré(s) de cette catégorie.`,
+          );
         } catch (error) {
           setActionError(error instanceof Error ? error.message : "Archivage groupé impossible.");
         }
