@@ -4,6 +4,7 @@ import { useRef, useMemo, useState, useTransition } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import {
   Camera,
+  Check,
   FolderCog,
   FolderPlus,
   ImageIcon,
@@ -11,6 +12,7 @@ import {
   Search,
   Trash2,
   Upload,
+  Wand2,
   X,
 } from "lucide-react";
 import { ProductCard } from "@/components/ui-custom/ProductCard";
@@ -21,6 +23,7 @@ import {
   createMenuProduct,
   deleteMenuCategory,
   deleteMenuProduct,
+  importMenuProductsFromSuggestions,
   toggleMenuProductAvailability,
   updateMenuCategory,
   updateMenuProduct,
@@ -52,7 +55,15 @@ type CategoryFormState = {
   isActive: boolean;
 };
 
-type PanelMode = "add-product" | "edit-product" | "add-category" | "manage-categories" | null;
+type MenuImportDraftProduct = {
+  id: string;
+  name: string;
+  categoryName: string;
+  price: string;
+  description: string;
+};
+
+type PanelMode = "add-product" | "edit-product" | "add-category" | "manage-categories" | "import-menu" | null;
 
 
 function createEmptyOptionsConfig(): ProductOptionsConfig {
@@ -707,9 +718,12 @@ export function MenuManager({
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const menuImportFileInputRef = useRef<HTMLInputElement | null>(null);
+  const menuImportCameraInputRef = useRef<HTMLInputElement | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [isExtractingMenuPhoto, setIsExtractingMenuPhoto] = useState(false);
   const [descriptionAiFeedback, setDescriptionAiFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [search, setSearch] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
@@ -719,6 +733,8 @@ export function MenuManager({
   const [productErrors, setProductErrors] = useState<ProductFormErrors>({});
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm);
   const [categoryError, setCategoryError] = useState("");
+  const [menuImportDraftProducts, setMenuImportDraftProducts] = useState<MenuImportDraftProduct[]>([]);
+  const [menuImportImageName, setMenuImportImageName] = useState("");
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
 
@@ -808,6 +824,14 @@ export function MenuManager({
     setPanelMode("manage-categories");
   }
 
+  function openMenuImport() {
+    setMenuImportDraftProducts([]);
+    setMenuImportImageName("");
+    setActionError("");
+    setActionMessage("");
+    setPanelMode("import-menu");
+  }
+
   function closePanel() {
     setPanelMode(null);
     setEditingProductId(null);
@@ -817,6 +841,7 @@ export function MenuManager({
     setActionMessage("");
     setDescriptionAiFeedback(null);
     setIsUploadingImage(false);
+    setIsExtractingMenuPhoto(false);
   }
 
   function validateProductForm() {
@@ -938,6 +963,117 @@ export function MenuManager({
     } finally {
       setIsGeneratingDescription(false);
     }
+  }
+
+  async function extractMenuPhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+      setActionError("Format non supporté pour l'import IA. Utilisez JPG, PNG ou WebP.");
+      event.target.value = "";
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setIsExtractingMenuPhoto(true);
+    setActionError("");
+    setActionMessage("");
+    setMenuImportImageName(file.name);
+
+    try {
+      const response = await fetch("/api/ai/menu-photo-import", {
+        method: "POST",
+        body: formData,
+      });
+
+      let result: {
+        ok?: boolean;
+        products?: {
+          name?: string;
+          categoryName?: string;
+          price?: number;
+          description?: string;
+        }[];
+        message?: string;
+      } = {};
+
+      try {
+        result = (await response.json()) as typeof result;
+      } catch {
+        result = {};
+      }
+
+      if (!response.ok || !result.ok || !Array.isArray(result.products)) {
+        throw new Error(result.message ?? "Lecture IA du menu impossible.");
+      }
+
+      setMenuImportDraftProducts(
+        result.products.map((product, index) => ({
+          id: `${Date.now()}-${index}`,
+          name: product.name ?? "",
+          categoryName: product.categoryName ?? "À classer",
+          price: typeof product.price === "number" ? formatPriceInput(product.price) : "",
+          description: product.description ?? "",
+        })),
+      );
+      setActionMessage(`${result.products.length} produit(s) détecté(s). Vérifiez avant import.`);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Lecture IA du menu impossible.");
+      setMenuImportDraftProducts([]);
+    } finally {
+      setIsExtractingMenuPhoto(false);
+      event.target.value = "";
+    }
+  }
+
+  function updateMenuImportProduct(productId: string, field: keyof Omit<MenuImportDraftProduct, "id">, value: string) {
+    setMenuImportDraftProducts((currentProducts) =>
+      currentProducts.map((product) => (product.id === productId ? { ...product, [field]: value } : product)),
+    );
+  }
+
+  function removeMenuImportProduct(productId: string) {
+    setMenuImportDraftProducts((currentProducts) => currentProducts.filter((product) => product.id !== productId));
+  }
+
+  function importMenuDraftProducts() {
+    const productsToImport = menuImportDraftProducts
+      .map((product) => ({
+        name: product.name.trim(),
+        categoryName: product.categoryName.trim(),
+        price: parsePrice(product.price),
+        description: product.description.trim(),
+      }))
+      .filter((product) => product.name && product.categoryName && Number.isFinite(product.price) && product.price > 0);
+
+    if (productsToImport.length === 0) {
+      setActionError("Aucun produit valide à importer.");
+      return;
+    }
+
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+          setActionMessage("");
+
+          const result = await importMenuProductsFromSuggestions({
+            products: productsToImport,
+          });
+
+          setActionMessage(
+            `${result.importedProducts} produit(s) importé(s). ${result.createdCategories} catégorie(s) créée(s).`,
+          );
+          closePanel();
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Import impossible.");
+        }
+      })();
+    });
   }
 
   function saveProduct(event: FormEvent<HTMLFormElement>) {
@@ -1151,6 +1287,18 @@ export function MenuManager({
         </button>
 
         <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
+          <button
+            type="button"
+            onClick={openMenuImport}
+            disabled={isPending || isExtractingMenuPhoto}
+            className="min-h-16 rounded-[1.2rem] border border-emerald-200 bg-emerald-50 text-lg font-black text-emerald-800 shadow-card disabled:opacity-60"
+          >
+            <span className="inline-flex items-center gap-3">
+              <Wand2 className="size-7" />
+              Importer photo
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={openAddCategory}
@@ -1482,6 +1630,71 @@ export function MenuManager({
               </button>
             </div>
           </form>
+        </Panel>
+      ) : null}
+
+      {panelMode === "import-menu" ? (
+        <Panel title="Importer un menu par photo" onClose={closePanel}>
+          <div className="grid gap-4 safe-pb-form">
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+              <p className="text-base font-black text-emerald-900">Photo du menu actuel</p>
+              <p className="mt-1 text-sm font-semibold leading-relaxed text-emerald-800/80">
+                Prenez une photo nette. L&apos;IA propose les produits, puis vous corrigez avant import.
+              </p>
+            </div>
+
+            <input ref={menuImportFileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={extractMenuPhoto} />
+            <input ref={menuImportCameraInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" capture="environment" className="hidden" onChange={extractMenuPhoto} />
+
+            <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-2">
+              <button type="button" onClick={() => menuImportCameraInputRef.current?.click()} disabled={isExtractingMenuPhoto || isPending} className="min-h-12 rounded-2xl border border-slate-200 bg-white px-4 text-base font-black text-emerald-800 disabled:opacity-60">
+                <span className="inline-flex items-center gap-2"><Camera className="size-5" />Prendre photo</span>
+              </button>
+              <button type="button" onClick={() => menuImportFileInputRef.current?.click()} disabled={isExtractingMenuPhoto || isPending} className="min-h-12 rounded-2xl border border-slate-200 bg-white px-4 text-base font-black text-emerald-800 disabled:opacity-60">
+                <span className="inline-flex items-center gap-2"><Upload className="size-5" />Choisir photo</span>
+              </button>
+            </div>
+
+            {menuImportImageName ? <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">Photo analysée : {menuImportImageName}</p> : null}
+            {isExtractingMenuPhoto ? <p className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-center text-sm font-black text-emerald-800">Analyse du menu en cours...</p> : null}
+
+            {menuImportDraftProducts.length > 0 ? (
+              <div className="grid gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-black uppercase tracking-wide text-slate-500">Produits détectés ({menuImportDraftProducts.length})</p>
+                  <p className="text-xs font-semibold text-slate-500">Corrigez avant import</p>
+                </div>
+
+                {menuImportDraftProducts.map((product, index) => (
+                  <article key={product.id} className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-xs font-black text-emerald-800">{index + 1}</span>
+                      <button type="button" onClick={() => removeMenuImportProduct(product.id)} className="grid size-9 shrink-0 place-items-center rounded-xl border border-red-100 bg-white text-red-600" aria-label="Retirer ce produit">
+                        <X className="size-4" />
+                      </button>
+                    </div>
+                    <input value={product.name} onChange={(event) => updateMenuImportProduct(product.id, "name", event.target.value)} placeholder="Nom du produit" className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+                    <div className="grid gap-2 min-[430px]:grid-cols-[1fr_112px]">
+                      <input value={product.categoryName} onChange={(event) => updateMenuImportProduct(product.id, "categoryName", event.target.value)} placeholder="Catégorie" className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+                      <input value={product.price} inputMode="decimal" onChange={(event) => updateMenuImportProduct(product.id, "price", event.target.value)} placeholder="Prix" className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+                    </div>
+                    <textarea value={product.description} onChange={(event) => updateMenuImportProduct(product.id, "description", event.target.value)} rows={2} placeholder="Description optionnelle" className="min-h-20 resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
+                <span className="grid gap-2 text-sm font-bold text-slate-500"><ImageIcon className="mx-auto size-8" />Aucun produit détecté pour le moment</span>
+              </div>
+            )}
+
+            <div className="sticky bottom-0 z-10 -mx-1 grid gap-2 border-t border-slate-200 bg-white/95 px-1 pt-3 backdrop-blur">
+              <button type="button" onClick={importMenuDraftProducts} disabled={isPending || isExtractingMenuPhoto || menuImportDraftProducts.length === 0} className="min-h-12 rounded-2xl bg-emerald-700 px-5 text-base font-black text-white shadow-green disabled:opacity-60">
+                <span className="inline-flex items-center gap-2"><Check className="size-5" />Importer les produits validés</span>
+              </button>
+              <button type="button" onClick={closePanel} className="min-h-11 rounded-2xl border border-slate-200 bg-white px-5 text-base font-bold text-slate-700">Annuler</button>
+            </div>
+          </div>
         </Panel>
       ) : null}
 

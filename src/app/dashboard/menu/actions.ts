@@ -374,6 +374,138 @@ export async function createMenuProduct(input: {
   return { ok: true };
 }
 
+export async function importMenuProductsFromSuggestions(input: {
+  products: {
+    name: string;
+    categoryName: string;
+    price: number;
+    description?: string;
+  }[];
+}) {
+  const { restaurant } = await getCurrentRestaurantContext();
+  const supabase = await createClient();
+  const suggestions = input.products
+    .map((product) => ({
+      name: product.name.trim(),
+      categoryName: product.categoryName.trim(),
+      price: product.price,
+      description: product.description?.trim() || null,
+    }))
+    .filter((product) => product.name && product.categoryName);
+
+  if (suggestions.length === 0) {
+    throw new Error("Aucun produit valide à importer.");
+  }
+
+  if (suggestions.length > 80) {
+    throw new Error("Import limité à 80 produits à la fois.");
+  }
+
+  const { data: existingCategories, error: categoriesError } = await supabase
+    .from("menu_categories")
+    .select("id, name, sort_order")
+    .eq("restaurant_id", restaurant.id)
+    .returns<{ id: string; name: string; sort_order: number | null }[]>();
+
+  if (categoriesError) {
+    throw new Error("Lecture des catégories impossible.");
+  }
+
+  const categoryByNormalizedName = new Map(
+    (existingCategories ?? []).map((category) => [normalizeText(category.name), category]),
+  );
+  let nextCategorySortOrder = Math.max(-1, ...(existingCategories ?? []).map((category) => category.sort_order ?? 0)) + 1;
+  const categoriesToCreate = [
+    ...new Set(
+      suggestions
+        .map((product) => product.categoryName)
+        .filter((categoryName) => !categoryByNormalizedName.has(normalizeText(categoryName))),
+    ),
+  ];
+
+  for (const categoryName of categoriesToCreate) {
+    const { data: createdCategory, error } = await supabase
+      .from("menu_categories")
+      .insert({
+        restaurant_id: restaurant.id,
+        name: categoryName,
+        sort_order: nextCategorySortOrder,
+        is_active: true,
+      })
+      .select("id, name, sort_order")
+      .single<{ id: string; name: string; sort_order: number | null }>();
+
+    if (error || !createdCategory) {
+      throw new Error(`Création de la catégorie "${categoryName}" impossible.`);
+    }
+
+    categoryByNormalizedName.set(normalizeText(createdCategory.name), createdCategory);
+    nextCategorySortOrder += 1;
+  }
+
+  const { data: existingProducts, error: productsError } = await supabase
+    .from("menu_products")
+    .select("id, name, category_id, sort_order")
+    .eq("restaurant_id", restaurant.id)
+    .returns<{ id: string; name: string; category_id: string | null; sort_order: number | null }[]>();
+
+  if (productsError) {
+    throw new Error("Lecture des produits impossible.");
+  }
+
+  const existingProductKeys = new Set(
+    (existingProducts ?? []).map((product) => `${product.category_id ?? ""}:${normalizeText(product.name)}`),
+  );
+  let nextProductSortOrder = Math.max(-1, ...(existingProducts ?? []).map((product) => product.sort_order ?? 0)) + 1;
+
+  const productsToInsert: Database["public"]["Tables"]["menu_products"]["Insert"][] = [];
+  const importedProductKeys = new Set<string>();
+
+  for (const suggestion of suggestions) {
+    const category = categoryByNormalizedName.get(normalizeText(suggestion.categoryName));
+    if (!category) continue;
+
+    const productKey = `${category.id}:${normalizeText(suggestion.name)}`;
+    if (existingProductKeys.has(productKey) || importedProductKeys.has(productKey)) continue;
+
+    const price = parsePositivePrice(suggestion.price);
+
+    productsToInsert.push({
+      restaurant_id: restaurant.id,
+      category_id: category.id,
+      name: suggestion.name,
+      description: suggestion.description,
+      price,
+      promo_price: null,
+      image_url: null,
+      options_config: DEFAULT_OPTIONS_CONFIG,
+      is_available: true,
+      is_featured: false,
+      sort_order: nextProductSortOrder,
+    });
+    importedProductKeys.add(productKey);
+    nextProductSortOrder += 1;
+  }
+
+  if (productsToInsert.length === 0) {
+    throw new Error("Aucun nouveau produit à importer. Ils existent peut-être déjà.");
+  }
+
+  const { error: insertError } = await supabase.from("menu_products").insert(productsToInsert);
+
+  if (insertError) {
+    throw new Error("Import des produits impossible.");
+  }
+
+  revalidateMenuPaths(restaurant.slug);
+
+  return {
+    ok: true,
+    importedProducts: productsToInsert.length,
+    createdCategories: categoriesToCreate.length,
+  };
+}
+
 export async function updateMenuProduct(input: {
   productId: string;
   name: string;
