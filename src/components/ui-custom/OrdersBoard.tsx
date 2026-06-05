@@ -17,6 +17,8 @@ import {
 
 const ORDER_SOUND_STORAGE_KEY = "tableflash:orders-sound";
 const SEEN_ORDER_IDS_STORAGE_KEY = "tableflash:seen-order-alerts";
+const ORDERS_REFRESH_INTERVAL_MS = 18_000;
+const ORDERS_FOCUS_REFRESH_MIN_DELAY_MS = 8_000;
 
 function readSeenOrderIds() {
   try {
@@ -94,6 +96,8 @@ export function OrdersBoard({
   );
   const [incomingAlert, setIncomingAlert] = useState("");
   const knownOrderIdsRef = useRef<Set<string> | null>(null);
+  const lastRefreshAtRef = useRef(0);
+  const refreshInFlightRef = useRef(false);
 
   const visibleOrders = useMemo(
     () => orders.filter((order) => orderMatchesFilter(order, activeFilter)),
@@ -104,7 +108,16 @@ export function OrdersBoard({
   const exportHref = `/dashboard/orders/export?period=${exportPeriod}`;
 
   useEffect(() => {
-    const refreshOrders = () => {
+    const refreshOrders = (force = false) => {
+      if (!force && document.visibilityState !== "visible") return;
+      if (refreshInFlightRef.current) return;
+
+      const now = Date.now();
+      if (!force && now - lastRefreshAtRef.current < ORDERS_FOCUS_REFRESH_MIN_DELAY_MS) return;
+
+      refreshInFlightRef.current = true;
+      lastRefreshAtRef.current = now;
+
       startTransition(() => {
         router.refresh();
         setLastRefreshLabel(
@@ -113,15 +126,27 @@ export function OrdersBoard({
             minute: "2-digit",
           }),
         );
+        window.setTimeout(() => {
+          refreshInFlightRef.current = false;
+        }, 1_500);
       });
     };
 
-    const timer = window.setInterval(refreshOrders, 10_000);
-    window.addEventListener("focus", refreshOrders);
+    const refreshOnFocus = () => refreshOrders(false);
+    const refreshOnVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refreshOrders(true);
+      }
+    };
+
+    const timer = window.setInterval(() => refreshOrders(false), ORDERS_REFRESH_INTERVAL_MS);
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisibility);
 
     return () => {
       window.clearInterval(timer);
-      window.removeEventListener("focus", refreshOrders);
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisibility);
     };
   }, [router, startTransition]);
 
@@ -185,6 +210,9 @@ export function OrdersBoard({
   }
 
   function refreshNow() {
+    refreshInFlightRef.current = true;
+    lastRefreshAtRef.current = Date.now();
+
     startTransition(() => {
       router.refresh();
       setLastRefreshLabel(
@@ -193,6 +221,9 @@ export function OrdersBoard({
           minute: "2-digit",
         }),
       );
+      window.setTimeout(() => {
+        refreshInFlightRef.current = false;
+      }, 1_500);
     });
   }
 

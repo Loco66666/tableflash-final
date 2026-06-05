@@ -42,7 +42,8 @@ type StoredCustomerOrder = {
 const preferredCategoryOrder = ["starters", "mains", "desserts", "drinks"];
 const TRACKING_STORAGE_PREFIX = "tableflash:customer-order";
 const TRACKING_STORAGE_TTL_MS = 12 * 60 * 60 * 1000;
-const TRACKING_REFRESH_INTERVAL_MS = 3_000;
+const TRACKING_REFRESH_INTERVAL_MS = 5_000;
+const TRACKING_FOCUS_REFRESH_MIN_DELAY_MS = 3_000;
 
 const categoryIcons: Record<string, LucideIcon> = {
   all: Sparkles,
@@ -336,13 +337,31 @@ export function CustomerMenuContent({
     const orderId = confirmedOrderId;
     const currentTable = table;
     let cancelled = false;
+    let requestInFlight = false;
+    let lastRefreshAt = 0;
 
-    async function refreshTracking() {
-      const result = await getPublicOrderTracking({
-        restaurantSlug,
-        tableLabel: tableSlug,
-        orderId,
-      });
+    async function refreshTracking(force = false) {
+      if (!force && document.visibilityState !== "visible") return;
+      if (requestInFlight) return;
+
+      const now = Date.now();
+      if (!force && now - lastRefreshAt < TRACKING_FOCUS_REFRESH_MIN_DELAY_MS) return;
+
+      requestInFlight = true;
+      lastRefreshAt = now;
+
+      let result;
+      try {
+        result = await getPublicOrderTracking({
+          restaurantSlug,
+          tableLabel: tableSlug,
+          orderId,
+        });
+      } catch {
+        return;
+      } finally {
+        requestInFlight = false;
+      }
 
       if (cancelled || !result.ok || !result.order) {
         return;
@@ -369,22 +388,23 @@ export function CustomerMenuContent({
       });
     }
 
-    refreshTracking();
+    void refreshTracking(true);
 
-    const timer = window.setInterval(refreshTracking, TRACKING_REFRESH_INTERVAL_MS);
+    const timer = window.setInterval(() => void refreshTracking(false), TRACKING_REFRESH_INTERVAL_MS);
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        void refreshTracking();
+        void refreshTracking(true);
       }
     };
+    const handleFocus = () => void refreshTracking(false);
 
-    window.addEventListener("focus", refreshTracking);
+    window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       cancelled = true;
       window.clearInterval(timer);
-      window.removeEventListener("focus", refreshTracking);
+      window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [confirmedOrderId, restaurantSlug, tableSlug, table, trackingStorageKey]);
