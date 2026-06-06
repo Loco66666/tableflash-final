@@ -1387,6 +1387,12 @@ export function MenuManager({
     );
   }
 
+  function updateMenuImportProductOptions(productId: string, optionsConfig: ProductOptionsConfig) {
+    setMenuImportDraftProducts((currentProducts) =>
+      currentProducts.map((product) => (product.id === productId ? { ...product, optionsConfig } : product)),
+    );
+  }
+
   function removeMenuImportProduct(productId: string) {
     setMenuImportDraftProducts((currentProducts) => currentProducts.filter((product) => product.id !== productId));
   }
@@ -2524,6 +2530,11 @@ export function MenuManager({
                               ))}
                             </div>
                           ) : null}
+                          <ProductOptionsEditor
+                            categoryName={product.categoryName}
+                            optionsConfig={product.optionsConfig}
+                            onChange={(optionsConfig) => updateMenuImportProductOptions(product.id, optionsConfig)}
+                          />
                         </div>
                       ) : null}
                     </article>

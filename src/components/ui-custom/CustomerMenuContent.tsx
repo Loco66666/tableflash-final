@@ -125,6 +125,29 @@ function getConfiguredProductPrice(product: Product, selectedOptions: SelectedPr
   );
 }
 
+function getSelectedOptionsFromSelections(
+  optionGroups: ReturnType<typeof getProductOptionGroups>,
+  optionSelections: Record<string, string[]>,
+): SelectedProductOption[] {
+  return optionGroups.flatMap((group) =>
+    (optionSelections[group.id] ?? []).flatMap((itemId) => {
+      const item = group.items.find((optionItem) => optionItem.id === itemId);
+
+      if (!item) return [];
+
+      return [
+        {
+          groupId: group.id,
+          groupName: group.name,
+          itemId: item.id,
+          itemName: item.name,
+          price: Number(item.price ?? 0),
+        },
+      ];
+    }),
+  );
+}
+
 function getBasketLineId(productId: string, selectedOptions: SelectedProductOption[]) {
   const optionKey = selectedOptions
     .map((option) => `${option.groupId}:${option.itemId}`)
@@ -499,23 +522,7 @@ export function CustomerMenuContent({
       return;
     }
 
-    const selectedOptions = optionGroups.flatMap((group) =>
-      (optionSelections[group.id] ?? []).flatMap((itemId) => {
-        const item = group.items.find((optionItem) => optionItem.id === itemId);
-
-        if (!item) return [];
-
-        return [
-          {
-            groupId: group.id,
-            groupName: group.name,
-            itemId: item.id,
-            itemName: item.name,
-            price: Number(item.price ?? 0),
-          },
-        ];
-      }),
-    );
+    const selectedOptions = getSelectedOptionsFromSelections(optionGroups, optionSelections);
 
     addConfiguredProductToBasket(configuringProduct, selectedOptions);
     setConfiguringProduct(null);
@@ -702,6 +709,12 @@ export function CustomerMenuContent({
     );
   }
 
+  const configuringProductOptionGroups = configuringProduct ? getProductOptionGroups(configuringProduct) : [];
+  const configuringSelectedOptions = getSelectedOptionsFromSelections(configuringProductOptionGroups, optionSelections);
+  const configuringProductTotal = configuringProduct
+    ? getConfiguredProductPrice(configuringProduct, configuringSelectedOptions)
+    : 0;
+
   return (
     <AppShell showNav={false} className="pb-32">
       <PageHeader title={restaurantName} subtitle={subtitle} customer />
@@ -777,6 +790,9 @@ export function CustomerMenuContent({
                 <p className="mt-1 text-base font-semibold text-slate-600">
                   {formatEuro(getEffectiveProductPrice(configuringProduct))} de base
                 </p>
+                <p className="mt-2 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-800">
+                  Total avec choix : {formatEuro(configuringProductTotal)}
+                </p>
               </div>
 
               <button
@@ -794,7 +810,7 @@ export function CustomerMenuContent({
             </div>
 
             <div className="grid gap-4">
-              {getProductOptionGroups(configuringProduct).map((group) => {
+              {configuringProductOptionGroups.map((group) => {
                 const multiple = group.type === "multiple_choice" || group.type === "supplement";
                 const selectedItems = optionSelections[group.id] ?? [];
 
@@ -846,7 +862,7 @@ export function CustomerMenuContent({
               onClick={confirmConfiguredProduct}
               className="mt-5 min-h-14 w-full rounded-2xl bg-linear-to-br from-(--tf-primary-600) to-(--tf-primary-900) px-5 text-lg font-black text-white shadow-green"
             >
-              Ajouter au panier
+              Ajouter au panier - {formatEuro(configuringProductTotal)}
             </button>
           </section>
         </div>
