@@ -120,12 +120,46 @@ function formatPriceInput(value: number) {
   });
 }
 
-function getMenuFamily(categoryName: string) {
+type MenuFamilyContext = {
+  shouldGroupPizzaSections: boolean;
+};
+
+const PIZZA_SECTION_KEYWORDS = [
+  "classique",
+  "special",
+  "mer",
+  "fromage",
+  "fromagere",
+  "calzone",
+  "oriental",
+  "royal",
+  "savoyard",
+  "fermier",
+  "texane",
+  "vegetarien",
+];
+
+function hasAnyKeyword(value: string, keywords: string[]) {
+  return keywords.some((keyword) => value.includes(keyword));
+}
+
+function createMenuFamilyContext(categoryNames: string[]): MenuFamilyContext {
+  const normalizedNames = categoryNames.map(normalizeText);
+  const pizzaSectionScore = normalizedNames.filter((name) => hasAnyKeyword(name, PIZZA_SECTION_KEYWORDS)).length;
+
+  return {
+    shouldGroupPizzaSections:
+      normalizedNames.some((name) => name.includes("pizza") || name.includes("pizzeria")) || pizzaSectionScore >= 2,
+  };
+}
+
+function getMenuFamily(categoryName: string, context: MenuFamilyContext = { shouldGroupPizzaSections: false }) {
   const normalizedName = normalizeText(categoryName);
 
   if (
     normalizedName.includes("pizza") ||
-    normalizedName.includes("fromage")
+    normalizedName.includes("fromage") ||
+    normalizedName.includes("calzone")
   ) {
     return { id: "family-pizza", name: "Pizza" };
   }
@@ -149,6 +183,9 @@ function getMenuFamily(categoryName: string) {
   }
   if (normalizedName.includes("dessert") || normalizedName.includes("glace")) {
     return { id: "family-desserts", name: "Desserts" };
+  }
+  if (context.shouldGroupPizzaSections && hasAnyKeyword(normalizedName, PIZZA_SECTION_KEYWORDS)) {
+    return { id: "family-pizza", name: "Pizza" };
   }
 
   return {
@@ -797,6 +834,11 @@ export function MenuManager({
     [menuCategories],
   );
 
+  const menuFamilyContext = useMemo(
+    () => createMenuFamilyContext(activeCategories.map((category) => category.name)),
+    [activeCategories],
+  );
+
   const categoryById = useMemo(
     () => new Map(menuCategories.map((category) => [category.id, category])),
     [menuCategories],
@@ -806,7 +848,7 @@ export function MenuManager({
     const familyById = new Map<string, { id: string; name: string; icon: string; isActive: boolean }>();
 
     for (const category of activeCategories) {
-      const family = getMenuFamily(category.name);
+      const family = getMenuFamily(category.name, menuFamilyContext);
       if (!familyById.has(family.id)) {
         familyById.set(family.id, {
           ...family,
@@ -817,13 +859,13 @@ export function MenuManager({
     }
 
     return [{ id: "all", name: "Tous", icon: "sparkles", isActive: true }, ...familyById.values()];
-  }, [activeCategories]);
+  }, [activeCategories, menuFamilyContext]);
 
   const products = useMemo(
     () =>
       initialProducts.map((product) => {
         const categoryName = categoryById.get(product.categoryId)?.name ?? "Catégorie";
-        const family = getMenuFamily(categoryName);
+        const family = getMenuFamily(categoryName, menuFamilyContext);
 
         return {
           ...product,
@@ -832,7 +874,7 @@ export function MenuManager({
           categoryFamilyName: family.name,
         };
       }),
-    [categoryById, initialProducts],
+    [categoryById, initialProducts, menuFamilyContext],
   );
 
   const productCountByCategoryId = useMemo(() => {
