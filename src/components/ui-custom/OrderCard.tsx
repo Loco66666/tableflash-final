@@ -78,11 +78,16 @@ export function OrderCard({ order, statusChangeAction, refuseAction }: OrderCard
   const waitingTone = elapsedMinutes === null ? "text-slate-500" : getWaitingToneClass(elapsedMinutes);
   const itemPreviewLines = (order.lines ?? []).slice(0, 3).map((line) => {
     const optionsLabel = (line.selectedOptions ?? [])
-      .map((option) => option.itemName)
+      .map((option) => `${option.groupName}: ${option.itemName}${option.price > 0 ? ` +${formatEuro(option.price)}` : ""}`)
       .filter(Boolean)
       .join(", ");
 
-    return `${line.quantity}× ${line.name ?? "Article"}${optionsLabel ? ` · ${optionsLabel}` : ""}`;
+    return {
+      id: `${line.productId}:${optionsLabel}`,
+      title: `${line.quantity}x ${line.name ?? "Article"}`,
+      optionsLabel,
+      unitPriceLabel: typeof line.unitPrice === "number" ? formatEuro(line.unitPrice) : null,
+    };
   });
   const hiddenItemCount = Math.max(0, (order.lines?.length ?? 0) - itemPreviewLines.length);
 
@@ -152,8 +157,14 @@ export function OrderCard({ order, statusChangeAction, refuseAction }: OrderCard
             <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
               <ul className="space-y-0.5">
                 {itemPreviewLines.map((line) => (
-                  <li key={line} className="truncate">
-                    {line}
+                  <li key={line.id} className="grid gap-0.5">
+                    <span className="flex items-center justify-between gap-3 font-bold text-slate-800">
+                      <span className="min-w-0 truncate">{line.title}</span>
+                      {line.unitPriceLabel ? <span className="shrink-0 text-xs font-black text-slate-500">{line.unitPriceLabel}</span> : null}
+                    </span>
+                    {line.optionsLabel ? (
+                      <span className="line-clamp-2 text-xs font-semibold text-slate-500">{line.optionsLabel}</span>
+                    ) : null}
                   </li>
                 ))}
               </ul>

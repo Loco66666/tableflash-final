@@ -1,4 +1,4 @@
-import { Plus, Star, Tag } from "lucide-react";
+import { ListChecks, Plus, Star, Tag } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { formatEuro } from "@/lib/utils";
 import { ProductVisual } from "@/components/ui-custom/ProductCard";
@@ -41,6 +41,13 @@ export function CustomerProductCard({ product, onAdd }: CustomerProductCardProps
             <span className="inline-flex min-h-7 shrink-0 items-center gap-1 rounded-full bg-rose-50 px-2.5 text-sm font-black text-rose-700">
               <Tag className="size-4" />
               Promo
+            </span>
+          ) : null}
+
+          {hasOptions ? (
+            <span className="inline-flex min-h-7 shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2.5 text-sm font-black text-slate-700">
+              <ListChecks className="size-4" />
+              Choix disponibles
             </span>
           ) : null}
         </div>

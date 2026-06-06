@@ -24,6 +24,12 @@ type BasketLine = {
   unitPrice: number;
 };
 
+type CustomerMenuProduct = Product & {
+  categoryName: string;
+  categoryFamilyId: string;
+  categoryFamilyName: string;
+};
+
 type PublicMenuPayload = {
   restaurantName: string;
   restaurantCity: string | null;
@@ -43,7 +49,36 @@ type StoredCustomerOrder = {
   savedAt: number;
 };
 
-const preferredCategoryOrder = ["starters", "mains", "desserts", "drinks"];
+const preferredCategoryOrder = [
+  "family-pizza",
+  "family-sandwich",
+  "family-tacos",
+  "family-salades",
+  "family-assiettes",
+  "family-pates",
+  "family-plats",
+  "family-menus",
+  "family-boissons",
+  "family-desserts",
+  "starters",
+  "mains",
+  "desserts",
+  "drinks",
+];
+const PIZZA_SECTION_KEYWORDS = [
+  "classique",
+  "special",
+  "mer",
+  "fromage",
+  "fromagere",
+  "calzone",
+  "oriental",
+  "royal",
+  "savoyard",
+  "fermier",
+  "texane",
+  "vegetarien",
+];
 const TRACKING_STORAGE_PREFIX = "tableflash:customer-order";
 const TRACKING_STORAGE_TTL_MS = 12 * 60 * 60 * 1000;
 const TRACKING_REFRESH_INTERVAL_MS = 5_000;
@@ -55,8 +90,73 @@ const categoryIcons: Record<string, LucideIcon> = {
   mains: Utensils,
   desserts: Cake,
   drinks: CupSoda,
+  "family-pizza": Utensils,
+  "family-sandwich": Utensils,
+  "family-tacos": Utensils,
+  "family-salades": Leaf,
+  "family-assiettes": Utensils,
+  "family-pates": Utensils,
+  "family-plats": Utensils,
+  "family-menus": Sparkles,
+  "family-boissons": CupSoda,
+  "family-desserts": Cake,
   uncategorized: Sparkles,
 };
+
+function normalizeText(value: string) {
+  return value
+    .trim()
+    .toLocaleLowerCase("fr-FR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function hasAnyKeyword(value: string, keywords: string[]) {
+  return keywords.some((keyword) => value.includes(keyword));
+}
+
+function createMenuFamilyContext(categoryNames: string[]) {
+  const normalizedNames = categoryNames.map(normalizeText);
+  const pizzaSectionScore = normalizedNames.filter((name) => hasAnyKeyword(name, PIZZA_SECTION_KEYWORDS)).length;
+
+  return {
+    shouldGroupPizzaSections:
+      normalizedNames.some((name) => name.includes("pizza") || name.includes("pizzeria")) || pizzaSectionScore >= 2,
+  };
+}
+
+function getMenuFamily(categoryName: string, context: ReturnType<typeof createMenuFamilyContext>) {
+  const normalizedName = normalizeText(categoryName);
+
+  if (normalizedName.includes("pizza") || normalizedName.includes("fromage") || normalizedName.includes("calzone")) {
+    return { id: "family-pizza", name: "Pizza" };
+  }
+  if (normalizedName.includes("sandwich") || normalizedName.includes("burger") || normalizedName.includes("wrap")) {
+    return { id: "family-sandwich", name: "Sandwich" };
+  }
+  if (normalizedName.includes("tacos")) return { id: "family-tacos", name: "Tacos" };
+  if (normalizedName.includes("salade")) return { id: "family-salades", name: "Salades" };
+  if (normalizedName.includes("assiette")) return { id: "family-assiettes", name: "Assiettes" };
+  if (normalizedName.includes("pate")) return { id: "family-pates", name: "Pates" };
+  if (normalizedName.includes("plat")) return { id: "family-plats", name: "Plats" };
+  if (normalizedName.includes("menu") || normalizedName.includes("formule")) {
+    return { id: "family-menus", name: "Menus et formules" };
+  }
+  if (normalizedName.includes("boisson") || normalizedName.includes("soda") || normalizedName.includes("eau")) {
+    return { id: "family-boissons", name: "Boissons" };
+  }
+  if (normalizedName.includes("dessert") || normalizedName.includes("glace")) {
+    return { id: "family-desserts", name: "Desserts" };
+  }
+  if (context.shouldGroupPizzaSections && hasAnyKeyword(normalizedName, PIZZA_SECTION_KEYWORDS)) {
+    return { id: "family-pizza", name: "Pizza" };
+  }
+
+  return {
+    id: `family-${normalizedName || "autres"}`,
+    name: categoryName || "Autres",
+  };
+}
 
 function isCustomerOrderable(product: Product) {
   const withLegacyFields = product as Product & {
@@ -81,15 +181,25 @@ function getCategoryIcon(categoryId: string) {
   return categoryIcons[categoryId] ?? Sparkles;
 }
 
-function getVisibleCategories(categories: Category[]) {
-  const allCategory = categories.find((category) => category.id === "all") ?? {
+function getVisibleCategories(products: CustomerMenuProduct[]) {
+  const allCategory = {
     id: "all",
     name: "Toutes",
     icon: "sparkles",
   };
+  const familyById = new Map<string, Category>();
 
-  const businessCategories = categories.filter((category) => category.id !== "all");
-  const sortedCategories = [...businessCategories].sort((first, second) => {
+  for (const product of products) {
+    if (!familyById.has(product.categoryFamilyId)) {
+      familyById.set(product.categoryFamilyId, {
+        id: product.categoryFamilyId,
+        name: product.categoryFamilyName,
+        icon: "sparkles",
+      });
+    }
+  }
+
+  const sortedCategories = [...familyById.values()].sort((first, second) => {
     const firstIndex = preferredCategoryOrder.indexOf(first.id);
     const secondIndex = preferredCategoryOrder.indexOf(second.id);
 
@@ -321,14 +431,51 @@ export function CustomerMenuContent({
   const tableArea = table?.area ?? "";
   const restaurantName = publicMenu.restaurantName;
   const subtitle = table ? (tableArea ? `${tableName} • ${tableArea}` : tableName) : "QR de table";
-  const orderableProducts = useMemo(() => publicMenu.products.filter(isCustomerOrderable), [publicMenu.products]);
-  const visibleCategories = useMemo(() => getVisibleCategories(publicMenu.categories), [publicMenu.categories]);
+  const categoryById = useMemo(() => new Map(publicMenu.categories.map((category) => [category.id, category])), [publicMenu.categories]);
+  const menuFamilyContext = useMemo(
+    () => createMenuFamilyContext(publicMenu.categories.map((category) => category.name)),
+    [publicMenu.categories],
+  );
+  const orderableProducts = useMemo<CustomerMenuProduct[]>(
+    () =>
+      publicMenu.products.filter(isCustomerOrderable).map((product) => {
+        const categoryName = categoryById.get(product.categoryId)?.name ?? "Autres";
+        const family = getMenuFamily(categoryName, menuFamilyContext);
+
+        return {
+          ...product,
+          categoryName,
+          categoryFamilyId: family.id,
+          categoryFamilyName: family.name,
+        };
+      }),
+    [categoryById, menuFamilyContext, publicMenu.products],
+  );
+  const visibleCategories = useMemo(() => getVisibleCategories(orderableProducts), [orderableProducts]);
   const trackingStorageKey = useMemo(() => getTrackingStorageKey(restaurantSlug, tableSlug), [restaurantSlug, tableSlug]);
 
   const visibleProducts =
     selectedCategoryId === "all"
       ? orderableProducts
-      : orderableProducts.filter((product) => product.categoryId === selectedCategoryId);
+      : orderableProducts.filter((product) => product.categoryFamilyId === selectedCategoryId);
+  const productSections = useMemo(() => {
+    const groupedSections = new Map<string, { title: string; eyebrow: string | null; products: CustomerMenuProduct[] }>();
+
+    for (const product of visibleProducts) {
+      const sectionKey =
+        selectedCategoryId === "all" ? `${product.categoryFamilyId}:${product.categoryName}` : product.categoryName;
+      const section = groupedSections.get(sectionKey) ?? {
+        title: selectedCategoryId === "all" ? product.categoryFamilyName : product.categoryName,
+        eyebrow: selectedCategoryId === "all" ? product.categoryName : null,
+        products: [],
+      };
+
+      section.products.push(product);
+      groupedSections.set(sectionKey, section);
+    }
+
+    return [...groupedSections.values()];
+  }, [selectedCategoryId, visibleProducts]);
 
   const itemCount = basket.reduce((sum, line) => sum + line.quantity, 0);
   const basketTotal = basket.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
@@ -763,8 +910,28 @@ export function CustomerMenuContent({
 
       {visibleProducts.length > 0 ? (
         <div className="grid gap-4">
-          {visibleProducts.map((product) => (
-            <CustomerProductCard key={product.id} product={product} onAdd={addToBasket} />
+          {productSections.map((section) => (
+            <section key={`${section.title}:${section.eyebrow ?? ""}`} className="grid gap-3">
+              <div className="flex items-end justify-between gap-3 px-1">
+                <div className="min-w-0">
+                  {section.eyebrow ? (
+                    <p className="text-xs font-black uppercase tracking-wide text-emerald-800">{section.title}</p>
+                  ) : null}
+                  <h2 className="truncate text-2xl font-black tracking-tight text-slate-950">
+                    {section.eyebrow ?? section.title}
+                  </h2>
+                </div>
+                <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-500">
+                  {section.products.length} produit(s)
+                </span>
+              </div>
+
+              <div className="grid gap-4">
+                {section.products.map((product) => (
+                  <CustomerProductCard key={product.id} product={product} onAdd={addToBasket} />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       ) : (
@@ -818,11 +985,18 @@ export function CustomerMenuContent({
                   <div key={group.id} className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-base font-black text-slate-900">{group.name}</p>
-                      {group.required ? (
-                        <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-black text-emerald-800">
-                          Obligatoire
-                        </span>
-                      ) : null}
+                      <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                        {group.required ? (
+                          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-black text-emerald-800">
+                            Obligatoire
+                          </span>
+                        ) : null}
+                        {multiple ? (
+                          <span className="rounded-full bg-slate-200 px-2.5 py-1 text-xs font-black text-slate-600">
+                            Plusieurs choix
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
 
                     <div className="grid gap-2">
