@@ -68,6 +68,17 @@ type MenuImportDraftProduct = {
   optionsConfig: ProductOptionsConfig;
 };
 
+type MenuImportValidationItem = MenuImportDraftProduct & {
+  parsedPrice: number;
+  normalizedName: string;
+  normalizedCategoryName: string;
+  duplicateReason: string | null;
+  isDuplicate: boolean;
+  isGenericCategory: boolean;
+  isValid: boolean;
+  willCreateCategory: boolean;
+};
+
 type PanelMode = "add-product" | "edit-product" | "add-category" | "manage-categories" | "import-menu" | "menu-cleanup" | null;
 
 
@@ -889,6 +900,82 @@ export function MenuManager({
     [categoryById, initialProducts, menuFamilyContext],
   );
 
+  const menuImportValidation = useMemo(() => {
+    const existingCategoryNames = new Set(activeCategories.map((category) => normalizeText(category.name)));
+    const existingProductsByCategoryAndName = new Set(
+      products.map((product) => `${normalizeText(product.categoryName)}:${normalizeText(product.name)}`),
+    );
+    const existingProductsByNameAndPrice = new Set(
+      products.map((product) => `${normalizeText(product.name)}:${formatPriceInput(product.promoPrice ?? product.price)}`),
+    );
+    const seenDraftCategoryAndName = new Set<string>();
+    const seenDraftNameAndPrice = new Set<string>();
+
+    const items: MenuImportValidationItem[] = menuImportDraftProducts.map((product) => {
+      const normalizedName = normalizeText(product.name);
+      const normalizedCategoryName = normalizeText(product.categoryName);
+      const parsedPrice = parsePrice(product.price);
+      const priceKey = Number.isFinite(parsedPrice) && parsedPrice > 0 ? formatPriceInput(parsedPrice) : "";
+      const categoryProductKey = `${normalizedCategoryName}:${normalizedName}`;
+      const namePriceKey = `${normalizedName}:${priceKey}`;
+      const isGenericCategory = isGenericCategoryName(product.categoryName);
+
+      let duplicateReason: string | null = null;
+      if (normalizedName && normalizedCategoryName && existingProductsByCategoryAndName.has(categoryProductKey)) {
+        duplicateReason = "Existe deja dans cette categorie";
+      } else if (normalizedName && priceKey && existingProductsByNameAndPrice.has(namePriceKey)) {
+        duplicateReason = "Meme nom et meme prix deja au menu";
+      } else if (normalizedName && normalizedCategoryName && seenDraftCategoryAndName.has(categoryProductKey)) {
+        duplicateReason = "Doublon dans cet import";
+      } else if (normalizedName && priceKey && seenDraftNameAndPrice.has(namePriceKey)) {
+        duplicateReason = "Meme nom et meme prix dans cet import";
+      }
+
+      if (normalizedName && normalizedCategoryName) {
+        seenDraftCategoryAndName.add(categoryProductKey);
+      }
+      if (normalizedName && priceKey) {
+        seenDraftNameAndPrice.add(namePriceKey);
+      }
+
+      const isValid =
+        Boolean(normalizedName) &&
+        Boolean(normalizedCategoryName) &&
+        !isGenericCategory &&
+        Number.isFinite(parsedPrice) &&
+        parsedPrice > 0 &&
+        !duplicateReason;
+
+      return {
+        ...product,
+        parsedPrice,
+        normalizedName,
+        normalizedCategoryName,
+        duplicateReason,
+        isDuplicate: Boolean(duplicateReason),
+        isGenericCategory,
+        isValid,
+        willCreateCategory:
+          Boolean(normalizedCategoryName) &&
+          !isGenericCategory &&
+          !existingCategoryNames.has(normalizedCategoryName),
+      };
+    });
+
+    const validItems = items.filter((item) => item.isValid);
+    const duplicateItems = items.filter((item) => item.isDuplicate);
+    const invalidItems = items.filter((item) => !item.isValid && !item.isDuplicate);
+    const categoriesToCreate = new Set(validItems.filter((item) => item.willCreateCategory).map((item) => item.normalizedCategoryName));
+
+    return {
+      items,
+      validItems,
+      duplicateItems,
+      invalidItems,
+      categoriesToCreateCount: categoriesToCreate.size,
+    };
+  }, [activeCategories, menuImportDraftProducts, products]);
+
   const productCountByCategoryId = useMemo(() => {
     const counts = new Map<string, number>();
 
@@ -1305,18 +1392,18 @@ export function MenuManager({
   }
 
   function importMenuDraftProducts() {
-    const productsToImport = menuImportDraftProducts
+    const productsToImport = menuImportValidation.validItems
       .map((product) => ({
         name: product.name.trim(),
         categoryName: product.categoryName.trim(),
-        price: parsePrice(product.price),
+        price: product.parsedPrice,
         description: product.description.trim(),
         optionsConfig: product.optionsConfig,
       }))
       .filter((product) => product.name && product.categoryName && Number.isFinite(product.price) && product.price > 0);
 
     if (productsToImport.length === 0) {
-      setActionError("Aucun produit valide à importer.");
+      setActionError("Aucun nouveau produit valide a importer. Corrigez les lignes signalees ou retirez les doublons.");
       return;
     }
 
@@ -2330,6 +2417,11 @@ export function MenuManager({
 
             <input ref={menuImportFileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="hidden" onChange={extractMenuPhoto} />
             <input ref={menuImportCameraInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" capture="environment" className="hidden" onChange={extractMenuPhoto} />
+            <datalist id="menu-import-category-options">
+              {activeCategories.map((category) => (
+                <option key={category.id} value={category.name} />
+              ))}
+            </datalist>
 
             <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-2">
               <button type="button" onClick={() => menuImportCameraInputRef.current?.click()} disabled={isExtractingMenuPhoto || isPending} className="min-h-12 rounded-2xl border border-slate-200 bg-white px-4 text-base font-black text-emerald-800 disabled:opacity-60">
@@ -2345,14 +2437,39 @@ export function MenuManager({
 
             {menuImportDraftProducts.length > 0 ? (
               <div className="grid gap-3">
+                <div className="grid grid-cols-2 gap-2 min-[430px]:grid-cols-4">
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
+                    <p className="text-xl font-black text-emerald-900">{menuImportValidation.validItems.length}</p>
+                    <p className="mt-0.5 text-xs font-black uppercase text-emerald-800">A ajouter</p>
+                  </div>
+                  <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3">
+                    <p className="text-xl font-black text-amber-900">{menuImportValidation.duplicateItems.length}</p>
+                    <p className="mt-0.5 text-xs font-black uppercase text-amber-800">Existe deja</p>
+                  </div>
+                  <div className="rounded-2xl border border-red-100 bg-red-50 p-3">
+                    <p className="text-xl font-black text-red-900">{menuImportValidation.invalidItems.length}</p>
+                    <p className="mt-0.5 text-xs font-black uppercase text-red-800">A corriger</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                    <p className="text-xl font-black text-slate-900">{menuImportValidation.categoriesToCreateCount}</p>
+                    <p className="mt-0.5 text-xs font-black uppercase text-slate-500">Categories</p>
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-black uppercase tracking-wide text-slate-500">Produits détectés ({menuImportDraftProducts.length})</p>
                   <p className="text-xs font-semibold text-slate-500">Corrigez avant import</p>
                 </div>
 
-                {menuImportDraftProducts.map((product, index) => {
+                {menuImportValidation.items.map((product, index) => {
                   const expanded = expandedImportProductId === product.id;
                   const optionGroupCount = product.optionsConfig.groups.length;
+                  const needsCorrection =
+                    !product.normalizedName ||
+                    !product.normalizedCategoryName ||
+                    product.isGenericCategory ||
+                    !Number.isFinite(product.parsedPrice) ||
+                    product.parsedPrice <= 0;
 
                   return (
                     <article key={product.id} className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
@@ -2366,10 +2483,25 @@ export function MenuManager({
                       </div>
 
                       <div className="grid grid-cols-[1fr_auto] gap-2">
-                        <input value={product.categoryName} onChange={(event) => updateMenuImportProduct(product.id, "categoryName", event.target.value)} placeholder="Catégorie" className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
+                        <input list="menu-import-category-options" value={product.categoryName} onChange={(event) => updateMenuImportProduct(product.id, "categoryName", event.target.value)} placeholder="Catégorie" className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100" />
                         <button type="button" onClick={() => setExpandedImportProductId(expanded ? null : product.id)} className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600">
                           {expanded ? "Fermer" : "Détail"}
                         </button>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {product.isValid ? (
+                          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-black uppercase text-emerald-800">Nouveau</span>
+                        ) : null}
+                        {product.duplicateReason ? (
+                          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black uppercase text-amber-800">{product.duplicateReason}</span>
+                        ) : null}
+                        {needsCorrection ? (
+                          <span className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-black uppercase text-red-800">A corriger</span>
+                        ) : null}
+                        {product.willCreateCategory && product.isValid ? (
+                          <span className="rounded-full bg-slate-200 px-2.5 py-1 text-[11px] font-black uppercase text-slate-700">Categorie nouvelle</span>
+                        ) : null}
                       </div>
 
                       {optionGroupCount > 0 ? (
@@ -2405,8 +2537,8 @@ export function MenuManager({
             )}
 
             <div className="sticky bottom-0 z-10 -mx-1 grid gap-2 border-t border-slate-200 bg-white/95 px-1 pt-3 backdrop-blur">
-              <button type="button" onClick={importMenuDraftProducts} disabled={isPending || isExtractingMenuPhoto || menuImportDraftProducts.length === 0} className="min-h-12 rounded-2xl bg-emerald-700 px-5 text-base font-black text-white shadow-green disabled:opacity-60">
-                <span className="inline-flex items-center gap-2"><Check className="size-5" />Importer les produits validés</span>
+              <button type="button" onClick={importMenuDraftProducts} disabled={isPending || isExtractingMenuPhoto || menuImportValidation.validItems.length === 0} className="min-h-12 rounded-2xl bg-emerald-700 px-5 text-base font-black text-white shadow-green disabled:opacity-60">
+                <span className="inline-flex items-center gap-2"><Check className="size-5" />Importer {menuImportValidation.validItems.length} produit(s)</span>
               </button>
               <button type="button" onClick={closePanel} className="min-h-11 rounded-2xl border border-slate-200 bg-white px-5 text-base font-bold text-slate-700">Annuler</button>
             </div>
