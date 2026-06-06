@@ -5,7 +5,9 @@ import type { FormEvent, ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  AlertTriangle,
   Check,
+  CheckCircle2,
   Copy,
   ExternalLink,
   Plus,
@@ -56,13 +58,13 @@ const initialForm: TableForm = {
   isActive: true,
 };
 
-const tableZoneOptions = ["Salle", "Terrasse", "Comptoir", "Étage", "Salon privé", "À emporter"] as const;
+const tableZoneOptions = ["Salle", "Terrasse", "Comptoir", "Etage", "Salon prive", "A emporter"] as const;
 
 const defaultQrTexts = {
   main: "Scannez le QR code ci-dessous pour consulter le menu et passer commande.",
-  payment: "Paiement uniquement sur place ou auprès de votre serveur(se).",
-  help: "Besoin d’aide ? Notre équipe reste à votre disposition.",
-  footer: "Propulsé par TableFlash",
+  payment: "Paiement uniquement sur place ou aupres de votre serveur(se).",
+  help: "Besoin d'aide ? Notre equipe reste a votre disposition.",
+  footer: "Propulse par TableFlash",
 };
 
 function normalizeTableText(value: string) {
@@ -268,10 +270,14 @@ export function TableQrManager({
   const tables = initialTables;
   const restaurantDisplayName = restaurantName?.trim() || formatRestaurantNameFromSlug(restaurantSlug);
   const activeTables = useMemo(() => tables.filter((table) => table.isActive), [tables]);
+  const inactiveTables = useMemo(() => tables.filter((table) => !table.isActive), [tables]);
   const activePrintIds = useMemo(() => new Set(activeTables.map((table) => table.id)), [activeTables]);
   const selectedActivePrintIds = selectedPrintIds.filter((tableId) => activePrintIds.has(tableId));
   const scanCount = useMemo(() => tables.reduce((total, table) => total + table.scans, 0), [tables]);
   const selectedPrintTables = activeTables.filter((table) => selectedPrintIds.includes(table.id));
+  const firstActiveTable = activeTables[0] ?? null;
+  const firstActivePath = firstActiveTable ? getCustomerPath(firstActiveTable, restaurantSlug) : "/dashboard/qr";
+  const installationIssuesCount = (tables.length === 0 ? 1 : 0) + inactiveTables.length;
 
   useEffect(() => {
     const originTimer = window.setTimeout(() => setOrigin(window.location.origin), 0);
@@ -304,7 +310,7 @@ export function TableQrManager({
           table.id !== ignoredTableId && normalizeTableText(table.name) === normalizeTableText(trimmedName),
       )
     ) {
-      nextErrors.name = "Une table porte déjà ce nom.";
+      nextErrors.name = "Une table porte deja ce nom.";
     }
 
     return nextErrors;
@@ -362,7 +368,7 @@ export function TableQrManager({
           resetAddPanel();
           router.refresh();
         } catch (error) {
-          setActionError(error instanceof Error ? error.message : "Création impossible.");
+          setActionError(error instanceof Error ? error.message : "Creation impossible.");
         }
       })();
     });
@@ -406,7 +412,7 @@ export function TableQrManager({
 
   function deleteTable(table: TableInfo) {
     const confirmed = window.confirm(
-      `Supprimer ${table.name} ?\n\nSi cette table a déjà des commandes, elle ne pourra pas être supprimée. Vous pourrez simplement la désactiver.`,
+      `Supprimer ${table.name} ?\n\nSi cette table a deja des commandes, elle ne pourra pas etre supprimee. Vous pourrez simplement la desactiver.`,
     );
 
     if (!confirmed) return;
@@ -442,7 +448,7 @@ export function TableQrManager({
 
           router.refresh();
         } catch (error) {
-          setActionError(error instanceof Error ? error.message : "Mise à jour impossible.");
+          setActionError(error instanceof Error ? error.message : "Mise a jour impossible.");
         }
       })();
     });
@@ -579,6 +585,63 @@ export function TableQrManager({
         </div>
       </SectionCard>
 
+      <SectionCard className="mb-5 border-emerald-100 bg-white p-4">
+        <div className="flex items-start gap-3">
+          <span
+            className={cn(
+              "grid size-11 shrink-0 place-items-center rounded-full",
+              installationIssuesCount === 0 ? "bg-emerald-50 text-emerald-800" : "bg-orange-50 text-orange-600",
+            )}
+          >
+            {installationIssuesCount === 0 ? <CheckCircle2 className="size-6" /> : <AlertTriangle className="size-6" />}
+          </span>
+
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-black tracking-tight text-slate-950">
+              {installationIssuesCount === 0 ? "Installation QR prete" : `${installationIssuesCount} point(s) QR a verifier`}
+            </h2>
+            <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-600">
+              {installationIssuesCount === 0
+                ? "Toutes les tables actives peuvent etre imprimees et testees avant le service."
+                : "Verifiez les tables inactives ou ajoutez vos tables avant d'imprimer les QR."}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+          <button
+            type="button"
+            onClick={openPrintPanel}
+            disabled={activeTables.length === 0 || isPending}
+            className="min-h-12 rounded-2xl bg-emerald-700 px-4 text-base font-black text-white shadow-green disabled:bg-slate-300 disabled:shadow-none"
+          >
+            <span className="inline-flex items-center gap-2">
+              <Printer className="size-5" /> Imprimer les QR actifs
+            </span>
+          </button>
+
+          <Link
+            href={firstActivePath}
+            aria-disabled={!firstActiveTable}
+            className={cn(
+              "inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-base font-black",
+              firstActiveTable
+                ? "border-emerald-200 text-emerald-800 active:bg-emerald-50"
+                : "pointer-events-none border-slate-200 bg-slate-50 text-slate-400",
+            )}
+          >
+            <ExternalLink className="size-5" /> Tester un QR client
+          </Link>
+        </div>
+
+        {inactiveTables.length > 0 ? (
+          <p className="mt-3 rounded-2xl bg-orange-50 px-4 py-3 text-sm font-bold leading-relaxed text-orange-700">
+            {inactiveTables.length} table{inactiveTables.length > 1 ? "s" : ""} inactive
+            {inactiveTables.length > 1 ? "s" : ""} : elles ne doivent pas etre imprimees pour le service.
+          </p>
+        ) : null}
+      </SectionCard>
+
       <button
         type="button"
         onClick={() => setAddPanelOpen(true)}
@@ -605,7 +668,7 @@ export function TableQrManager({
 
               {copiedTableId === table.id ? (
                 <p className="rounded-full bg-emerald-50 px-4 py-2 text-center text-sm font-bold text-emerald-800" role="status">
-                  Lien copié
+                  Lien copie
                 </p>
               ) : null}
             </div>
@@ -613,8 +676,8 @@ export function TableQrManager({
         </div>
       ) : (
         <section className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/60 p-8 text-center shadow-card">
-          <h2 className="text-2xl font-black tracking-tight text-emerald-900">Aucune table créée</h2>
-          <p className="mt-3 text-lg leading-relaxed text-slate-700">Ajoutez une table pour générer son QR.</p>
+          <h2 className="text-2xl font-black tracking-tight text-emerald-900">Aucune table creee</h2>
+          <p className="mt-3 text-lg leading-relaxed text-slate-700">Ajoutez une table pour generer son QR.</p>
         </section>
       )}
 
@@ -625,7 +688,7 @@ export function TableQrManager({
         className="mt-6 min-h-16 w-full rounded-[1.1rem] border border-emerald-800 px-4 text-xl font-black text-emerald-800 disabled:opacity-60"
       >
         <span className="inline-flex items-center gap-3">
-          <Printer className="size-7" /> Préparer impression
+          <Printer className="size-7" /> Preparer impression
         </span>
       </button>
 
@@ -724,7 +787,7 @@ export function TableQrManager({
             </button>
 
             <p className="text-sm font-semibold leading-relaxed text-slate-500">
-              Si la table a déjà reçu des commandes, elle ne sera pas supprimée. Désactivez-la pour retirer son QR du service.
+              Si la table a deja recu des commandes, elle ne sera pas supprimee. Desactivez-la pour retirer son QR du service.
             </p>
           </form>
         </Panel>
@@ -749,7 +812,7 @@ export function TableQrManager({
                   qrPanel.table.isActive ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600",
                 )}
               >
-                {qrPanel.table.isActive ? "QR actif" : "Désactivé"}
+                {qrPanel.table.isActive ? "QR actif" : "Desactive"}
               </span>
             </div>
 
@@ -786,11 +849,11 @@ export function TableQrManager({
       ) : null}
 
       {printPanelOpen ? (
-        <Panel title="Préparer impression" onClose={() => setPrintPanelOpen(false)}>
+        <Panel title="Preparer impression" onClose={() => setPrintPanelOpen(false)}>
           <div className="grid gap-5">
             <div className="tf-no-print grid gap-5">
               <p className="text-base leading-relaxed text-slate-700">
-                Sélectionnez les tables actives, vérifiez les liens clients, puis lancez l’impression.
+                Selectionnez les tables actives, verifiez les liens clients, puis lancez impression.
               </p>
 
               <div className="grid grid-cols-2 gap-3">
@@ -819,10 +882,31 @@ export function TableQrManager({
                 </button>
               </div>
 
-              <section className="grid gap-3" aria-label="Tables actives à imprimer">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPrintIds(activeTables.map((table) => table.id))}
+                  disabled={activeTables.length === 0}
+                  className="min-h-11 rounded-2xl border border-slate-200 px-3 text-sm font-black text-slate-700 disabled:bg-slate-50 disabled:text-slate-400"
+                >
+                  Tout selectionner
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedPrintIds([])}
+                  disabled={selectedActivePrintIds.length === 0}
+                  className="min-h-11 rounded-2xl border border-slate-200 px-3 text-sm font-black text-slate-700 disabled:bg-slate-50 disabled:text-slate-400"
+                >
+                  Vider
+                </button>
+              </div>
+
+              <section className="grid gap-3" aria-label="Tables actives a imprimer">
                 {activeTables.length > 0 ? (
                   activeTables.map((table) => {
                     const selected = selectedPrintIds.includes(table.id);
+                    const tablePath = getCustomerPath(table, restaurantSlug);
 
                     return (
                       <article
@@ -841,6 +925,7 @@ export function TableQrManager({
                           <span>
                             <strong className="block text-xl text-slate-950">{table.name}</strong>
                             <span className="text-sm font-semibold text-slate-600">{table.area}</span>
+                            <span className="mt-1 block break-all text-xs font-bold text-slate-400">{tablePath}</span>
                           </span>
 
                           <span
@@ -857,14 +942,14 @@ export function TableQrManager({
                   })
                 ) : (
                   <p className="rounded-2xl bg-emerald-50 p-4 text-center text-base font-semibold text-emerald-900">
-                    Activez au moins une table pour préparer l’impression.
+                    Activez au moins une table pour preparer impression.
                   </p>
                 )}
               </section>
 
               {selectedPrintTables.length > 0 ? (
                 <p className="rounded-2xl bg-emerald-50 p-4 text-center text-base font-black text-emerald-900">
-                  {selectedPrintTables.length} table{selectedPrintTables.length > 1 ? "s" : ""} sélectionnée
+                  {selectedPrintTables.length} table{selectedPrintTables.length > 1 ? "s" : ""} selectionnee
                   {selectedPrintTables.length > 1 ? "s" : ""}
                 </p>
               ) : null}
@@ -875,7 +960,7 @@ export function TableQrManager({
                 disabled={selectedActivePrintIds.length === 0}
                 className="min-h-14 rounded-2xl bg-emerald-700 px-5 text-lg font-black text-white shadow-green disabled:bg-slate-300 disabled:shadow-none"
               >
-                Imprimer la sélection
+                Imprimer la selection
               </button>
             </div>
 
@@ -885,7 +970,7 @@ export function TableQrManager({
                   "tf-qr-print-area grid gap-5",
                   printFormat === "sheet" ? "sm:grid-cols-2" : "",
                 )}
-                aria-label="Aperçu impression QR"
+                aria-label="Apercu impression QR"
               >
                 {selectedPrintTables.map((table) => {
                   const link = getFullCustomerUrl(table, origin, restaurantSlug);

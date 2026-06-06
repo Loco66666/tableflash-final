@@ -23,7 +23,7 @@ export function TableQrCard({
   onOpenCustomerMenu: (table: TableInfo) => void;
   onEdit: (table: TableInfo) => void;
 }) {
-  const actionLabel = table.isActive ? "Désactiver" : "Activer";
+  const actionLabel = table.isActive ? "Desactiver" : "Activer";
   const displayNumber = getTableDisplayNumber(table);
 
   return (
@@ -42,7 +42,7 @@ export function TableQrCard({
           </div>
 
           <div className="mt-3">
-            <StatusBadge label={table.isActive ? "QR actif" : "Désactivé"} tone={table.isActive ? "green" : "gray"} />
+            <StatusBadge label={table.isActive ? "QR actif" : "Desactive"} tone={table.isActive ? "green" : "gray"} />
           </div>
         </div>
       </div>
@@ -55,7 +55,7 @@ export function TableQrCard({
           className="min-h-12 rounded-xl border border-slate-200 px-2 font-semibold text-emerald-800 transition active:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
         >
           <span className="inline-flex items-center gap-2">
-            <Link2 className="size-5" /> {table.isActive ? "Copier lien" : "QR désactivé"}
+            <Link2 className="size-5" /> {table.isActive ? "Copier lien" : "QR desactive"}
           </span>
         </button>
 
@@ -77,7 +77,7 @@ export function TableQrCard({
         className="mt-3 min-h-11 w-full rounded-xl border border-emerald-200 px-3 font-semibold text-emerald-800 transition active:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
       >
         <span className="inline-flex items-center gap-2">
-          <ExternalLink className="size-5" /> {table.isActive ? "Ouvrir le menu client" : "Menu client désactivé"}
+          <ExternalLink className="size-5" /> {table.isActive ? "Ouvrir le menu client" : "Menu client desactive"}
         </span>
       </button>
 
