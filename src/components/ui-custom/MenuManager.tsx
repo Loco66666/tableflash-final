@@ -912,25 +912,6 @@ export function MenuManager({
     () => products.filter((product) => !Number.isFinite(product.price) || product.price <= 0),
     [products],
   );
-  const genericCategoryProductGroups = useMemo(() => {
-    const groups = new Map<string, { categoryName: string; products: typeof products }>();
-
-    for (const product of products) {
-      if (!isGenericCategoryName(product.categoryName)) continue;
-
-      const categoryName = product.categoryName || "À classer";
-      const key = normalizeText(categoryName);
-      const group = groups.get(key) ?? {
-        categoryName,
-        products: [],
-      };
-
-      group.products.push(product);
-      groups.set(key, group);
-    }
-
-    return [...groups.values()];
-  }, [products]);
   const duplicateProductGroups = useMemo(() => {
     const groups = new Map<string, typeof products>();
 
@@ -954,7 +935,7 @@ export function MenuManager({
       .filter((group) => group.products.length > 1);
   }, [products]);
   const menuCleanupIssueCount =
-    emptyCategories.length + productsWithPriceIssue.length + genericCategoryProductGroups.length;
+    emptyCategories.length + productsWithPriceIssue.length;
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = normalizeText(search);
@@ -2454,65 +2435,6 @@ export function MenuManager({
                   Aucun problème évident détecté dans le menu.
                 </span>
               </div>
-            ) : null}
-
-            {genericCategoryProductGroups.length > 0 ? (
-              <section className="grid gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
-                <div>
-                  <h3 className="text-lg font-black text-red-900">Produits mal classés</h3>
-                  <p className="mt-1 text-sm font-semibold text-red-800/80">
-                    Ces produits sont dans une catégorie générique. Sélectionnez-les, puis déplacez-les vers la bonne catégorie.
-                  </p>
-                </div>
-
-                {genericCategoryProductGroups.map((group) => (
-                  <article key={normalizeText(group.categoryName)} className="grid gap-2 rounded-xl border border-red-100 bg-white p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-base font-black text-slate-900">{group.categoryName}</p>
-                        <p className="mt-1 text-xs font-semibold text-slate-500">
-                          {group.products.length} produit(s) à reclasser
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          selectProductsForCleanup(
-                            group.products.map((product) => product.id),
-                            "Produits mal classés sélectionnés. Choisissez la bonne catégorie, puis cliquez sur Déplacer.",
-                          )
-                        }
-                        className="min-h-10 shrink-0 rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-black text-red-700"
-                      >
-                        Sélectionner
-                      </button>
-                    </div>
-
-                    <div className="grid gap-1">
-                      {group.products.slice(0, 6).map((product) => (
-                        <button
-                          key={product.id}
-                          type="button"
-                          onClick={() => openEditProduct(product)}
-                          className="flex min-h-10 items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 text-left text-sm font-bold text-slate-700"
-                        >
-                          <span className="min-w-0 truncate">{product.name}</span>
-                          <span className="shrink-0 font-black text-slate-900">
-                            {formatPriceInput(product.promoPrice ?? product.price)} €
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-
-                    {group.products.length > 6 ? (
-                      <p className="text-xs font-semibold text-slate-500">
-                        + {group.products.length - 6} autre(s) produit(s) à reclasser.
-                      </p>
-                    ) : null}
-                  </article>
-                ))}
-              </section>
             ) : null}
 
             {duplicateProductGroups.length > 0 ? (
