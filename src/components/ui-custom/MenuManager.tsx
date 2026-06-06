@@ -925,7 +925,8 @@ export function MenuManager({
       .filter((group) => group.products.length > 1);
   }, [products]);
   const menuCleanupIssueCount =
-    emptyCategories.length + productsWithoutPhoto.length + productsWithPriceIssue.length + duplicateProductGroups.length;
+    emptyCategories.length + productsWithPriceIssue.length + duplicateProductGroups.length;
+  const menuCleanupRecommendationCount = productsWithoutPhoto.length;
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = normalizeText(search);
@@ -1802,7 +1803,7 @@ export function MenuManager({
             type="button"
             onClick={openMenuImport}
             disabled={isPending || isExtractingMenuPhoto}
-            className="min-h-16 rounded-[1.2rem] border border-emerald-200 bg-emerald-50 text-lg font-black text-emerald-800 shadow-card disabled:opacity-60"
+            className="min-h-16 rounded-[1.2rem] border border-slate-200 bg-white text-lg font-black text-emerald-800 shadow-card disabled:opacity-60"
           >
             <span className="inline-flex items-center gap-3">
               <Wand2 className="size-7" />
@@ -1814,7 +1815,7 @@ export function MenuManager({
             type="button"
             onClick={openMenuCleanup}
             disabled={isPending || menuCategories.length === 0}
-            className="min-h-16 rounded-[1.2rem] border border-emerald-200 bg-white text-lg font-black text-emerald-800 shadow-card disabled:opacity-60"
+            className="min-h-16 rounded-[1.2rem] border border-slate-200 bg-white text-lg font-black text-emerald-800 shadow-card disabled:opacity-60"
           >
             <span className="inline-flex items-center gap-3">
               <ClipboardCheck className="size-7" />
@@ -2409,14 +2410,16 @@ export function MenuManager({
           <div className="grid gap-4 safe-pb-form">
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
               <p className="text-base font-black text-emerald-900">
-                {menuCleanupIssueCount > 0 ? `${menuCleanupIssueCount} point(s) à vérifier` : "Menu propre"}
+                {menuCleanupIssueCount > 0
+                  ? `${menuCleanupIssueCount} correction(s) prioritaire(s)`
+                  : "Aucune correction prioritaire"}
               </p>
               <p className="mt-1 text-sm font-semibold leading-relaxed text-emerald-800/80">
-                Vérifiez rapidement les éléments qui peuvent ralentir le service ou créer de la confusion côté client.
+                Les photos manquantes sont comptées à part comme recommandations, pas comme problèmes bloquants.
               </p>
             </div>
 
-            {menuCleanupIssueCount === 0 ? (
+            {menuCleanupIssueCount === 0 && menuCleanupRecommendationCount === 0 ? (
               <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-emerald-200 bg-white p-5 text-center">
                 <span className="grid gap-2 text-sm font-bold text-emerald-800">
                   <Check className="mx-auto size-8" />
@@ -2509,9 +2512,9 @@ export function MenuManager({
               <section className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
                 <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
                   <div>
-                    <h3 className="text-lg font-black text-slate-950">Produits sans photo</h3>
+                    <h3 className="text-lg font-black text-slate-950">Photos recommandées</h3>
                     <p className="mt-1 text-sm font-semibold text-slate-500">
-                      Les photos augmentent la confiance client, surtout sur le menu QR.
+                      {productsWithoutPhoto.length} produit(s) sans photo. Ce n&apos;est pas bloquant, mais cela rend le menu client plus vendeur.
                     </p>
                   </div>
 
