@@ -131,7 +131,7 @@ export function getPrimaryOrderActionLabel(order: Order) {
     case "preparing":
       return "Marquer prête";
     case "ready":
-      return "Terminer la commande";
+      return "Commande servie";
     case "served":
     case "refused":
       return null;

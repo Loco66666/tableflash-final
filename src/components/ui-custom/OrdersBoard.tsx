@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Download, RefreshCw, Volume2, VolumeX } from "lucide-react";
+import { Bell, ChefHat, ClipboardList, Download, HandPlatter, RefreshCw, Volume2, VolumeX } from "lucide-react";
 import { OrderCard } from "@/components/ui-custom/OrderCard";
 import { updateDashboardOrderStatus } from "@/app/dashboard/orders/actions";
 import type { Order, OrderStatus } from "@/lib/types";
@@ -12,6 +12,7 @@ import {
   normalizeOrders,
   orderFilters,
   orderMatchesFilter,
+  getElapsedMinutes,
   type OrderFilter,
 } from "@/lib/orders";
 
@@ -102,6 +103,40 @@ export function OrdersBoard({
   const visibleOrders = useMemo(
     () => orders.filter((order) => orderMatchesFilter(order, activeFilter)),
     [orders, activeFilter],
+  );
+  const serviceStats = useMemo(() => {
+    const now = new Date();
+    const newOrders = orders.filter((order) => ["new", "payment_pending", "paid"].includes(order.status));
+    const preparingOrders = orders.filter((order) => order.status === "preparing");
+    const readyOrders = orders.filter((order) => order.status === "ready");
+    const urgentOrders = orders.filter((order) => {
+      const elapsed = getElapsedMinutes(order, now);
+      if (elapsed === null) return false;
+
+      if (order.status === "ready") return elapsed >= 5;
+      if (order.status === "preparing") return elapsed >= 15;
+      if (["new", "payment_pending", "paid"].includes(order.status)) return elapsed >= 8;
+
+      return false;
+    });
+
+    return {
+      newOrders: newOrders.length,
+      preparingOrders: preparingOrders.length,
+      readyOrders: readyOrders.length,
+      urgentOrders: urgentOrders.length,
+    };
+  }, [orders]);
+  const filterCounts = useMemo(
+    () =>
+      orderFilters.reduce(
+        (counts, filter) => ({
+          ...counts,
+          [filter.value]: orders.filter((order) => orderMatchesFilter(order, filter.value)).length,
+        }),
+        {} as Record<OrderFilter, number>,
+      ),
+    [orders],
   );
 
   const emptyLabel = orderFilters.find((filter) => filter.value === activeFilter)?.emptyLabel ?? "Aucune commande";
@@ -341,6 +376,47 @@ export function OrdersBoard({
         </div>
       </div>
 
+      <div className="mb-4 grid grid-cols-2 gap-2 min-[560px]:grid-cols-4">
+        <div className="rounded-2xl border border-orange-100 bg-orange-50 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-2xl font-black text-orange-900">{serviceStats.newOrders}</p>
+            <ClipboardList className="size-6 text-orange-700" />
+          </div>
+          <p className="mt-1 text-xs font-black uppercase text-orange-800">A traiter</p>
+        </div>
+
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-2xl font-black text-blue-900">{serviceStats.preparingOrders}</p>
+            <ChefHat className="size-6 text-blue-700" />
+          </div>
+          <p className="mt-1 text-xs font-black uppercase text-blue-800">En cuisine</p>
+        </div>
+
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-2xl font-black text-emerald-900">{serviceStats.readyOrders}</p>
+            <HandPlatter className="size-6 text-emerald-800" />
+          </div>
+          <p className="mt-1 text-xs font-black uppercase text-emerald-800">A servir</p>
+        </div>
+
+        <div className={cn(
+          "rounded-2xl border p-3",
+          serviceStats.urgentOrders > 0 ? "border-red-100 bg-red-50" : "border-slate-200 bg-white",
+        )}>
+          <div className="flex items-center justify-between gap-3">
+            <p className={cn("text-2xl font-black", serviceStats.urgentOrders > 0 ? "text-red-900" : "text-slate-900")}>
+              {serviceStats.urgentOrders}
+            </p>
+            <Bell className={cn("size-6", serviceStats.urgentOrders > 0 ? "text-red-700" : "text-slate-500")} />
+          </div>
+          <p className={cn("mt-1 text-xs font-black uppercase", serviceStats.urgentOrders > 0 ? "text-red-800" : "text-slate-500")}>
+            Urgentes
+          </p>
+        </div>
+      </div>
+
       <div className="mb-6 -mx-1 overflow-x-auto px-1 pb-1 scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="inline-flex min-w-full gap-2 rounded-[1.2rem] border border-slate-200 bg-white p-1.5 shadow-card min-[430px]:grid min-[430px]:grid-cols-4">
           {orderFilters.map((filter) => {
@@ -358,7 +434,15 @@ export function OrdersBoard({
                 )}
                 aria-pressed={active}
               >
-                {filter.label}
+                <span className="inline-flex items-center gap-2">
+                  {filter.label}
+                  <span className={cn(
+                    "rounded-full px-2 py-0.5 text-xs font-black",
+                    active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500",
+                  )}>
+                    {filterCounts[filter.value] ?? 0}
+                  </span>
+                </span>
               </button>
             );
           })}

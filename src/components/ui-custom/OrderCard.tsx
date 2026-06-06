@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChefHat, ClipboardList, Clock3, HandPlatter, Package, Table2, UserRound, X } from "lucide-react";
 import type { Order, OrderStatus } from "@/lib/types";
-import { formatEuro } from "@/lib/utils";
+import { cn, formatEuro } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui-custom/StatusBadge";
 import {
   getOrderTimestampLabel,
@@ -76,7 +76,18 @@ export function OrderCard({ order, statusChangeAction, refuseAction }: OrderCard
   const elapsedMinutes = useMemo(() => (now ? getElapsedMinutes(order, now) : null), [now, order]);
   const waitingLabel = useMemo(() => (now ? getWaitingLabel(order, now) : null), [now, order]);
   const waitingTone = elapsedMinutes === null ? "text-slate-500" : getWaitingToneClass(elapsedMinutes);
-  const itemPreviewLines = (order.lines ?? []).slice(0, 3).map((line) => {
+  const isUrgent =
+    elapsedMinutes !== null &&
+    ((order.status === "ready" && elapsedMinutes >= 5) ||
+      (order.status === "preparing" && elapsedMinutes >= 15) ||
+      (["new", "payment_pending", "paid"].includes(order.status) && elapsedMinutes >= 8));
+  const urgentLabel =
+    order.status === "ready"
+      ? "A servir maintenant"
+      : order.status === "preparing"
+        ? "Preparation longue"
+        : "A traiter rapidement";
+  const itemPreviewLines = (order.lines ?? []).slice(0, 5).map((line) => {
     const optionsLabel = (line.selectedOptions ?? [])
       .map((option) => `${option.groupName}: ${option.itemName}${option.price > 0 ? ` +${formatEuro(option.price)}` : ""}`)
       .filter(Boolean)
@@ -100,7 +111,12 @@ export function OrderCard({ order, statusChangeAction, refuseAction }: OrderCard
   }
 
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-4 shadow-card min-[390px]:p-5">
+    <article
+      className={cn(
+        "rounded-3xl border bg-white p-4 shadow-card min-[390px]:p-5",
+        isUrgent ? "border-red-200 ring-4 ring-red-50" : "border-slate-200",
+      )}
+    >
       <div className="flex gap-3 min-[390px]:gap-4">
         <span className={`${getOrderStatusIconStyle(order.status)} grid size-14 shrink-0 place-items-center rounded-full min-[390px]:size-16`}>
           {renderOrderIcon(order.status)}
@@ -118,7 +134,14 @@ export function OrderCard({ order, statusChangeAction, refuseAction }: OrderCard
               </div>
             </div>
 
-            <StatusBadge label={getOrderStatusLabel(order.status)} tone={getOrderStatusBadgeTone(order.status)} />
+            <div className="flex flex-wrap items-center gap-2">
+              {isUrgent ? (
+                <span className="rounded-full bg-red-50 px-3 py-1.5 text-xs font-black uppercase text-red-700">
+                  {urgentLabel}
+                </span>
+              ) : null}
+              <StatusBadge label={getOrderStatusLabel(order.status)} tone={getOrderStatusBadgeTone(order.status)} />
+            </div>
           </div>
 
           <div className="mt-3 grid gap-1.5 text-base text-slate-700 min-[390px]:text-lg">
