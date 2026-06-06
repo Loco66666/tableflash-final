@@ -10,13 +10,13 @@ function getRequiredString(formData: FormData, key: string) {
   const value = formData.get(key);
 
   if (typeof value !== "string") {
-    throw new Error("Donnée manquante.");
+    throw new Error("Donnee manquante.");
   }
 
   const trimmedValue = value.trim();
 
   if (!trimmedValue) {
-    throw new Error("Donnée manquante.");
+    throw new Error("Donnee manquante.");
   }
 
   return trimmedValue;
@@ -50,7 +50,7 @@ export async function saveReviewResponse(formData: FormData): Promise<void> {
   const response = getRequiredString(formData, "response");
 
   if (response.length > MAX_REVIEW_RESPONSE_LENGTH) {
-    throw new Error("La réponse est trop longue.");
+    throw new Error("La reponse est trop longue.");
   }
 
   await ensureReviewBelongsToRestaurant(reviewId, restaurant.id);
@@ -73,7 +73,7 @@ export async function saveReviewResponse(formData: FormData): Promise<void> {
       errorMessage: error.message,
     });
 
-    throw new Error("Enregistrement de la réponse impossible.");
+    throw new Error("Enregistrement de la reponse impossible.");
   }
 
   revalidateReviewsPaths(restaurant.slug);
