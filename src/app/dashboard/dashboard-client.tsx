@@ -4,6 +4,8 @@ import {
   CheckCircle2,
   ClipboardList,
   CreditCard,
+  Download,
+  FileWarning,
   PackageOpen,
   Plus,
   Printer,
@@ -45,6 +47,8 @@ export type DashboardClientData = {
     ordersToCollect: number;
     reviewsToHandle: number;
     unavailableProducts: number;
+    productsWithoutPrice: number;
+    inactiveTables: number;
   };
   today: {
     ordersCount: number;
@@ -53,6 +57,18 @@ export type DashboardClientData = {
     reviewsCount: number;
     activeTablesCount: number;
     productsCount: number;
+  };
+  latest: {
+    order: {
+      label: string;
+      detail: string;
+      date: string;
+    } | null;
+    review: {
+      label: string;
+      detail: string;
+      date: string;
+    } | null;
   };
 };
 
@@ -110,7 +126,14 @@ function isWithinTimeRange(nowMinutes: number, start: string, end: string) {
 }
 
 function getPendingTasksCount(tasks: DashboardClientData["tasks"]) {
-  return tasks.ordersToAccept + tasks.ordersToCollect + tasks.reviewsToHandle;
+  return (
+    tasks.ordersToAccept +
+    tasks.ordersToCollect +
+    tasks.reviewsToHandle +
+    tasks.unavailableProducts +
+    tasks.productsWithoutPrice +
+    tasks.inactiveTables
+  );
 }
 
 function getServiceStatus(settings: DashboardClientData["settings"], tasks: DashboardClientData["tasks"]) {
@@ -184,6 +207,11 @@ function pluralize(value: number, singular: string, plural: string) {
 export default function DashboardClient({ data }: { data: DashboardClientData }) {
   const serviceStatus = getServiceStatus(data.settings, data.tasks);
   const urgentOrdersCount = data.tasks.ordersToAccept + data.tasks.ordersToCollect;
+  const beforeServiceIssuesCount = getPendingTasksCount(data.tasks);
+  const readinessTitle =
+    beforeServiceIssuesCount > 0
+      ? `${beforeServiceIssuesCount} point${beforeServiceIssuesCount > 1 ? "s" : ""} a corriger avant service`
+      : "Votre service est pret";
   const cockpitItems = [
     {
       icon: Bell,
@@ -199,14 +227,14 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
         data.today.productsCount > 0
           ? `${data.today.productsCount - data.tasks.unavailableProducts}/${data.today.productsCount} produits actifs`
           : "Aucun produit",
-      ready: data.today.productsCount > 0 && data.tasks.unavailableProducts === 0,
+      ready: data.today.productsCount > 0 && data.tasks.unavailableProducts === 0 && data.tasks.productsWithoutPrice === 0,
       href: "/dashboard/menu",
     },
     {
       icon: QrCode,
       label: "QR tables",
       value: data.settings.qrEnabled ? `${data.today.activeTablesCount} actifs` : "QR désactivés",
-      ready: data.settings.qrEnabled && data.today.activeTablesCount > 0,
+      ready: data.settings.qrEnabled && data.today.activeTablesCount > 0 && data.tasks.inactiveTables === 0,
       href: "/dashboard/qr",
     },
     {
@@ -215,6 +243,39 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
       value: data.tasks.reviewsToHandle > 0 ? `${data.tasks.reviewsToHandle} à répondre` : "À jour",
       ready: data.tasks.reviewsToHandle === 0,
       href: "/dashboard/reviews",
+    },
+  ];
+  const healthItems = [
+    {
+      label: "Commandes",
+      ready: data.settings.ordersEnabled && urgentOrdersCount === 0,
+      value: data.settings.ordersEnabled ? (urgentOrdersCount > 0 ? `${urgentOrdersCount} en attente` : "OK") : "Desactivees",
+    },
+    {
+      label: "Menu",
+      ready: data.today.productsCount > 0 && data.tasks.productsWithoutPrice === 0 && data.tasks.unavailableProducts === 0,
+      value:
+        data.today.productsCount > 0
+          ? data.tasks.productsWithoutPrice > 0
+            ? `${data.tasks.productsWithoutPrice} prix a verifier`
+            : data.tasks.unavailableProducts > 0
+              ? `${data.tasks.unavailableProducts} indisponible(s)`
+            : "OK"
+          : "Aucun produit",
+    },
+    {
+      label: "QR",
+      ready: data.settings.qrEnabled && data.today.activeTablesCount > 0 && data.tasks.inactiveTables === 0,
+      value: data.settings.qrEnabled
+        ? data.tasks.inactiveTables > 0
+          ? `${data.tasks.inactiveTables} inactive(s)`
+          : `${data.today.activeTablesCount} actifs`
+        : "Desactive",
+    },
+    {
+      label: "Avis",
+      ready: data.settings.reviewsEnabled && data.tasks.reviewsToHandle === 0,
+      value: data.settings.reviewsEnabled ? (data.tasks.reviewsToHandle > 0 ? `${data.tasks.reviewsToHandle} a traiter` : "OK") : "Desactives",
     },
   ];
 
@@ -229,12 +290,12 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
 
         <div className="min-w-0">
           <h2 className="text-2xl font-black tracking-tight text-emerald-800 min-[390px]:text-3xl">
-            {serviceStatus.title}
+            {readinessTitle}
           </h2>
 
           <p className="mt-4 flex items-center gap-3 text-base leading-tight text-slate-700 min-[390px]:text-lg">
             <QrCode className="size-6 shrink-0 text-emerald-800" />
-            <span>{serviceStatus.subtitle}</span>
+            <span>{serviceStatus.title} - {serviceStatus.subtitle}</span>
           </p>
 
           <p className="mt-2 text-sm font-semibold text-slate-700">{serviceStatus.detail}</p>
@@ -292,6 +353,24 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
       </section>
 
       <section className="mb-7">
+        <h2 className="mb-4 text-2xl font-black tracking-tight">Sante pilote</h2>
+
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {healthItems.map((item) => (
+            <div key={item.label} className="rounded-[1.15rem] border border-slate-200 bg-white p-4 shadow-card">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-black uppercase tracking-wide text-slate-500">{item.label}</span>
+                <CheckCircle2 className={"size-5 " + (item.ready ? "text-emerald-700" : "text-orange-500")} />
+              </div>
+              <p className={"mt-3 text-lg font-black leading-tight " + (item.ready ? "text-emerald-800" : "text-orange-700")}>
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mb-7">
         <h2 className="mb-4 text-2xl font-black tracking-tight">À faire maintenant</h2>
 
         <div className="grid gap-3">
@@ -325,6 +404,22 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
             title={`${pluralize(data.tasks.unavailableProducts, "produit indisponible", "produits indisponibles")}`}
             tone="red"
           />
+
+          <ActionCard
+            href="/dashboard/menu"
+            icon={FileWarning}
+            count={String(data.tasks.productsWithoutPrice)}
+            title={`${pluralize(data.tasks.productsWithoutPrice, "prix produit a verifier", "prix produits a verifier")}`}
+            tone="red"
+          />
+
+          <ActionCard
+            href="/dashboard/qr"
+            icon={QrCode}
+            count={String(data.tasks.inactiveTables)}
+            title={`${pluralize(data.tasks.inactiveTables, "table QR inactive", "tables QR inactives")}`}
+            tone="orange"
+          />
         </div>
       </section>
 
@@ -354,13 +449,60 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
         </div>
       </section>
 
+      <section className="mb-7">
+        <h2 className="mb-4 text-2xl font-black tracking-tight">Derniere activite</h2>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <SectionCard className="p-4">
+            <div className="flex items-start gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-800">
+                <ShoppingBasket className="size-6" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-black uppercase tracking-wide text-slate-500">Derniere commande</p>
+                {data.latest.order ? (
+                  <>
+                    <p className="mt-1 truncate text-lg font-black text-slate-950">{data.latest.order.label}</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-slate-600">{data.latest.order.detail}</p>
+                    <p className="mt-1 text-xs font-bold text-slate-500">{data.latest.order.date}</p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-sm font-semibold text-slate-500">Aucune commande pour le moment</p>
+                )}
+              </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard className="p-4">
+            <div className="flex items-start gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-amber-50 text-amber-600">
+                <Star className="size-6" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-black uppercase tracking-wide text-slate-500">Dernier avis</p>
+                {data.latest.review ? (
+                  <>
+                    <p className="mt-1 truncate text-lg font-black text-slate-950">{data.latest.review.label}</p>
+                    <p className="mt-1 line-clamp-2 text-sm font-semibold text-slate-600">{data.latest.review.detail}</p>
+                    <p className="mt-1 text-xs font-bold text-slate-500">{data.latest.review.date}</p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-sm font-semibold text-slate-500">Aucun avis pour le moment</p>
+                )}
+              </div>
+            </div>
+          </SectionCard>
+        </div>
+      </section>
+
       <section className="pb-2">
         <h2 className="mb-3 text-2xl font-black tracking-tight min-[390px]:mb-4">Actions rapides</h2>
 
-        <div className="grid grid-cols-3 gap-2 min-[390px]:gap-3">
+        <div className="grid grid-cols-2 gap-2 min-[390px]:gap-3 md:grid-cols-4">
           <ActionCard href="/dashboard/orders" icon={ClipboardList} title="Voir les commandes" variant="tile" />
-          <ActionCard href="/dashboard/menu?action=add-product" icon={Plus} title="Ajouter un produit" variant="tile" />
-          <ActionCard href="/dashboard/qr?action=print" icon={Printer} title="Imprimer les QR" variant="tile" />
+          <ActionCard href="/dashboard/menu?action=import-photo" icon={Plus} title="Importer menu photo" variant="tile" />
+          <ActionCard href="/dashboard/qr?action=print" icon={Printer} title="Gerer les QR" variant="tile" />
+          <ActionCard href="/dashboard/orders/export?period=today" icon={Download} title="Exporter CSV" variant="tile" />
         </div>
       </section>
     </AppShell>

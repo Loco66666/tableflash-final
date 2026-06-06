@@ -4,14 +4,18 @@ import { createClient } from "@/lib/supabase/server";
 
 type DbOrder = {
   id: string;
+  order_number: number | null;
   status: string;
   payment_status: string;
   total: number;
+  customer_name: string | null;
   created_at: string | null;
 };
 
 type DbMenuProduct = {
   id: string;
+  name: string;
+  price: number | null;
   is_available: boolean;
 };
 
@@ -24,6 +28,8 @@ type DbRestaurantReview = {
   id: string;
   rating: number;
   status: "pending" | "archived";
+  customer_name: string | null;
+  comment: string | null;
   created_at: string | null;
 };
 
@@ -61,6 +67,20 @@ function formatRating(value: number) {
   })}/5`;
 }
 
+function formatDateTime(value: string | null) {
+  if (!value) return "Date inconnue";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date inconnue";
+
+  return date.toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default async function DashboardPage() {
   const { restaurant, settings } = await getCurrentRestaurantContext();
   const supabase = await createClient();
@@ -68,7 +88,7 @@ export default async function DashboardPage() {
 
   const { data: ordersData, error: ordersError } = await supabase
     .from("orders")
-    .select("id, status, payment_status, total, created_at")
+    .select("id, order_number, status, payment_status, total, customer_name, created_at")
     .eq("restaurant_id", restaurant.id)
     .order("created_at", { ascending: false })
     .returns<DbOrder[]>();
@@ -85,7 +105,7 @@ export default async function DashboardPage() {
 
   const { data: productsData, error: productsError } = await supabase
     .from("menu_products")
-    .select("id, is_available")
+    .select("id, name, price, is_available")
     .eq("restaurant_id", restaurant.id)
     .returns<DbMenuProduct[]>();
 
@@ -117,7 +137,7 @@ export default async function DashboardPage() {
 
   const { data: reviewsData, error: reviewsError } = await supabase
     .from("restaurant_reviews")
-    .select("id, rating, status, created_at")
+    .select("id, rating, status, customer_name, comment, created_at")
     .eq("restaurant_id", restaurant.id)
     .returns<DbRestaurantReview[]>();
 
@@ -153,7 +173,17 @@ export default async function DashboardPage() {
   ).length;
   const pendingReviewsCount = reviews.filter((review) => review.status === "pending").length;
   const unavailableProductsCount = products.filter((product) => !product.is_available).length;
+  const productsWithoutPriceCount = products.filter(
+    (product) => !Number.isFinite(Number(product.price)) || Number(product.price) <= 0,
+  ).length;
   const activeTablesCount = tables.filter((table) => table.is_active).length;
+  const inactiveTablesCount = tables.filter((table) => !table.is_active).length;
+  const lastOrder = orders[0] ?? null;
+  const lastReview =
+    reviews
+      .filter((review) => review.created_at)
+      .sort((first, second) => new Date(second.created_at ?? 0).getTime() - new Date(first.created_at ?? 0).getTime())[0] ??
+    null;
 
   const dashboardData: DashboardClientData = {
     restaurant: {
@@ -181,6 +211,8 @@ export default async function DashboardPage() {
       ordersToCollect: unpaidAcceptedOrdersCount,
       reviewsToHandle: pendingReviewsCount,
       unavailableProducts: unavailableProductsCount,
+      productsWithoutPrice: productsWithoutPriceCount,
+      inactiveTables: inactiveTablesCount,
     },
     today: {
       ordersCount: todayOrders.length,
@@ -189,6 +221,22 @@ export default async function DashboardPage() {
       reviewsCount: todayReviewsCount,
       activeTablesCount,
       productsCount: products.length,
+    },
+    latest: {
+      order: lastOrder
+        ? {
+            label: lastOrder.order_number ? `Commande #${lastOrder.order_number}` : "Derniere commande",
+            detail: `${lastOrder.customer_name ?? "Client"} - ${formatEuro(Number(lastOrder.total ?? 0))}`,
+            date: formatDateTime(lastOrder.created_at),
+          }
+        : null,
+      review: lastReview
+        ? {
+            label: `${lastReview.rating}/5`,
+            detail: lastReview.comment?.trim() || lastReview.customer_name || "Avis client sans commentaire",
+            date: formatDateTime(lastReview.created_at),
+          }
+        : null,
     },
   };
 

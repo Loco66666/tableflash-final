@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useMemo, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import {
   Camera,
@@ -814,6 +815,8 @@ export function MenuManager({
   initialCategories: MenuCategory[];
   initialProducts: Product[];
 }) {
+  const searchParams = useSearchParams();
+  const initialPanelMode: PanelMode = searchParams.get("action") === "import-photo" ? "import-menu" : null;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const menuImportFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -829,7 +832,7 @@ export function MenuManager({
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(() => new Set());
   const [selectedCategoryProductIds, setSelectedCategoryProductIds] = useState<Set<string>>(() => new Set());
-  const [panelMode, setPanelMode] = useState<PanelMode>(null);
+  const [panelMode, setPanelMode] = useState<PanelMode>(() => initialPanelMode);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(emptyProductForm);
   const [productErrors, setProductErrors] = useState<ProductFormErrors>({});
