@@ -1,6 +1,6 @@
 # TableFlash - Roadmap MVP Restaurant Pilote
 
-Version: 2026-06-05
+Version: 2026-06-06
 
 Objectif: amener TableFlash d'un produit proche MVP a une plateforme fiable, exploitable par un restaurant pilote, puis capable d'accueillir progressivement 10, 50, 100, puis 1000 restaurants sans rupture produit, technique ou operationnelle.
 
@@ -1136,31 +1136,248 @@ No-go pilote si:
 
 ## 18.1 Gel fonctionnel avant retour terrain
 
-Jusqu'au premier service accompagne, ne pas lancer:
+Statut au 2026-06-06:
+
+- Le parcours pilote complet a ete valide.
+- Le test avec restaurateur a deja ete realise.
+- Le gel fonctionnel strict est leve.
+- La suite ne doit pas etre une accumulation de gadgets: chaque ajout doit faire gagner du temps, reduire une erreur en service, ameliorer la satisfaction client ou augmenter la valeur percue de l'abonnement.
+
+Ne pas lancer pour le moment:
 
 - Stripe.
 - Fidelite.
 - Stock quantitatif avance.
 - Refonte design.
 - Nouvelle logique complexe de caisse, impression ou multi-site.
-- Fonctionnalite non demandee par le restaurant pilote.
+- Fonctionnalite lourde qui ne sert pas directement le restaurateur pendant le service.
 
-Autorise pendant le gel:
+Autorise maintenant:
 
 - Corrections de bugs reels observes.
-- Wording court si un restaurateur ou client ne comprend pas une action.
-- Petites ameliorations support qui reduisent un risque pendant le service.
-- Documentation d'installation et checklist terrain.
+- Ameliorations du menu restaurateur si elles accelerent la creation, le nettoyage ou la gestion des ruptures.
+- Ameliorations du menu client si elles rendent la commande plus simple et plus fiable.
+- Ameliorations des commandes si elles reduisent le stress pendant le service.
+- Ameliorations QR si elles facilitent l'installation terrain.
+- IA utile uniquement si elle fait gagner du temps au restaurateur ou ameliore la qualite du menu.
 
 Regle:
 
-Si une idee ne vient pas d'une friction observee en service, elle est mise en attente.
+Si une idee ne peut pas etre expliquee en une phrase comme un gain restaurateur, elle est mise en attente.
+
+---
+
+## 18.2 Roadmap SaaS restaurateur professionnel
+
+Objectif:
+
+Faire passer TableFlash de MVP pilote fonctionnel a produit SaaS professionnel, convaincant pour un restaurateur qui veut gagner du temps, eviter les erreurs, ameliorer l'experience client et justifier un abonnement.
+
+Principe directeur:
+
+Le restaurateur doit sentir en moins de 15 minutes que TableFlash lui evite du travail manuel, clarifie son service et donne une image plus professionnelle a son restaurant.
+
+### Priorite 1 - Menu restaurateur ultra efficace
+
+Pourquoi:
+
+Le menu est la premiere douleur d'installation. Si le restaurateur doit tout saisir a la main ou nettoyer trop longtemps, il abandonne.
+
+Objectifs:
+
+1. Importer un menu par plusieurs photos.
+2. Detecter les familles principales: Pizza, Sandwich, Tacos, Plats, Salades, Assiettes, Pates, Boissons, Desserts, Menus et formules.
+3. Garder les sous-sections visibles dans la liste sans creer de nouveaux boutons inutiles.
+4. Detecter les formules, options et supplements.
+5. Proposer un ecran de validation rapide avant import.
+6. Permettre le nettoyage massif: selection multiple, suppression, indisponibilite, deplacement de categorie.
+7. Detecter les doublons, categories vides, produits sans prix, produits sans photo.
+8. Permettre des modeles d'options reutilisables: sauces, viandes, tailles, supplements, boissons, menus.
+
+Critere de validation:
+
+- Un restaurateur peut importer et rendre exploitable un menu papier en moins de 20 minutes.
+- Une rupture produit peut etre geree en moins de 5 secondes.
+- Une categorie mal importee peut etre corrigee sans supprimer les produits un par un.
+
+### Priorite 2 - Menu client fluide et fiable
+
+Pourquoi:
+
+Le client doit commander sans appeler le serveur pour comprendre le menu.
+
+Objectifs:
+
+1. Navigation claire par familles principales.
+2. Sections internes lisibles dans chaque famille.
+3. Recherche produit.
+4. Produits indisponibles jamais commandables.
+5. Options obligatoires visibles avant ajout panier.
+6. Supplements avec prix clair.
+7. Total du produit mis a jour en direct.
+8. Panier modifiable: modifier options, quantite, suppression.
+9. Message clair sur le paiement sur place.
+10. Suivi apres commande stable jusqu'a avis ou nouvelle commande.
+
+Critere de validation:
+
+- Un client peut scanner, choisir un produit avec options, envoyer la commande et suivre son statut sans explication.
+
+### Priorite 3 - Commandes restaurateur mode service
+
+Pourquoi:
+
+Pendant le rush, le restaurateur ne doit pas chercher les informations importantes.
+
+Objectifs:
+
+1. Nouvelles commandes tres visibles.
+2. Son de service active volontairement, testable et assez fort.
+3. Rappel visuel/sonore tant qu'une commande n'est pas acceptee.
+4. Numero de commande, table, nom client, heure, total et options visibles.
+5. Chronometre depuis reception.
+6. Alertes retard.
+7. Colonnes ou filtres clairs: a accepter, en preparation, pretes, servies.
+8. Mode rush: masquer servies, voir uniquement commandes actives.
+9. Actions rapides: accepter, refuser, preparer, prete, servie, payee.
+10. Export CSV conserve et fiable.
+
+Critere de validation:
+
+- Une commande peut etre comprise et traitee en moins de 10 secondes.
+- Une nouvelle commande ne peut pas etre ratee si le dashboard est ouvert.
+
+### Priorite 4 - Accueil cockpit restaurateur
+
+Pourquoi:
+
+L'accueil doit dire immediatement si le restaurant est pret pour le service.
+
+Objectifs:
+
+1. Etat service: ouvert/ferme.
+2. Commandes activees/desactivees.
+3. QR actifs.
+4. Produits indisponibles.
+5. Produits sans photo ou incomplets.
+6. Avis a traiter.
+7. Derniere commande recue.
+8. Bouton "Demarrer le service".
+9. Boutons rapides: commandes, importer menu, ruptures, imprimer QR, tester menu client.
+10. Alertes utiles: categories vides, QR non imprimes, menu incomplet.
+
+Critere de validation:
+
+- En arrivant sur l'accueil, le restaurateur sait en moins de 5 secondes ce qui demande son attention.
+
+### Priorite 5 - QR installation terrain
+
+Pourquoi:
+
+Le QR est le point d'entree client. Il doit etre simple a installer et impossible a confondre.
+
+Objectifs:
+
+1. Planche QR propre par table.
+2. Export PDF pret a imprimer.
+3. Formats utiles: A6, chevalet, sticker.
+4. Nom restaurant et nom table visibles.
+5. Bouton "Tester ce QR".
+6. Statut actif/desactive clair.
+7. Derniere commande par table.
+8. Nombre de commandes par table.
+9. Desactivation temporaire d'une table.
+10. Suppression protegee si historique de commandes.
+
+Critere de validation:
+
+- Un restaurant peut installer ses QR en moins de 15 minutes sans aide technique.
+
+### Priorite 6 - Avis et satisfaction client
+
+Pourquoi:
+
+Les avis donnent une valeur business visible au restaurateur.
+
+Objectifs:
+
+1. Avis apres commande servie.
+2. Avis positif: encouragement partage Google.
+3. Avis negatif: retour prive et ton rassurant.
+4. Reponses assistees par IA.
+5. Copie rapide d'une reponse.
+6. Moyenne, avis positifs, avis a traiter.
+7. Detection de mots frequents: attente, froid, service, prix.
+
+Critere de validation:
+
+- Le restaurateur peut traiter un avis en moins de 30 secondes.
+
+### Priorite 7 - Statistiques utiles
+
+Pourquoi:
+
+Les statistiques doivent aider a prendre des decisions simples.
+
+Objectifs:
+
+1. Nombre de commandes du jour.
+2. Chiffre d'affaires estime.
+3. Panier moyen.
+4. Produits les plus vendus.
+5. Produits jamais commandes.
+6. Tables les plus actives.
+7. Heures de pic.
+8. Taux d'avis.
+9. Note moyenne.
+10. Export conserve.
+
+Critere de validation:
+
+- Le restaurateur peut savoir ce qui marche aujourd'hui sans ouvrir un tableur.
+
+### IA autorisee dans le produit
+
+L'IA doit rester un accelerateur, pas une dependance fragile.
+
+Cas autorises:
+
+1. Import menu par photo.
+2. Nettoyage de menu: noms, categories, doublons.
+3. Detection options/formules.
+4. Descriptions produit courtes.
+5. Reponse aux avis.
+6. Assistant "pret pour le service".
+
+Cas a eviter avant validation terrain:
+
+- IA conversationnelle generale sans action concrete.
+- Recommandations complexes non verifiables.
+- Automatisation qui modifie le menu sans validation restaurateur.
+
+### Ordre d'execution a partir du 2026-06-06
+
+1. Finaliser menu restaurateur professionnel.
+2. Finaliser menu client avec options/formules propres.
+3. Renforcer commandes en mode service.
+4. Construire accueil cockpit.
+5. Ameliorer QR installation terrain.
+6. Ajouter IA avis et satisfaction.
+7. Ajouter statistiques metier.
+8. Refaire un test terrain complet.
+9. Ensuite seulement discuter Stripe SaaS, fidelite ou stock avance.
+
+### Phrase de valeur cible
+
+TableFlash doit pouvoir etre presente ainsi:
+
+"Prenez votre menu en photo, installez vos QR, recevez les commandes a table, suivez le service et recuperez des avis clients sans outil complique."
 
 ---
 
 ## 19. Ordre de travail recommande
 
-Ne pas commencer par Stripe, fidelite ou design.
+Ne pas commencer par Stripe, fidelite, stock avance ou refonte design.
 
 Ordre strict:
 
@@ -1177,11 +1394,15 @@ Ordre strict:
 11. Tester avis. Valide sur base actuelle.
 12. Ajouter exports commandes. Fait.
 13. Ajouter refresh/live commandes. Refresh intelligent fait.
-14. Preparer pilote terrain.
-15. Observer un service accompagne.
-16. Collecter retours terrain.
-17. Prioriser seulement les douleurs reelles.
-18. Ensuite seulement: Stripe SaaS, fidelite, stock avance.
+14. Finaliser menu restaurateur professionnel.
+15. Finaliser menu client options/formules.
+16. Renforcer commandes mode service.
+17. Construire accueil cockpit.
+18. Ameliorer QR installation terrain.
+19. Ajouter IA avis et satisfaction.
+20. Ajouter statistiques metier.
+21. Refaire un test terrain complet.
+22. Ensuite seulement: Stripe SaaS, fidelite, stock avance.
 
 ---
 
@@ -1240,12 +1461,12 @@ La prochaine reprise de developpement doit commencer par:
 3. Verifier ou creer `CODEX_AUDIT_CONTEXT.md`.
 4. Verifier que le dernier deploiement Vercel est vert.
 5. Lancer lint/build avant toute modification.
-6. Ne pas ajouter de feature lourde avant retour terrain.
+6. Rattacher chaque nouvelle feature a la section 18.2.
 
 Priorite absolue:
 
-- Onboarder un vrai restaurant pilote.
-- Configurer nom, slug, menu, photos, tables et QR reels.
-- Faire un service accompagne.
-- Observer les frictions reelles.
-- Corriger seulement les bugs ou incomprehensions detectes pendant ce service.
+- Finaliser le menu restaurateur professionnel.
+- Corriger le regroupement des familles et sous-sections.
+- Fiabiliser import photo, options, formules et nettoyage massif.
+- Ensuite finaliser le menu client avec options/formules propres.
+- Puis renforcer commandes mode service et accueil cockpit.
