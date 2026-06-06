@@ -123,7 +123,12 @@ function formatPriceInput(value: number) {
 function getMenuFamily(categoryName: string) {
   const normalizedName = normalizeText(categoryName);
 
-  if (normalizedName.includes("pizza")) return { id: "family-pizza", name: "Pizza" };
+  if (
+    normalizedName.includes("pizza") ||
+    normalizedName.includes("fromage")
+  ) {
+    return { id: "family-pizza", name: "Pizza" };
+  }
   if (
     normalizedName.includes("sandwich") ||
     normalizedName.includes("burger") ||
