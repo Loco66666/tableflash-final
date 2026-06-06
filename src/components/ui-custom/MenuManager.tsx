@@ -904,18 +904,22 @@ export function MenuManager({
     () => menuCategories.filter((category) => (productCountByCategoryId.get(category.id) ?? 0) === 0),
     [menuCategories, productCountByCategoryId],
   );
-  const productsWithoutPhoto = useMemo(
-    () => products.filter((product) => !(product.imageUrl || product.imageDataUrl)),
+  const availableProducts = useMemo(
+    () => products.filter((product) => product.available !== false),
     [products],
+  );
+  const productsWithoutPhoto = useMemo(
+    () => availableProducts.filter((product) => !(product.imageUrl || product.imageDataUrl)),
+    [availableProducts],
   );
   const productsWithPriceIssue = useMemo(
-    () => products.filter((product) => !Number.isFinite(product.price) || product.price <= 0),
-    [products],
+    () => availableProducts.filter((product) => !Number.isFinite(product.price) || product.price <= 0),
+    [availableProducts],
   );
   const duplicateProductGroups = useMemo(() => {
-    const groups = new Map<string, typeof products>();
+    const groups = new Map<string, typeof availableProducts>();
 
-    for (const product of products) {
+    for (const product of availableProducts) {
       if (isGenericCategoryName(product.categoryName)) continue;
 
       const key = normalizeText(product.name);
@@ -933,7 +937,7 @@ export function MenuManager({
         products: duplicateProducts,
       }))
       .filter((group) => group.products.length > 1);
-  }, [products]);
+  }, [availableProducts]);
   const menuCleanupIssueCount =
     emptyCategories.length + productsWithPriceIssue.length;
 
@@ -975,8 +979,8 @@ export function MenuManager({
     [filteredProducts, selectedCategoryId],
   );
   const allAvailableProductIds = useMemo(
-    () => products.filter((product) => product.available !== false).map((product) => product.id),
-    [products],
+    () => availableProducts.map((product) => product.id),
+    [availableProducts],
   );
   const selectableProductCount = selectableProductIds.length;
   const allVisibleProductsSelected =
