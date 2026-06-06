@@ -21,6 +21,7 @@ import type { Category, Product, ProductOptionGroup, ProductOptionsConfig } from
 import { cn } from "@/lib/utils";
 import {
   bulkArchiveMenuProducts,
+  bulkMoveMenuProductsToCategory,
   bulkUpdateMenuProductsAvailability,
   createMenuCategory,
   createMenuProduct,
@@ -818,6 +819,8 @@ export function MenuManager({
   const [menuImportDraftProducts, setMenuImportDraftProducts] = useState<MenuImportDraftProduct[]>([]);
   const [menuImportImageName, setMenuImportImageName] = useState("");
   const [expandedImportProductId, setExpandedImportProductId] = useState<string | null>(null);
+  const [bulkMoveCategoryId, setBulkMoveCategoryId] = useState("");
+  const [categoryMoveTargetId, setCategoryMoveTargetId] = useState("");
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
 
@@ -1084,6 +1087,8 @@ export function MenuManager({
     setDescriptionAiFeedback(null);
     setIsUploadingImage(false);
     setIsExtractingMenuPhoto(false);
+    setBulkMoveCategoryId("");
+    setCategoryMoveTargetId("");
   }
 
   function validateProductForm() {
@@ -1421,6 +1426,7 @@ export function MenuManager({
       isActive: category.isActive !== false,
     });
     setSelectedCategoryProductIds(new Set());
+    setCategoryMoveTargetId("");
     setCategoryError("");
     setActionError("");
     setActionMessage("");
@@ -1510,6 +1516,7 @@ export function MenuManager({
 
   function clearProductSelection() {
     setSelectedProductIds(new Set());
+    setBulkMoveCategoryId("");
   }
 
   function selectProductsForCleanup(productIds: string[], message: string) {
@@ -1541,6 +1548,73 @@ export function MenuManager({
 
   function clearCategoryProductSelection() {
     setSelectedCategoryProductIds(new Set());
+    setCategoryMoveTargetId("");
+  }
+
+  function bulkMoveSelection() {
+    const productIds = Array.from(selectedProductIds);
+    const targetCategory = menuCategories.find((category) => category.id === bulkMoveCategoryId);
+
+    if (productIds.length === 0 || !targetCategory) return;
+
+    const confirmed = window.confirm(
+      `Déplacer ${productIds.length} produit(s) vers "${targetCategory.name}" ?`,
+    );
+
+    if (!confirmed) return;
+
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+          setActionMessage("");
+
+          const result = await bulkMoveMenuProductsToCategory({
+            productIds,
+            categoryId: targetCategory.id,
+          });
+
+          setSelectedProductIds(new Set());
+          setBulkMoveCategoryId("");
+          setActionMessage(`${result.movedProducts} produit(s) déplacé(s) vers "${targetCategory.name}".`);
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Déplacement groupé impossible.");
+        }
+      })();
+    });
+  }
+
+  function bulkMoveCategoryProductSelection() {
+    const productIds = Array.from(selectedCategoryProductIds);
+    const targetCategory = menuCategories.find((category) => category.id === categoryMoveTargetId);
+
+    if (productIds.length === 0 || !targetCategory) return;
+
+    const confirmed = window.confirm(
+      `Déplacer ${productIds.length} produit(s) vers "${targetCategory.name}" ?`,
+    );
+
+    if (!confirmed) return;
+
+    startTransition(() => {
+      void (async () => {
+        try {
+          setActionError("");
+          setActionMessage("");
+
+          const result = await bulkMoveMenuProductsToCategory({
+            productIds,
+            categoryId: targetCategory.id,
+          });
+
+          setSelectedCategoryProductIds(new Set());
+          setCategoryMoveTargetId("");
+          setActionMessage(`${result.movedProducts} produit(s) déplacé(s) vers "${targetCategory.name}".`);
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : "Déplacement groupé impossible.");
+        }
+      })();
+    });
   }
 
   function bulkDisableSelection() {
@@ -1883,7 +1957,34 @@ export function MenuManager({
           </div>
 
           {selectedProductCount > 0 ? (
-            <div className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-2">
+            <div className="grid gap-2">
+              <div className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-[1fr_auto]">
+                <select
+                  value={bulkMoveCategoryId}
+                  onChange={(event) => setBulkMoveCategoryId(event.target.value)}
+                  disabled={isPending}
+                  className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100 disabled:opacity-60"
+                  aria-label="Catégorie de destination"
+                >
+                  <option value="">Déplacer vers une catégorie</option>
+                  {activeCategories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={bulkMoveSelection}
+                  disabled={isPending || !bulkMoveCategoryId}
+                  className="min-h-11 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-black text-emerald-800 disabled:opacity-60"
+                >
+                  Déplacer
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-2">
               <button
                 type="button"
                 onClick={bulkDisableSelection}
@@ -1901,6 +2002,7 @@ export function MenuManager({
               >
                 Supprimer/retirer la sélection
               </button>
+              </div>
             </div>
           ) : null}
         </div>
@@ -2628,14 +2730,44 @@ export function MenuManager({
                   )}
 
                   {selectedCategoryProductCount > 0 ? (
-                    <button
-                      type="button"
-                      onClick={bulkArchiveCategoryProductSelection}
-                      disabled={isPending}
-                      className="min-h-11 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 disabled:opacity-60"
-                    >
-                      Archiver {selectedCategoryProductCount} produit(s) sélectionné(s)
-                    </button>
+                    <div className="grid gap-2">
+                      <div className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-[1fr_auto]">
+                        <select
+                          value={categoryMoveTargetId}
+                          onChange={(event) => setCategoryMoveTargetId(event.target.value)}
+                          disabled={isPending}
+                          className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100 disabled:opacity-60"
+                          aria-label="Catégorie de destination"
+                        >
+                          <option value="">Déplacer vers une catégorie</option>
+                          {activeCategories
+                            .filter((category) => category.id !== categoryForm.id)
+                            .map((category) => (
+                              <option key={category.id} value={category.id}>
+                                {category.name}
+                              </option>
+                            ))}
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={bulkMoveCategoryProductSelection}
+                          disabled={isPending || !categoryMoveTargetId}
+                          className="min-h-11 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-black text-emerald-800 disabled:opacity-60"
+                        >
+                          Déplacer
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={bulkArchiveCategoryProductSelection}
+                        disabled={isPending}
+                        className="min-h-11 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 disabled:opacity-60"
+                      >
+                        Archiver {selectedCategoryProductCount} produit(s) sélectionné(s)
+                      </button>
+                    </div>
                   ) : null}
                 </div>
               ) : null}

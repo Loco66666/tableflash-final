@@ -777,6 +777,52 @@ export async function bulkArchiveMenuProducts(input: { productIds: string[] }) {
   };
 }
 
+export async function bulkMoveMenuProductsToCategory(input: {
+  productIds: string[];
+  categoryId: string;
+}) {
+  const { restaurant } = await getCurrentRestaurantContext();
+  const supabase = await createClient();
+  const productIds = cleanIds(input.productIds);
+  const categoryId = cleanId(input.categoryId);
+
+  if (productIds.length === 0) {
+    throw new Error("Aucun produit sélectionné.");
+  }
+
+  if (productIds.length > 120) {
+    throw new Error("Sélection limitée à 120 produits à la fois.");
+  }
+
+  if (!categoryId) {
+    throw new Error("Catégorie de destination requise.");
+  }
+
+  await ensureCategoryBelongsToRestaurant(categoryId, restaurant.id);
+
+  const { data, error } = await supabase
+    .from("menu_products")
+    .update({
+      category_id: categoryId,
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", productIds)
+    .eq("restaurant_id", restaurant.id)
+    .select("id")
+    .returns<{ id: string }[]>();
+
+  if (error) {
+    throw new Error("Déplacement de la sélection impossible.");
+  }
+
+  revalidateMenuPaths(restaurant.slug);
+
+  return {
+    ok: true,
+    movedProducts: data?.length ?? 0,
+  };
+}
+
 export async function toggleMenuProductAvailability(input: {
   productId: string;
   available: boolean;
