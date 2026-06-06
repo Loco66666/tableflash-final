@@ -925,8 +925,7 @@ export function MenuManager({
       .filter((group) => group.products.length > 1);
   }, [products]);
   const menuCleanupIssueCount =
-    emptyCategories.length + productsWithPriceIssue.length + duplicateProductGroups.length;
-  const menuCleanupRecommendationCount = productsWithoutPhoto.length;
+    emptyCategories.length + productsWithPriceIssue.length;
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = normalizeText(search);
@@ -2410,16 +2409,14 @@ export function MenuManager({
           <div className="grid gap-4 safe-pb-form">
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
               <p className="text-base font-black text-emerald-900">
-                {menuCleanupIssueCount > 0
-                  ? `${menuCleanupIssueCount} correction(s) prioritaire(s)`
-                  : "Aucune correction prioritaire"}
+                {menuCleanupIssueCount > 0 ? `${menuCleanupIssueCount} correction(s) prioritaire(s)` : "Menu opérationnel"}
               </p>
               <p className="mt-1 text-sm font-semibold leading-relaxed text-emerald-800/80">
-                Les photos manquantes sont comptées à part comme recommandations, pas comme problèmes bloquants.
+                Les photos et doublons possibles restent des recommandations non bloquantes.
               </p>
             </div>
 
-            {menuCleanupIssueCount === 0 && menuCleanupRecommendationCount === 0 ? (
+            {menuCleanupIssueCount === 0 && productsWithoutPhoto.length === 0 && duplicateProductGroups.length === 0 ? (
               <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-emerald-200 bg-white p-5 text-center">
                 <span className="grid gap-2 text-sm font-bold text-emerald-800">
                   <Check className="mx-auto size-8" />
@@ -2431,13 +2428,13 @@ export function MenuManager({
             {duplicateProductGroups.length > 0 ? (
               <section className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
                 <div>
-                  <h3 className="text-lg font-black text-slate-950">Doublons possibles</h3>
+                  <h3 className="text-lg font-black text-slate-950">Vérifications de doublons</h3>
                   <p className="mt-1 text-sm font-semibold text-slate-500">
-                    Sélectionnez un groupe, gardez le bon produit, puis supprimez la sélection inutile.
+                    Ce n&apos;est pas forcément une erreur. Vérifiez seulement les lignes réellement importées en double.
                   </p>
                 </div>
 
-                {duplicateProductGroups.map((group) => (
+                {duplicateProductGroups.slice(0, 8).map((group) => (
                   <article key={group.key} className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -2478,6 +2475,12 @@ export function MenuManager({
                     </div>
                   </article>
                 ))}
+
+                {duplicateProductGroups.length > 8 ? (
+                  <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                    + {duplicateProductGroups.length - 8} autre(s) groupe(s) à vérifier plus tard.
+                  </p>
+                ) : null}
               </section>
             ) : null}
 
