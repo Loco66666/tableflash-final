@@ -908,10 +908,6 @@ export function MenuManager({
     () => products.filter((product) => product.available !== false),
     [products],
   );
-  const productsWithoutPhoto = useMemo(
-    () => availableProducts.filter((product) => !(product.imageUrl || product.imageDataUrl)),
-    [availableProducts],
-  );
   const productsWithPriceIssue = useMemo(
     () => availableProducts.filter((product) => !Number.isFinite(product.price) || product.price <= 0),
     [availableProducts],
@@ -2426,12 +2422,11 @@ export function MenuManager({
                 {menuCleanupIssueCount > 0 ? `${menuCleanupIssueCount} correction(s) prioritaire(s)` : "Menu opérationnel"}
               </p>
               <p className="mt-1 text-sm font-semibold leading-relaxed text-emerald-800/80">
-                Les photos et doublons possibles restent des recommandations non bloquantes.
+                Les doublons possibles restent des vérifications non bloquantes.
               </p>
             </div>
 
             {menuCleanupIssueCount === 0 &&
-            productsWithoutPhoto.length === 0 &&
             duplicateProductGroups.length === 0 ? (
               <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-emerald-200 bg-white p-5 text-center">
                 <span className="grid gap-2 text-sm font-bold text-emerald-800">
@@ -2523,55 +2518,6 @@ export function MenuManager({
                       </button>
                     </div>
                   ))}
-                </div>
-              </section>
-            ) : null}
-
-            {productsWithoutPhoto.length > 0 ? (
-              <section className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
-                <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
-                  <div>
-                    <h3 className="text-lg font-black text-slate-950">Photos recommandées</h3>
-                    <p className="mt-1 text-sm font-semibold text-slate-500">
-                      {productsWithoutPhoto.length} produit(s) sans photo. Ce n&apos;est pas bloquant, mais cela rend le menu client plus vendeur.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      selectProductsForCleanup(
-                        productsWithoutPhoto.map((product) => product.id),
-                        "Produits sans photo sélectionnés. Vous pouvez les traiter en priorité.",
-                      )
-                    }
-                    className="min-h-10 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700"
-                  >
-                    Sélectionner
-                  </button>
-                </div>
-
-                <div className="grid gap-2">
-                  {productsWithoutPhoto.slice(0, 8).map((product) => (
-                    <button
-                      key={product.id}
-                      type="button"
-                      onClick={() => openEditProduct(product)}
-                      className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 text-left"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-black text-slate-900">{product.name}</span>
-                        <span className="mt-0.5 block truncate text-xs font-semibold text-slate-500">{product.categoryName}</span>
-                      </span>
-                      <span className="shrink-0 text-xs font-black text-emerald-800">Modifier</span>
-                    </button>
-                  ))}
-
-                  {productsWithoutPhoto.length > 8 ? (
-                    <p className="text-xs font-semibold text-slate-500">
-                      + {productsWithoutPhoto.length - 8} autre(s) produit(s) sans photo.
-                    </p>
-                  ) : null}
                 </div>
               </section>
             ) : null}
