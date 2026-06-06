@@ -5,6 +5,7 @@ import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import {
   Camera,
   Check,
+  ClipboardCheck,
   FolderCog,
   FolderPlus,
   ImageIcon,
@@ -66,7 +67,7 @@ type MenuImportDraftProduct = {
   optionsConfig: ProductOptionsConfig;
 };
 
-type PanelMode = "add-product" | "edit-product" | "add-category" | "manage-categories" | "import-menu" | null;
+type PanelMode = "add-product" | "edit-product" | "add-category" | "manage-categories" | "import-menu" | "menu-cleanup" | null;
 
 
 function createEmptyOptionsConfig(): ProductOptionsConfig {
@@ -888,6 +889,41 @@ export function MenuManager({
     return counts;
   }, [initialProducts]);
 
+  const emptyCategories = useMemo(
+    () => menuCategories.filter((category) => (productCountByCategoryId.get(category.id) ?? 0) === 0),
+    [menuCategories, productCountByCategoryId],
+  );
+  const productsWithoutPhoto = useMemo(
+    () => products.filter((product) => !(product.imageUrl || product.imageDataUrl)),
+    [products],
+  );
+  const productsWithPriceIssue = useMemo(
+    () => products.filter((product) => !Number.isFinite(product.price) || product.price <= 0),
+    [products],
+  );
+  const duplicateProductGroups = useMemo(() => {
+    const groups = new Map<string, typeof products>();
+
+    for (const product of products) {
+      const key = normalizeText(product.name);
+      if (!key) continue;
+
+      const group = groups.get(key) ?? [];
+      group.push(product);
+      groups.set(key, group);
+    }
+
+    return [...groups.entries()]
+      .map(([key, duplicateProducts]) => ({
+        key,
+        name: duplicateProducts[0]?.name ?? "Produit",
+        products: duplicateProducts,
+      }))
+      .filter((group) => group.products.length > 1);
+  }, [products]);
+  const menuCleanupIssueCount =
+    emptyCategories.length + productsWithoutPhoto.length + productsWithPriceIssue.length + duplicateProductGroups.length;
+
   const filteredProducts = useMemo(() => {
     const normalizedSearch = normalizeText(search);
 
@@ -1019,6 +1055,14 @@ export function MenuManager({
     setActionError("");
     setActionMessage("");
     setPanelMode("manage-categories");
+  }
+
+  function openMenuCleanup() {
+    setCategoryForm(emptyCategoryForm);
+    setSelectedCategoryProductIds(new Set());
+    setActionError("");
+    setActionMessage("");
+    setPanelMode("menu-cleanup");
   }
 
   function openMenuImport() {
@@ -1468,6 +1512,15 @@ export function MenuManager({
     setSelectedProductIds(new Set());
   }
 
+  function selectProductsForCleanup(productIds: string[], message: string) {
+    setSelectedProductIds(new Set(productIds));
+    setSelectedCategoryId("all");
+    setSearch("");
+    setPanelMode(null);
+    setActionMessage(message);
+    setActionError("");
+  }
+
   function toggleCategoryProductSelection(productId: string) {
     setSelectedCategoryProductIds((currentSelection) => {
       const nextSelection = new Set(currentSelection);
@@ -1680,6 +1733,23 @@ export function MenuManager({
             <span className="inline-flex items-center gap-3">
               <Wand2 className="size-7" />
               Importer photo
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={openMenuCleanup}
+            disabled={isPending || menuCategories.length === 0}
+            className="min-h-16 rounded-[1.2rem] border border-emerald-200 bg-white text-lg font-black text-emerald-800 shadow-card disabled:opacity-60"
+          >
+            <span className="inline-flex items-center gap-3">
+              <ClipboardCheck className="size-7" />
+              Nettoyer menu
+              {menuCleanupIssueCount > 0 ? (
+                <span className="grid min-w-6 place-items-center rounded-full bg-emerald-700 px-2 py-0.5 text-xs text-white">
+                  {menuCleanupIssueCount}
+                </span>
+              ) : null}
             </span>
           </button>
 
@@ -2227,6 +2297,194 @@ export function MenuManager({
                 <span className="inline-flex items-center gap-2"><Check className="size-5" />Importer les produits validés</span>
               </button>
               <button type="button" onClick={closePanel} className="min-h-11 rounded-2xl border border-slate-200 bg-white px-5 text-base font-bold text-slate-700">Annuler</button>
+            </div>
+          </div>
+        </Panel>
+      ) : null}
+
+      {panelMode === "menu-cleanup" ? (
+        <Panel title="Nettoyer le menu" onClose={closePanel}>
+          <div className="grid gap-4 safe-pb-form">
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+              <p className="text-base font-black text-emerald-900">
+                {menuCleanupIssueCount > 0 ? `${menuCleanupIssueCount} point(s) à vérifier` : "Menu propre"}
+              </p>
+              <p className="mt-1 text-sm font-semibold leading-relaxed text-emerald-800/80">
+                Vérifiez rapidement les éléments qui peuvent ralentir le service ou créer de la confusion côté client.
+              </p>
+            </div>
+
+            {menuCleanupIssueCount === 0 ? (
+              <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-emerald-200 bg-white p-5 text-center">
+                <span className="grid gap-2 text-sm font-bold text-emerald-800">
+                  <Check className="mx-auto size-8" />
+                  Aucun problème évident détecté dans le menu.
+                </span>
+              </div>
+            ) : null}
+
+            {duplicateProductGroups.length > 0 ? (
+              <section className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
+                <div>
+                  <h3 className="text-lg font-black text-slate-950">Doublons possibles</h3>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">
+                    Sélectionnez un groupe, gardez le bon produit, puis supprimez la sélection inutile.
+                  </p>
+                </div>
+
+                {duplicateProductGroups.map((group) => (
+                  <article key={group.key} className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-black text-slate-900">{group.name}</p>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">
+                          {group.products.length} produit(s) avec le même nom
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          selectProductsForCleanup(
+                            group.products.map((product) => product.id),
+                            "Doublons sélectionnés. Décochez le produit à garder, puis supprimez la sélection.",
+                          )
+                        }
+                        className="min-h-10 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700"
+                      >
+                        Sélectionner
+                      </button>
+                    </div>
+
+                    <div className="grid gap-1">
+                      {group.products.map((product) => (
+                        <button
+                          key={product.id}
+                          type="button"
+                          onClick={() => openEditProduct(product)}
+                          className="flex min-h-10 items-center justify-between gap-3 rounded-xl bg-white px-3 text-left text-sm font-bold text-slate-700"
+                        >
+                          <span className="min-w-0 truncate">{product.categoryName}</span>
+                          <span className="shrink-0 font-black text-slate-900">
+                            {formatPriceInput(product.promoPrice ?? product.price)} €
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </section>
+            ) : null}
+
+            {emptyCategories.length > 0 ? (
+              <section className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
+                <div>
+                  <h3 className="text-lg font-black text-slate-950">Catégories vides</h3>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">
+                    Supprimez les catégories inutiles pour garder un menu plus lisible.
+                  </p>
+                </div>
+
+                <div className="grid gap-2">
+                  {emptyCategories.map((category) => (
+                    <div key={category.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <span className="min-w-0 truncate text-sm font-black text-slate-900">{category.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeCategory(category)}
+                        disabled={isPending}
+                        className="min-h-10 shrink-0 rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-black text-red-700 disabled:opacity-60"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {productsWithoutPhoto.length > 0 ? (
+              <section className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
+                <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-950">Produits sans photo</h3>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                      Les photos augmentent la confiance client, surtout sur le menu QR.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectProductsForCleanup(
+                        productsWithoutPhoto.map((product) => product.id),
+                        "Produits sans photo sélectionnés. Vous pouvez les traiter en priorité.",
+                      )
+                    }
+                    className="min-h-10 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700"
+                  >
+                    Sélectionner
+                  </button>
+                </div>
+
+                <div className="grid gap-2">
+                  {productsWithoutPhoto.slice(0, 8).map((product) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => openEditProduct(product)}
+                      className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 text-left"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-black text-slate-900">{product.name}</span>
+                        <span className="mt-0.5 block truncate text-xs font-semibold text-slate-500">{product.categoryName}</span>
+                      </span>
+                      <span className="shrink-0 text-xs font-black text-emerald-800">Modifier</span>
+                    </button>
+                  ))}
+
+                  {productsWithoutPhoto.length > 8 ? (
+                    <p className="text-xs font-semibold text-slate-500">
+                      + {productsWithoutPhoto.length - 8} autre(s) produit(s) sans photo.
+                    </p>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
+
+            {productsWithPriceIssue.length > 0 ? (
+              <section className="grid gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+                <div>
+                  <h3 className="text-lg font-black text-red-900">Prix à vérifier</h3>
+                  <p className="mt-1 text-sm font-semibold text-red-800/80">
+                    Un produit sans prix fiable peut bloquer ou fausser une commande.
+                  </p>
+                </div>
+
+                <div className="grid gap-2">
+                  {productsWithPriceIssue.map((product) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => openEditProduct(product)}
+                      className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-red-100 bg-white px-3 text-left"
+                    >
+                      <span className="min-w-0 truncate text-sm font-black text-slate-900">{product.name}</span>
+                      <span className="shrink-0 text-xs font-black text-red-700">Corriger</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            <div className="sticky bottom-0 z-10 -mx-1 grid gap-2 border-t border-slate-200 bg-white/95 px-1 pt-3 backdrop-blur">
+              <button
+                type="button"
+                onClick={closePanel}
+                className="min-h-12 rounded-2xl bg-emerald-700 px-5 text-base font-black text-white shadow-green"
+              >
+                Terminer
+              </button>
             </div>
           </div>
         </Panel>
