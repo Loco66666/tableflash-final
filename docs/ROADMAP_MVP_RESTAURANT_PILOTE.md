@@ -1,8 +1,8 @@
 # TableFlash - Roadmap MVP Restaurant Pilote
 
-Version: 2026-06-06
+Version: 2026-06-08
 
-Objectif: amener TableFlash d'un produit proche MVP a une plateforme fiable, exploitable par un restaurant pilote, puis capable d'accueillir progressivement 10, 50, 100, puis 1000 restaurants sans rupture produit, technique ou operationnelle.
+Objectif: amener TableFlash d'un produit proche MVP a une plateforme fiable, exploitable par un restaurant traditionnel pilote, puis capable d'accueillir progressivement 10, 50, 100, puis 1000 restaurants traditionnels sans rupture produit, technique ou operationnelle.
 
 Cette roadmap doit rester le fil directeur du projet. Toute nouvelle tache doit etre rattachee a une phase, un sprint, un risque ou un critere de validation de ce document.
 
@@ -10,7 +10,17 @@ Cette roadmap doit rester le fil directeur du projet. Toute nouvelle tache doit 
 
 ## 1. Vision produit
 
-TableFlash est un SaaS mobile-first pour restaurateurs.
+TableFlash est un SaaS responsive pour restaurants traditionnels.
+
+Positionnement 2026-06-08:
+
+TableFlash ne cherche plus a couvrir toutes les typologies de restauration. La cible prioritaire et durable devient le restaurant traditionnel: bistrot, brasserie, restaurant de quartier, restaurant familial, restaurant semi-gastronomique accessible, restaurant avec service a table.
+
+TableFlash ne cible plus les fast-foods, pizzerias, tacos, snacks, dark kitchens ou concepts bases sur des options complexes comme cible produit principale. Ces usages peuvent exister ponctuellement, mais ils ne doivent plus guider les choix produit, UX, IA ou marketing.
+
+Promesse cible:
+
+"Une carte QR elegante, simple a mettre a jour, traduisible, adaptee au service a table, avec commandes optionnelles et avis clients visibles."
 
 Le restaurateur doit pouvoir:
 
@@ -24,27 +34,31 @@ Le restaurateur doit pouvoir:
 8. Voir les chiffres utiles du service.
 9. Configurer son restaurant sans aide technique.
 10. Faire confiance a l'outil pendant un vrai service.
+11. Proposer une carte consultable sans forcer la commande en ligne.
+12. Traduire facilement son menu pour les clients etrangers.
 
 Le client final doit pouvoir:
 
 1. Scanner un QR.
 2. Voir le bon restaurant et la bonne table.
 3. Parcourir le menu sans explication.
-4. Ajouter des produits au panier.
-5. Envoyer une commande.
-6. Suivre son statut.
-7. Laisser un avis quand le repas est termine.
+4. Comprendre la carte dans sa langue.
+5. Ajouter des produits au panier si les commandes sont activees.
+6. Envoyer une commande si le restaurant le permet.
+7. Suivre son statut si une commande a ete envoyee.
+8. Laisser un avis quand le repas est termine.
 
 La promesse MVP:
 
-- Menu QR.
-- Commande a table.
+- Menu QR elegant.
+- Carte consultable uniquement ou commande a table selon le choix du restaurant.
 - Paiement physique uniquement.
-- Dashboard restaurateur mobile-first.
+- Dashboard restaurateur responsive.
 - QR par table.
 - Avis post-repas.
 - Statistiques simples.
 - Onboarding restaurant pilote controle.
+- Traduction simple de la carte.
 
 Hors MVP:
 
@@ -56,6 +70,7 @@ Hors MVP:
 - Stocks quantitatifs complexes.
 - Marketplace.
 - Application native.
+- Couverture exhaustive fast-food/pizzeria/tacos.
 
 ---
 
@@ -1181,53 +1196,55 @@ Le restaurateur doit sentir en moins de 15 minutes que TableFlash lui evite du t
 
 Pourquoi:
 
-Le menu est la premiere douleur d'installation. Si le restaurateur doit tout saisir a la main ou nettoyer trop longtemps, il abandonne.
+Le menu est la premiere douleur d'installation. Pour un restaurant traditionnel, la carte doit etre propre, lisible et organisee autour de familles simples. Si le restaurateur doit tout saisir a la main ou nettoyer trop longtemps, il abandonne.
 
 Objectifs:
 
 1. Importer un menu par plusieurs photos.
-2. Detecter les familles principales: Pizza, Sandwich, Tacos, Plats, Salades, Assiettes, Pates, Boissons, Desserts, Menus et formules.
-3. Garder les sous-sections visibles dans la liste sans creer de nouveaux boutons inutiles.
-4. Detecter les formules, options et supplements.
+2. Detecter les familles principales sobres: Entrees, Plats, Desserts, Boissons, Menus.
+3. Detecter les sous-sections utiles sans creer de navigation compliquee: poissons, viandes, plats a partager, vins, boissons fraiches, boissons chaudes.
+4. Detecter les menus, formules midi, menus enfant et plats a partager.
 5. Proposer un ecran de validation rapide avant import.
 6. Permettre le nettoyage massif: selection multiple, suppression, indisponibilite, deplacement de categorie.
 7. Detecter les doublons, categories vides, produits sans prix, produits sans photo.
-8. Permettre des modeles d'options reutilisables: sauces, viandes, tailles, supplements, boissons, menus.
+8. Permettre des informations simples par plat: nom, description, prix, allergenes optionnels, traduction.
+9. Eviter les modeles d'options fast-food complexes sauf besoin terrain prouve.
 
 Critere de validation:
 
 - Un restaurateur peut importer et rendre exploitable un menu papier en moins de 20 minutes.
 - Une rupture produit peut etre geree en moins de 5 secondes.
 - Une categorie mal importee peut etre corrigee sans supprimer les produits un par un.
+- Une carte traditionnelle reste lisible avec 5 familles principales maximum.
 
 ### Priorite 2 - Menu client fluide et fiable
 
 Pourquoi:
 
-Le client doit commander sans appeler le serveur pour comprendre le menu.
+Le client doit comprendre la carte sans appeler le serveur, meme s'il est etranger, et sans avoir l'impression d'utiliser une interface de fast-food.
 
 Objectifs:
 
-1. Navigation claire par familles principales.
-2. Sections internes lisibles dans chaque famille.
-3. Recherche produit.
-4. Produits indisponibles jamais commandables.
-5. Options obligatoires visibles avant ajout panier.
-6. Supplements avec prix clair.
-7. Total du produit mis a jour en direct.
-8. Panier modifiable: modifier options, quantite, suppression.
-9. Message clair sur le paiement sur place.
+1. Navigation claire par familles principales: Entrees, Plats, Desserts, Boissons, Menus.
+2. Sections internes lisibles dans chaque famille sans ajouter de complexite.
+3. Design plus elegant, sobre, adapte a un restaurant traditionnel.
+4. Recherche produit.
+5. Traduction simple et visible selon la langue du client.
+6. Produits indisponibles jamais commandables.
+7. Mode carte consultable uniquement sans panier.
+8. Mode commande activee avec panier clair.
+9. Message clair sur le paiement sur place et le service a table.
 10. Suivi apres commande stable jusqu'a avis ou nouvelle commande.
 
 Critere de validation:
 
-- Un client peut scanner, choisir un produit avec options, envoyer la commande et suivre son statut sans explication.
+- Un client peut scanner, comprendre la carte, changer de langue, puis soit appeler le serveur, soit commander si le restaurant active les commandes.
 
 ### Priorite 3 - Commandes restaurateur mode service
 
 Pourquoi:
 
-Pendant le rush, le restaurateur ne doit pas chercher les informations importantes.
+Pendant le service a table, le restaurateur ne doit pas chercher les informations importantes. La commande doit rester une aide, pas une contrainte imposee a tous les restaurants.
 
 Objectifs:
 
@@ -1241,11 +1258,13 @@ Objectifs:
 8. Mode rush: masquer servies, voir uniquement commandes actives.
 9. Actions rapides: accepter, refuser, preparer, prete, servie, payee.
 10. Export CSV conserve et fiable.
+11. Mode commandes desactivees: l'app reste utile comme carte QR, avis et traduction.
 
 Critere de validation:
 
 - Une commande peut etre comprise et traitee en moins de 10 secondes.
 - Une nouvelle commande ne peut pas etre ratee si le dashboard est ouvert.
+- Un restaurant traditionnel peut utiliser TableFlash sans recevoir de commandes si son organisation prefere garder la prise de commande humaine.
 
 ### Priorite 4 - Accueil cockpit restaurateur
 
@@ -1317,7 +1336,7 @@ Critere de validation:
 
 Pourquoi:
 
-Les statistiques doivent aider a prendre des decisions simples.
+Les statistiques doivent aider a prendre des decisions simples pour un restaurant traditionnel: quels plats plaisent, quelles tables utilisent le QR, quand le service bouge, et si les clients sont satisfaits.
 
 Objectifs:
 
@@ -1331,10 +1350,55 @@ Objectifs:
 8. Taux d'avis.
 9. Note moyenne.
 10. Export conserve.
+11. Lecture responsive claire sur PC, tablette horizontale/verticale et mobile.
 
 Critere de validation:
 
 - Le restaurateur peut savoir ce qui marche aujourd'hui sans ouvrir un tableur.
+
+### Priorite 8 - Traduction simple de la carte
+
+Pourquoi:
+
+Les restaurants traditionnels recoivent souvent des clients etrangers. Une carte traduite augmente la comprehension, reduit les questions en salle et donne une image plus professionnelle.
+
+Objectifs:
+
+1. Langue principale du restaurant configurable.
+2. Langues client disponibles: francais, anglais, espagnol, allemand, italien au minimum.
+3. Traduction par produit: nom, description, allergenes si presents.
+4. Traduction modifiable manuellement par le restaurateur.
+5. Indicateur "traduction a verifier" apres generation automatique.
+6. Aucun remplacement automatique sans validation restaurateur.
+7. Selecteur langue visible cote client.
+8. Fallback propre si une traduction manque.
+
+Critere de validation:
+
+- Un client etranger peut comprendre la carte sans demander une traduction au serveur.
+- Le restaurateur peut corriger une traduction en moins de 30 secondes.
+
+### Priorite 9 - Responsive professionnel
+
+Pourquoi:
+
+Un restaurant peut utiliser TableFlash sur PC au bureau, tablette en salle, tablette en rotation, et mobile pendant le service. Chaque format doit etre utilisable sans zoom, chevauchement ou texte coupe.
+
+Objectifs:
+
+1. Vue PC adaptee aux grands ecrans: plus d'espace, lecture dense, actions visibles.
+2. Vue tablette verticale adaptee au service mobile.
+3. Vue tablette horizontale adaptee au comptoir ou a la salle.
+4. Vue mobile priorisee pour actions rapides.
+5. Menu client impeccable sur mobile.
+6. Dashboard restaurateur sans chevauchement avec la navigation basse.
+7. Tests visuels sur mobile, tablette verticale, tablette horizontale et desktop.
+
+Critere de validation:
+
+- Aucun texte important n'est coupe.
+- Aucune action critique n'est cachee par la navigation.
+- Le menu client et le dashboard restent utilisables en rotation tablette.
 
 ### IA autorisee dans le produit
 
@@ -1358,20 +1422,23 @@ Cas a eviter avant validation terrain:
 ### Ordre d'execution a partir du 2026-06-06
 
 1. Finaliser menu restaurateur professionnel.
-2. Finaliser menu client avec options/formules propres.
+2. Finaliser menu client traditionnel, elegant, traduisible.
 3. Renforcer commandes en mode service.
 4. Construire accueil cockpit.
 5. Ameliorer QR installation terrain.
 6. Ajouter IA avis et satisfaction.
 7. Ajouter statistiques metier.
-8. Refaire un test terrain complet.
-9. Ensuite seulement discuter Stripe SaaS, fidelite ou stock avance.
+8. Ajouter mode carte consultable uniquement / commande activee.
+9. Ajouter traduction simple de la carte.
+10. Verifier responsive PC, tablette verticale, tablette horizontale, mobile.
+11. Refaire un test terrain complet avec un restaurant traditionnel.
+12. Ensuite seulement discuter Stripe SaaS, fidelite ou stock avance.
 
 ### Phrase de valeur cible
 
 TableFlash doit pouvoir etre presente ainsi:
 
-"Prenez votre menu en photo, installez vos QR, recevez les commandes a table, suivez le service et recuperez des avis clients sans outil complique."
+"Prenez votre carte en photo, installez vos QR, proposez une carte elegante et traduite, activez les commandes si vous le souhaitez, suivez le service et recuperez des avis clients sans outil complique."
 
 ---
 
@@ -1394,15 +1461,18 @@ Ordre strict:
 11. Tester avis. Valide sur base actuelle.
 12. Ajouter exports commandes. Fait.
 13. Ajouter refresh/live commandes. Refresh intelligent fait.
-14. Finaliser menu restaurateur professionnel.
-15. Finaliser menu client options/formules.
+14. Finaliser menu restaurateur traditionnel professionnel.
+15. Finaliser menu client traditionnel, elegant et traduisible.
 16. Renforcer commandes mode service.
 17. Construire accueil cockpit.
 18. Ameliorer QR installation terrain.
 19. Ajouter IA avis et satisfaction.
 20. Ajouter statistiques metier.
-21. Refaire un test terrain complet.
-22. Ensuite seulement: Stripe SaaS, fidelite, stock avance.
+21. Ajouter mode carte consultable uniquement / commande activee.
+22. Ajouter traduction simple de la carte.
+23. Verifier responsive PC, tablette verticale, tablette horizontale, mobile.
+24. Refaire un test terrain complet avec restaurant traditionnel.
+25. Ensuite seulement: Stripe SaaS, fidelite, stock avance.
 
 ---
 
@@ -1410,13 +1480,21 @@ Ordre strict:
 
 Chaque nouvelle idee doit repondre a au moins une question:
 
-1. Est-ce que cela aide le restaurateur pendant le service ?
-2. Est-ce que cela evite une erreur client ?
-3. Est-ce que cela reduit le support ?
-4. Est-ce que cela rend le pilote plus fiable ?
-5. Est-ce que cela permet de scaler a plus de restaurants ?
+1. Est-ce que cela aide un restaurant traditionnel pendant le service ?
+2. Est-ce que cela rend la carte plus claire, plus elegante ou plus facile a traduire ?
+3. Est-ce que cela evite une erreur client ?
+4. Est-ce que cela reduit le support ?
+5. Est-ce que cela rend le pilote plus fiable ?
+6. Est-ce que cela permet de scaler a plus de restaurants traditionnels ?
 
 Si la reponse est non, reporter.
+
+Regles de refus:
+
+- Ne pas ajouter une fonctionnalite uniquement parce qu'elle sert une pizzeria, un fast-food, un snack ou un concept tres optionnel.
+- Ne pas complexifier le panier pour couvrir des cas qui ne servent pas la cible traditionnelle.
+- Ne pas transformer TableFlash en caisse, borne de commande ou outil fast-food.
+- Ne pas privilegier les options complexes au detriment d'une carte elegante et comprehensible.
 
 ---
 
