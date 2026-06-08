@@ -21,6 +21,11 @@ import { ProductCard } from "@/components/ui-custom/ProductCard";
 import type { Category, Product, ProductOptionGroup, ProductOptionsConfig } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
+  getTraditionalMenuFamily,
+  isTraditionalGenericCategory,
+  normalizeMenuText,
+} from "@/lib/menu/traditional-menu";
+import {
   bulkArchiveMenuProducts,
   bulkMoveMenuProductsToCategory,
   bulkUpdateMenuProductsAvailability,
@@ -46,6 +51,8 @@ type ProductFormState = {
   price: string;
   promoPrice: string;
   description: string;
+  translationEnName: string;
+  translationEnDescription: string;
   available: boolean;
   featured: boolean;
   imageUrl: string;
@@ -57,6 +64,7 @@ type ProductFormErrors = Partial<Record<"name" | "categoryId" | "price" | "promo
 type CategoryFormState = {
   id: string | null;
   name: string;
+  translationEnName: string;
   isActive: boolean;
 };
 
@@ -100,6 +108,8 @@ const emptyProductForm: ProductFormState = {
   price: "",
   promoPrice: "",
   description: "",
+  translationEnName: "",
+  translationEnDescription: "",
   available: true,
   featured: false,
   imageUrl: "",
@@ -109,15 +119,12 @@ const emptyProductForm: ProductFormState = {
 const emptyCategoryForm: CategoryFormState = {
   id: null,
   name: "",
+  translationEnName: "",
   isActive: true,
 };
 
 function normalizeText(value: string) {
-  return value
-    .trim()
-    .toLocaleLowerCase("fr-FR")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+  return normalizeMenuText(value);
 }
 
 function parsePrice(value: string) {
@@ -138,82 +145,21 @@ type MenuFamilyContext = {
   shouldGroupPizzaSections: boolean;
 };
 
-const PIZZA_SECTION_KEYWORDS = [
-  "classique",
-  "special",
-  "mer",
-  "fromage",
-  "fromagere",
-  "calzone",
-  "oriental",
-  "royal",
-  "savoyard",
-  "fermier",
-  "texane",
-  "vegetarien",
-];
-
 const GENERIC_CATEGORY_NAMES = ["categorie", "a classer", "autre", "autres", "divers"];
 
-function hasAnyKeyword(value: string, keywords: string[]) {
-  return keywords.some((keyword) => value.includes(keyword));
-}
-
 function isGenericCategoryName(categoryName?: string) {
-  const normalizedName = normalizeText(categoryName ?? "");
-
-  return GENERIC_CATEGORY_NAMES.includes(normalizedName);
+  return isTraditionalGenericCategory(categoryName) || GENERIC_CATEGORY_NAMES.includes(normalizeText(categoryName ?? ""));
 }
 
 function createMenuFamilyContext(categoryNames: string[]): MenuFamilyContext {
-  const normalizedNames = categoryNames.map(normalizeText);
-  const pizzaSectionScore = normalizedNames.filter((name) => hasAnyKeyword(name, PIZZA_SECTION_KEYWORDS)).length;
-
   return {
-    shouldGroupPizzaSections:
-      normalizedNames.some((name) => name.includes("pizza") || name.includes("pizzeria")) || pizzaSectionScore >= 2,
+    shouldGroupPizzaSections: categoryNames.length > 0 && false,
   };
 }
 
 function getMenuFamily(categoryName: string, context: MenuFamilyContext = { shouldGroupPizzaSections: false }) {
-  const normalizedName = normalizeText(categoryName);
-
-  if (
-    normalizedName.includes("pizza") ||
-    normalizedName.includes("fromage") ||
-    normalizedName.includes("calzone")
-  ) {
-    return { id: "family-pizza", name: "Pizza" };
-  }
-  if (
-    normalizedName.includes("sandwich") ||
-    normalizedName.includes("burger") ||
-    normalizedName.includes("wrap")
-  ) {
-    return { id: "family-sandwich", name: "Sandwich" };
-  }
-  if (normalizedName.includes("tacos")) return { id: "family-tacos", name: "Tacos" };
-  if (normalizedName.includes("salade")) return { id: "family-salades", name: "Salades" };
-  if (normalizedName.includes("assiette")) return { id: "family-assiettes", name: "Assiettes" };
-  if (normalizedName.includes("pate")) return { id: "family-pates", name: "Pâtes" };
-  if (normalizedName.includes("plat")) return { id: "family-plats", name: "Plats" };
-  if (normalizedName.includes("menu") || normalizedName.includes("formule")) {
-    return { id: "family-menus", name: "Menus et formules" };
-  }
-  if (normalizedName.includes("boisson") || normalizedName.includes("soda") || normalizedName.includes("eau")) {
-    return { id: "family-boissons", name: "Boissons" };
-  }
-  if (normalizedName.includes("dessert") || normalizedName.includes("glace")) {
-    return { id: "family-desserts", name: "Desserts" };
-  }
-  if (context.shouldGroupPizzaSections && hasAnyKeyword(normalizedName, PIZZA_SECTION_KEYWORDS)) {
-    return { id: "family-pizza", name: "Pizza" };
-  }
-
-  return {
-    id: `family-${normalizedName || "autres"}`,
-    name: categoryName || "Autres",
-  };
+  void context;
+  return getTraditionalMenuFamily(categoryName);
 }
 
 function getProductForm(product: Product): ProductFormState {
@@ -224,6 +170,8 @@ function getProductForm(product: Product): ProductFormState {
     promoPrice:
       typeof product.promoPrice === "number" && product.promoPrice > 0 ? formatPriceInput(product.promoPrice) : "",
     description: product.description ?? "",
+    translationEnName: product.translations?.en?.name ?? "",
+    translationEnDescription: product.translations?.en?.description ?? "",
     available: typeof product.available === "boolean" ? product.available : true,
     featured: Boolean(product.featured ?? product.promoted),
     imageUrl: product.imageUrl ?? product.imageDataUrl ?? "",
@@ -260,75 +208,84 @@ function createOptionGroup(
 function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion[] {
   const normalizedCategory = normalizeText(categoryName ?? "");
 
-  if (normalizedCategory.includes("pizza") || normalizedCategory.includes("pizzeria")) {
+  if (
+    normalizedCategory.includes("plat") ||
+    normalizedCategory.includes("viande") ||
+    normalizedCategory.includes("grillade") ||
+    normalizedCategory.includes("boeuf") ||
+    normalizedCategory.includes("agneau") ||
+    normalizedCategory.includes("veau")
+  ) {
     return [
       {
-        label: "Tailles 29 cm / 33 cm",
-        group: createOptionGroup("sizes", "Taille", "single_choice", ["29 cm", "33 cm", "Méga 40 cm"], true),
+        label: "Cuisson",
+        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Bleu", "Saignant", "A point", "Bien cuit"]),
       },
       {
-        label: "Base tomate / crème",
-        group: createOptionGroup("base", "Base", "single_choice", ["Base tomate", "Base crème"], false),
+        label: "Sauce",
+        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Poivre", "Roquefort", "Bearnaise", "Sans sauce"]),
       },
       {
-        label: "Suppléments pizza",
-        group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Fromage", "Œuf", "Champignons", "Jambon", "Poulet"]),
+        label: "Accompagnement",
+        group: createOptionGroup("side", "Accompagnement", "single_choice", ["Frites", "Salade", "Riz", "Legumes"]),
       },
     ];
   }
 
-  if (normalizedCategory.includes("tacos") || normalizedCategory.includes("kebab")) {
+  if (normalizedCategory.includes("menu") || normalizedCategory.includes("formule")) {
     return [
       {
-        label: "Choix de viande",
-        group: createOptionGroup("meat", "Viande", "multiple_choice", ["Kebab", "Poulet", "Steak", "Merguez"], true),
+        label: "Choix entree",
+        group: createOptionGroup("starter-choice", "Entree", "single_choice", ["Entree du jour", "Sans entree"]),
       },
       {
-        label: "Choix de sauce",
-        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Blanche", "Algérienne", "Samouraï", "Andalouse"], true),
+        label: "Choix plat",
+        group: createOptionGroup("main-choice", "Plat", "single_choice", ["Plat du jour", "Suggestion du chef"], true),
       },
       {
-        label: "Formule seul / menu",
-        group: createOptionGroup("formula", "Formule", "single_choice", ["Seul", "Menu avec boisson"], false),
+        label: "Choix dessert",
+        group: createOptionGroup("dessert-choice", "Dessert", "single_choice", ["Dessert du jour", "Cafe", "Sans dessert"]),
       },
     ];
   }
 
-  if (normalizedCategory.includes("burger") || normalizedCategory.includes("hamburger")) {
+  if (normalizedCategory.includes("entree") || normalizedCategory.includes("a partager")) {
     return [
       {
-        label: "Suppléments burger",
-        group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Cheddar", "Bacon", "Œuf", "Double steak"]),
+        label: "Partage",
+        group: createOptionGroup("sharing", "Service", "single_choice", ["Portion individuelle", "A partager"]),
       },
       {
-        label: "Cuisson steak",
-        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Saignant", "À point", "Bien cuit"]),
+        label: "Accompagnement",
+        group: createOptionGroup("starter-side", "Accompagnement", "multiple_choice", ["Pain", "Salade", "Sauce maison"]),
       },
       {
-        label: "Formule menu",
-        group: createOptionGroup("formula", "Formule", "single_choice", ["Burger seul", "Menu frites + boisson"]),
+        label: "Allergenes",
+        group: createOptionGroup("allergens", "Allergenes", "multiple_choice", ["Gluten", "Lait", "Oeufs", "Fruits a coque"]),
       },
     ];
   }
 
   if (
     normalizedCategory.includes("boisson") ||
-    normalizedCategory.includes("soda") ||
+    normalizedCategory.includes("vin") ||
+    normalizedCategory.includes("biere") ||
     normalizedCategory.includes("eau") ||
-    normalizedCategory.includes("jus")
+    normalizedCategory.includes("jus") ||
+    normalizedCategory.includes("soda")
   ) {
     return [
       {
-        label: "Formats bouteille / canette",
-        group: createOptionGroup("drink-size", "Format", "single_choice", ["33 cl", "50 cl", "1 L", "1,5 L", "2 L"]),
+        label: "Format",
+        group: createOptionGroup("drink-size", "Format", "single_choice", ["Verre", "Bouteille", "Carafe"]),
       },
       {
-        label: "Glaçons / citron",
-        group: createOptionGroup("drink-options", "Options boisson", "multiple_choice", ["Glaçons", "Sans glaçons", "Citron", "Paille"]),
+        label: "Service",
+        group: createOptionGroup("drink-options", "Service", "multiple_choice", ["Frais", "Temperature ambiante", "Avec glacons", "Sans glacons"]),
       },
       {
-        label: "Pack / menu",
-        group: createOptionGroup("drink-formula", "Formule", "single_choice", ["À l’unité", "Avec menu", "Pack famille"]),
+        label: "Accord menu",
+        group: createOptionGroup("drink-formula", "Formule", "single_choice", ["A la carte", "Avec menu"]),
       },
     ];
   }
@@ -342,7 +299,7 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
   ) {
     return [
       {
-        label: "Taille café",
+        label: "Taille cafe",
         group: createOptionGroup("coffee-size", "Taille", "single_choice", ["Petit", "Moyen", "Grand"]),
       },
       {
@@ -350,64 +307,8 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
         group: createOptionGroup("milk", "Lait", "single_choice", ["Entier", "Avoine", "Soja", "Amande"]),
       },
       {
-        label: "Chaud / glacé",
-        group: createOptionGroup("temperature", "Préparation", "single_choice", ["Chaud", "Glacé"]),
-      },
-    ];
-  }
-
-  if (
-    normalizedCategory.includes("plat") ||
-    normalizedCategory.includes("brasserie") ||
-    normalizedCategory.includes("viande") ||
-    normalizedCategory.includes("grillade")
-  ) {
-    return [
-      {
-        label: "Cuisson",
-        group: createOptionGroup("cooking", "Cuisson", "single_choice", ["Bleu", "Saignant", "À point", "Bien cuit"]),
-      },
-      {
-        label: "Sauce",
-        group: createOptionGroup("sauce", "Sauce", "single_choice", ["Poivre", "Roquefort", "Béarnaise"]),
-      },
-      {
-        label: "Accompagnement",
-        group: createOptionGroup("side", "Accompagnement", "single_choice", ["Frites", "Salade", "Riz", "Légumes"]),
-      },
-    ];
-  }
-
-  if (normalizedCategory.includes("sushi") || normalizedCategory.includes("maki") || normalizedCategory.includes("california")) {
-    return [
-      {
-        label: "Sauce soja",
-        group: createOptionGroup("soy", "Sauce soja", "single_choice", ["Sucrée", "Salée"]),
-      },
-      {
-        label: "Wasabi / gingembre",
-        group: createOptionGroup("wasabi-ginger", "Accompagnements", "multiple_choice", ["Wasabi", "Gingembre"]),
-      },
-      {
-        label: "Suppléments japonais",
-        group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Soupe miso", "Riz", "Salade de chou"]),
-      },
-    ];
-  }
-
-  if (normalizedCategory.includes("crepe") || normalizedCategory.includes("galette")) {
-    return [
-      {
-        label: "Cuisson Œuf",
-        group: createOptionGroup("egg", "Œuf", "single_choice", ["Miroir", "Brouillé", "Sans Œuf"]),
-      },
-      {
-        label: "Suppléments crêperie",
-        group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Fromage", "Jambon", "Champignons"]),
-      },
-      {
-        label: "Formule",
-        group: createOptionGroup("formula", "Formule", "single_choice", ["Produit seul", "Formule avec boisson"]),
+        label: "Chaud / froid",
+        group: createOptionGroup("temperature", "Preparation", "single_choice", ["Chaud", "Froid"]),
       },
     ];
   }
@@ -439,12 +340,12 @@ function getSmartOptionSuggestions(categoryName?: string): SmartOptionSuggestion
       group: createOptionGroup("choice", "Choix client", "single_choice", ["Option 1", "Option 2"]),
     },
     {
-      label: "Supplément",
-      group: createOptionGroup("supplements", "Suppléments", "multiple_choice", ["Supplément 1", "Supplément 2"]),
+      label: "Supplement",
+      group: createOptionGroup("supplements", "Supplements", "multiple_choice", ["Supplement 1", "Supplement 2"]),
     },
     {
-      label: "Allergènes",
-      group: createOptionGroup("allergens", "Allergènes", "multiple_choice", ["Gluten", "Lait", "Œufs", "Fruits à coque"]),
+      label: "Allergenes",
+      group: createOptionGroup("allergens", "Allergenes", "multiple_choice", ["Gluten", "Lait", "Oeufs", "Fruits a coque"]),
     },
   ];
 }
@@ -1456,6 +1357,12 @@ export function MenuManager({
             price,
             promoPrice,
             description: productForm.description,
+            translations: {
+              en: {
+                name: productForm.translationEnName,
+                description: productForm.translationEnDescription,
+              },
+            },
             available: productForm.available,
             featured: productForm.featured,
             imageUrl: productForm.imageUrl,
@@ -1507,9 +1414,21 @@ export function MenuManager({
               categoryId: categoryForm.id,
               name: trimmedName,
               isActive: categoryForm.isActive,
+              translations: {
+                en: {
+                  name: categoryForm.translationEnName,
+                },
+              },
             });
           } else {
-            await createMenuCategory({ name: trimmedName });
+            await createMenuCategory({
+              name: trimmedName,
+              translations: {
+                en: {
+                  name: categoryForm.translationEnName,
+                },
+              },
+            });
           }
 
           setCategoryForm(emptyCategoryForm);
@@ -1529,6 +1448,7 @@ export function MenuManager({
     setCategoryForm({
       id: category.id,
       name: category.name,
+      translationEnName: category.translations?.en?.name ?? "",
       isActive: category.isActive !== false,
     });
     setSelectedCategoryProductIds(new Set());
@@ -1555,6 +1475,7 @@ export function MenuManager({
             categoryId: category.id,
             name: category.name,
             isActive: !(category.isActive !== false),
+            translations: category.translations,
           });
         } catch (error) {
           setActionError(error instanceof Error ? error.message : "Mise à jour impossible.");
@@ -2287,6 +2208,36 @@ export function MenuManager({
               ) : null}
             </Field>
 
+            <div className="grid gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3">
+              <div>
+                <p className="text-base font-black text-emerald-900">Traduction anglaise</p>
+                <p className="mt-1 text-sm font-semibold text-emerald-800/80">
+                  Optionnel. Si vide, le client voit le texte francais.
+                </p>
+              </div>
+
+              <Field label="Nom en anglais">
+                <input
+                  value={productForm.translationEnName}
+                  onChange={(event) => setProductForm({ ...productForm, translationEnName: event.target.value })}
+                  placeholder="Ex: Beef fillet"
+                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                />
+              </Field>
+
+              <Field label="Description en anglais">
+                <textarea
+                  value={productForm.translationEnDescription}
+                  onChange={(event) =>
+                    setProductForm({ ...productForm, translationEnDescription: event.target.value })
+                  }
+                  rows={2}
+                  placeholder="English description"
+                  className="min-h-24 w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                />
+              </Field>
+            </div>
+
             <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
               <div>
                 <p className="text-base font-black text-slate-800">Photo du produit</p>
@@ -2720,6 +2671,15 @@ export function MenuManager({
               />
             </Field>
 
+            <Field label="Nom anglais" helper="Optionnel. Si vide, le client voit le nom francais.">
+              <input
+                value={categoryForm.translationEnName}
+                onChange={(event) => setCategoryForm({ ...categoryForm, translationEnName: event.target.value })}
+                placeholder="Ex: Starters"
+                className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+              />
+            </Field>
+
             <button
               type="submit"
               disabled={isPending}
@@ -2759,6 +2719,15 @@ export function MenuManager({
                     setCategoryError("");
                   }}
                   placeholder="Exemple : Burgers, Desserts, Boissons..."
+                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                />
+              </Field>
+
+              <Field label="Nom anglais" helper="Optionnel. Exemple : Starters, Mains, Desserts, Drinks.">
+                <input
+                  value={categoryForm.translationEnName}
+                  onChange={(event) => setCategoryForm({ ...categoryForm, translationEnName: event.target.value })}
+                  placeholder="Ex: Starters"
                   className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-lg font-semibold outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                 />
               </Field>

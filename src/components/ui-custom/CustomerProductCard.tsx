@@ -6,6 +6,8 @@ import { ProductVisual } from "@/components/ui-custom/ProductCard";
 type CustomerProductCardProps = {
   product: Product;
   onAdd: (product: Product) => void;
+  ordersEnabled?: boolean;
+  language?: "fr" | "en";
 };
 
 function formatAllergens(allergens: Product["allergens"]) {
@@ -14,7 +16,12 @@ function formatAllergens(allergens: Product["allergens"]) {
   return Array.isArray(allergens) ? allergens.filter(Boolean).join(", ") : allergens;
 }
 
-export function CustomerProductCard({ product, onAdd }: CustomerProductCardProps) {
+export function CustomerProductCard({
+  product,
+  onAdd,
+  ordersEnabled = true,
+  language = "fr",
+}: CustomerProductCardProps) {
   const allergensLabel = formatAllergens(product.allergens);
   const hasPromoPrice = typeof product.promoPrice === "number" && product.promoPrice > 0;
   const isFeatured = Boolean(product.featured ?? product.promoted);
@@ -33,7 +40,7 @@ export function CustomerProductCard({ product, onAdd }: CustomerProductCardProps
           {isFeatured ? (
             <span className="inline-flex min-h-7 shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 text-sm font-black text-emerald-700">
               <Star className="size-4" />
-              Recommandé
+              {language === "en" ? "Recommended" : "Recommande"}
             </span>
           ) : null}
 
@@ -47,7 +54,7 @@ export function CustomerProductCard({ product, onAdd }: CustomerProductCardProps
           {hasOptions ? (
             <span className="inline-flex min-h-7 shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2.5 text-sm font-black text-slate-700">
               <ListChecks className="size-4" />
-              Choix disponibles
+              {language === "en" ? "Choices" : "Choix disponibles"}
             </span>
           ) : null}
         </div>
@@ -57,7 +64,9 @@ export function CustomerProductCard({ product, onAdd }: CustomerProductCardProps
         ) : null}
 
         {allergensLabel ? (
-          <p className="mt-2 text-sm font-semibold leading-snug text-slate-500">Allergènes : {allergensLabel}</p>
+          <p className="mt-2 text-sm font-semibold leading-snug text-slate-500">
+            {language === "en" ? "Allergens" : "Allergenes"} : {allergensLabel}
+          </p>
         ) : null}
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -72,16 +81,18 @@ export function CustomerProductCard({ product, onAdd }: CustomerProductCardProps
             <strong className="text-2xl font-black text-emerald-800">{formatEuro(product.price)}</strong>
           )}
 
-          <button
-            type="button"
-            onClick={() => onAdd(product)}
-            className="min-h-12 rounded-2xl border border-emerald-800 px-5 text-base font-black text-emerald-800 transition active:scale-[0.98]"
-          >
-            <span className="inline-flex items-center gap-2">
-              <Plus className="size-5" />
-              {hasOptions ? "Choisir" : "Ajouter"}
-            </span>
-          </button>
+          {ordersEnabled ? (
+            <button
+              type="button"
+              onClick={() => onAdd(product)}
+              className="min-h-12 rounded-2xl border border-emerald-800 px-5 text-base font-black text-emerald-800 transition active:scale-[0.98]"
+            >
+              <span className="inline-flex items-center gap-2">
+                <Plus className="size-5" />
+                {language === "en" ? (hasOptions ? "Choose" : "Add") : hasOptions ? "Choisir" : "Ajouter"}
+              </span>
+            </button>
+          ) : null}
         </div>
       </div>
     </article>

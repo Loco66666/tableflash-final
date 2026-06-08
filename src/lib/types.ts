@@ -35,7 +35,16 @@ export type Category = {
   id: string;
   name: string;
   icon: string;
+  translations?: MenuTranslations;
 };
+
+export type MenuTranslations = Record<
+  string,
+  {
+    name?: string;
+    description?: string;
+  }
+>;
 
 export type Product = {
   id: string;
@@ -56,6 +65,7 @@ export type Product = {
   imageDataUrl?: string;
   allergens?: string[] | string;
   optionsConfig?: ProductOptionsConfig;
+  translations?: MenuTranslations;
 };
 
 export type OrderLine = {
@@ -113,6 +123,7 @@ export type RestaurantSettings = {
   restaurantName: string;
   serviceLabel: string;
   serviceOpen: boolean;
+  qrEnabled: boolean;
   qrOrdersEnabled: boolean;
   onSitePaymentEnabled: boolean;
   serviceDate: string;

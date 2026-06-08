@@ -271,6 +271,7 @@ export type Database = {
           id: string;
           restaurant_id: string;
           name: string;
+          translations: Json;
           sort_order: number;
           is_active: boolean;
           created_at: string | null;
@@ -280,6 +281,7 @@ export type Database = {
           id?: string;
           restaurant_id: string;
           name: string;
+          translations?: Json;
           sort_order?: number;
           is_active?: boolean;
           created_at?: string | null;
@@ -289,6 +291,7 @@ export type Database = {
           id?: string;
           restaurant_id?: string;
           name?: string;
+          translations?: Json;
           sort_order?: number;
           is_active?: boolean;
           created_at?: string | null;
@@ -308,6 +311,7 @@ export type Database = {
           promo_price: number | null;
           image_url: string | null;
           options_config: Json;
+          translations: Json;
           is_available: boolean;
           is_featured: boolean;
           sort_order: number;
@@ -324,6 +328,7 @@ export type Database = {
           promo_price?: number | null;
           image_url?: string | null;
           options_config?: Json;
+          translations?: Json;
           is_available?: boolean;
           is_featured?: boolean;
           sort_order?: number;
@@ -340,6 +345,7 @@ export type Database = {
           promo_price?: number | null;
           image_url?: string | null;
           options_config?: Json;
+          translations?: Json;
           is_available?: boolean;
           is_featured?: boolean;
           sort_order?: number;

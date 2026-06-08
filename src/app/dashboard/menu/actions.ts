@@ -13,6 +13,8 @@ const DEFAULT_OPTIONS_CONFIG: Database["public"]["Tables"]["menu_products"]["Ins
   availability: { enabled: false },
 };
 
+type MenuTranslationInput = Record<string, { name?: string; description?: string } | undefined>;
+
 function normalizeText(value: string) {
   return value
     .trim()
@@ -43,6 +45,28 @@ function cleanId(value: string) {
 
 function cleanIds(values: string[]) {
   return [...new Set(values.map(cleanId).filter(Boolean))];
+}
+
+function cleanTranslations(input?: MenuTranslationInput | null) {
+  const output: Record<string, { name?: string; description?: string }> = {};
+
+  for (const [locale, value] of Object.entries(input ?? {})) {
+    const cleanLocale = locale.trim().toLowerCase();
+    if (!cleanLocale || !value) continue;
+
+    const name = value.name?.trim();
+    const description = value.description?.trim();
+    const nextValue: { name?: string; description?: string } = {};
+
+    if (name) nextValue.name = name.slice(0, 140);
+    if (description) nextValue.description = description.slice(0, 700);
+
+    if (nextValue.name || nextValue.description) {
+      output[cleanLocale] = nextValue;
+    }
+  }
+
+  return output;
 }
 
 function getImageExtension(file: File) {
@@ -181,7 +205,7 @@ export async function uploadMenuProductImage(formData: FormData) {
   };
 }
 
-export async function createMenuCategory(input: { name: string }) {
+export async function createMenuCategory(input: { name: string; translations?: MenuTranslationInput }) {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
 
@@ -208,6 +232,7 @@ export async function createMenuCategory(input: { name: string }) {
   const { error } = await supabase.from("menu_categories").insert({
     restaurant_id: restaurant.id,
     name,
+    translations: cleanTranslations(input.translations),
     sort_order: count ?? 0,
     is_active: true,
   });
@@ -225,6 +250,7 @@ export async function updateMenuCategory(input: {
   categoryId: string;
   name: string;
   isActive: boolean;
+  translations?: MenuTranslationInput;
 }) {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
@@ -252,6 +278,7 @@ export async function updateMenuCategory(input: {
     .from("menu_categories")
     .update({
       name,
+      translations: cleanTranslations(input.translations),
       is_active: input.isActive,
       updated_at: new Date().toISOString(),
     })
@@ -336,6 +363,7 @@ export async function createMenuProduct(input: {
   featured?: boolean;
   imageUrl?: string;
   optionsConfig?: unknown;
+  translations?: MenuTranslationInput;
 }) {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
@@ -380,6 +408,7 @@ export async function createMenuProduct(input: {
     promo_price: promoPrice,
     image_url: imageUrl,
     options_config: (input.optionsConfig ?? DEFAULT_OPTIONS_CONFIG) as Database["public"]["Tables"]["menu_products"]["Insert"]["options_config"],
+    translations: cleanTranslations(input.translations),
     is_available: input.available ?? true,
     is_featured: input.featured ?? false,
     sort_order: count ?? 0,
@@ -403,6 +432,7 @@ export async function importMenuProductsFromSuggestions(input: {
     price: number;
     description?: string;
     optionsConfig?: unknown;
+    translations?: MenuTranslationInput;
   }[];
 }) {
   const { restaurant } = await getCurrentRestaurantContext();
@@ -414,6 +444,7 @@ export async function importMenuProductsFromSuggestions(input: {
       price: product.price,
       description: product.description?.trim() || null,
       optionsConfig: product.optionsConfig ?? DEFAULT_OPTIONS_CONFIG,
+      translations: cleanTranslations(product.translations),
     }))
     .filter((product) => product.name && product.categoryName);
 
@@ -503,6 +534,7 @@ export async function importMenuProductsFromSuggestions(input: {
       promo_price: null,
       image_url: null,
       options_config: suggestion.optionsConfig as Database["public"]["Tables"]["menu_products"]["Insert"]["options_config"],
+      translations: suggestion.translations,
       is_available: true,
       is_featured: false,
       sort_order: nextProductSortOrder,
@@ -541,6 +573,7 @@ export async function updateMenuProduct(input: {
   featured?: boolean;
   imageUrl?: string;
   optionsConfig?: unknown;
+  translations?: MenuTranslationInput;
 }) {
   const { restaurant } = await getCurrentRestaurantContext();
   const supabase = await createClient();
@@ -581,6 +614,7 @@ export async function updateMenuProduct(input: {
     promo_price: promoPrice,
     image_url: imageUrl,
     options_config: (input.optionsConfig ?? DEFAULT_OPTIONS_CONFIG) as Database["public"]["Tables"]["menu_products"]["Update"]["options_config"],
+    translations: cleanTranslations(input.translations),
     is_available: input.available ?? true,
     is_featured: input.featured ?? false,
     updated_at: new Date().toISOString(),

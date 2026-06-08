@@ -38,6 +38,7 @@ type PublicRestaurantTable = {
 type PublicMenuCategory = {
   id: string;
   name: string;
+  translations?: Product["translations"] | null;
 };
 
 type PublicMenuProduct = {
@@ -51,9 +52,11 @@ type PublicMenuProduct = {
   is_featured: boolean;
   image_url: string | null;
   options_config?: Product["optionsConfig"] | null;
+  translations?: Product["translations"] | null;
 };
 
 type PublicRestaurantSettings = {
+  qr_enabled: boolean | null;
   orders_enabled: boolean | null;
   reviews_enabled: boolean | null;
 };
@@ -148,7 +151,7 @@ async function getPublicRestaurantMenuData({
 
   const { data: categoriesData, error: categoriesError } = await supabase
     .from("menu_categories")
-    .select("id, name")
+    .select("id, name, translations")
     .eq("restaurant_id", restaurant.id)
     .eq("is_active", true)
     .order("sort_order", { ascending: true })
@@ -161,7 +164,7 @@ async function getPublicRestaurantMenuData({
 
   const { data: productsData, error: productsError } = await supabase
     .from("menu_products")
-    .select("id, name, category_id, description, price, promo_price, is_available, is_featured, image_url, options_config")
+    .select("id, name, category_id, description, price, promo_price, is_available, is_featured, image_url, options_config, translations")
     .eq("restaurant_id", restaurant.id)
     .eq("is_available", true)
     .order("sort_order", { ascending: true })
@@ -174,12 +177,16 @@ async function getPublicRestaurantMenuData({
 
   const { data: settingsData, error: settingsError } = await supabase
     .from("restaurant_settings")
-    .select("orders_enabled, reviews_enabled")
+    .select("qr_enabled, orders_enabled, reviews_enabled")
     .eq("restaurant_id", restaurant.id)
     .returns<PublicRestaurantSettings[]>()
     .maybeSingle();
 
   if (settingsError) {
+    return null;
+  }
+
+  if (settingsData?.qr_enabled === false) {
     return null;
   }
 
@@ -197,6 +204,7 @@ async function getPublicRestaurantMenuData({
     visual: getProductVisual(item.name),
     imageUrl: item.image_url ?? undefined,
     optionsConfig: item.options_config ?? undefined,
+    translations: item.translations ?? undefined,
   }));
 
   const visibleCategoryIds = new Set(products.map((product) => product.categoryId));
@@ -207,12 +215,13 @@ async function getPublicRestaurantMenuData({
       id: category.id,
       name: category.name,
       icon: "sparkles",
+      translations: category.translations ?? undefined,
     }));
 
   if (visibleCategoryIds.has("uncategorized")) {
     categories.push({
       id: "uncategorized",
-      name: "Sans catégorie",
+      name: "Sans cat\u00e9gorie",
       icon: "sparkles",
     });
   }

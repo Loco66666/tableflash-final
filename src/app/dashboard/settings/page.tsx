@@ -19,6 +19,7 @@ function toUiSettings(input: Awaited<ReturnType<typeof getCurrentRestaurantConte
     restaurantName: restaurant.name,
     serviceLabel: "Service en cours",
     serviceOpen: ordersEnabled,
+    qrEnabled,
     qrOrdersEnabled: ordersEnabled && qrEnabled,
     onSitePaymentEnabled,
     serviceDate: new Date().toISOString().slice(0, 10),

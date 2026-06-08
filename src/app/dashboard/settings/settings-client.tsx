@@ -42,6 +42,7 @@ function ensureSettings(input: RestaurantSettings): RestaurantSettings {
     restaurantName: input.restaurantName ?? "",
     serviceLabel: input.serviceLabel ?? "Service en cours",
     serviceOpen: Boolean(input.serviceOpen),
+    qrEnabled: input.qrEnabled ?? true,
     qrOrdersEnabled: Boolean(input.qrOrdersEnabled),
     onSitePaymentEnabled: Boolean(input.onSitePaymentEnabled),
     serviceDate: input.serviceDate || new Date().toISOString().slice(0, 10),
@@ -316,7 +317,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
           dinner_end: nextSettings.hours.dinnerEnd || null,
           orders_enabled: nextSettings.qrOrdersEnabled,
           require_payment_before_preparation: !nextSettings.ordersSettings.onSitePaymentEnabled,
-          qr_enabled: nextSettings.qrOrdersEnabled,
+          qr_enabled: nextSettings.qrEnabled,
           reviews_enabled: nextSettings.reviewsSettings.enabledAfterMeal,
         });
 
@@ -607,7 +608,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
             {activeSection === "orders" ? (
               <>
                 <Toggle
-                  label="Commandes QR activées"
+                  label="Commandes QR activees"
                   checked={draft.qrOrdersEnabled}
                   onChange={(qrOrdersEnabled) =>
                     updateDraft({
@@ -715,12 +716,11 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
               <>
                 <Toggle
                   label="QR actifs"
-                  checked={draft.qrOrdersEnabled}
-                  onChange={(qrOrdersEnabled) =>
+                  checked={draft.qrEnabled}
+                  onChange={(qrEnabled) =>
                     updateDraft({
                       ...draft,
-                      qrOrdersEnabled,
-                      serviceOpen: qrOrdersEnabled,
+                      qrEnabled,
                     })
                   }
                 />

@@ -15,6 +15,7 @@ import {
 } from "@/app/r/[restaurant]/table/[table]/actions";
 import type { Category, Order, Product, SelectedProductOption, TableInfo } from "@/lib/types";
 import { formatEuro } from "@/lib/utils";
+import { getTraditionalMenuFamily, getTraditionalMenuFamilyOrder } from "@/lib/menu/traditional-menu";
 
 type BasketLine = {
   id: string;
@@ -29,6 +30,8 @@ type CustomerMenuProduct = Product & {
   categoryFamilyId: string;
   categoryFamilyName: string;
 };
+
+type MenuLanguage = "fr" | "en";
 
 type PublicMenuPayload = {
   restaurantName: string;
@@ -50,39 +53,26 @@ type StoredCustomerOrder = {
 };
 
 const preferredCategoryOrder = [
-  "family-pizza",
-  "family-sandwich",
-  "family-tacos",
-  "family-salades",
-  "family-assiettes",
-  "family-pates",
-  "family-plats",
-  "family-menus",
-  "family-boissons",
-  "family-desserts",
   "starters",
   "mains",
   "desserts",
   "drinks",
-];
-const PIZZA_SECTION_KEYWORDS = [
-  "classique",
-  "special",
-  "mer",
-  "fromage",
-  "fromagere",
-  "calzone",
-  "oriental",
-  "royal",
-  "savoyard",
-  "fermier",
-  "texane",
-  "vegetarien",
+  "menus",
+  "uncategorized",
 ];
 const TRACKING_STORAGE_PREFIX = "tableflash:customer-order";
 const TRACKING_STORAGE_TTL_MS = 12 * 60 * 60 * 1000;
 const TRACKING_REFRESH_INTERVAL_MS = 5_000;
 const TRACKING_FOCUS_REFRESH_MIN_DELAY_MS = 3_000;
+
+const familyNameTranslations: Record<string, Record<MenuLanguage, string>> = {
+  starters: { fr: "Entrees", en: "Starters" },
+  mains: { fr: "Plats", en: "Mains" },
+  desserts: { fr: "Desserts", en: "Desserts" },
+  drinks: { fr: "Boissons", en: "Drinks" },
+  menus: { fr: "Menus", en: "Menus" },
+  uncategorized: { fr: "A classer", en: "To sort" },
+};
 
 const categoryIcons: Record<string, LucideIcon> = {
   all: Sparkles,
@@ -90,72 +80,17 @@ const categoryIcons: Record<string, LucideIcon> = {
   mains: Utensils,
   desserts: Cake,
   drinks: CupSoda,
-  "family-pizza": Utensils,
-  "family-sandwich": Utensils,
-  "family-tacos": Utensils,
-  "family-salades": Leaf,
-  "family-assiettes": Utensils,
-  "family-pates": Utensils,
-  "family-plats": Utensils,
-  "family-menus": Sparkles,
-  "family-boissons": CupSoda,
-  "family-desserts": Cake,
+  menus: Sparkles,
   uncategorized: Sparkles,
 };
 
-function normalizeText(value: string) {
-  return value
-    .trim()
-    .toLocaleLowerCase("fr-FR")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function hasAnyKeyword(value: string, keywords: string[]) {
-  return keywords.some((keyword) => value.includes(keyword));
-}
-
 function createMenuFamilyContext(categoryNames: string[]) {
-  const normalizedNames = categoryNames.map(normalizeText);
-  const pizzaSectionScore = normalizedNames.filter((name) => hasAnyKeyword(name, PIZZA_SECTION_KEYWORDS)).length;
-
-  return {
-    shouldGroupPizzaSections:
-      normalizedNames.some((name) => name.includes("pizza") || name.includes("pizzeria")) || pizzaSectionScore >= 2,
-  };
+  return { categoryNames };
 }
 
 function getMenuFamily(categoryName: string, context: ReturnType<typeof createMenuFamilyContext>) {
-  const normalizedName = normalizeText(categoryName);
-
-  if (normalizedName.includes("pizza") || normalizedName.includes("fromage") || normalizedName.includes("calzone")) {
-    return { id: "family-pizza", name: "Pizza" };
-  }
-  if (normalizedName.includes("sandwich") || normalizedName.includes("burger") || normalizedName.includes("wrap")) {
-    return { id: "family-sandwich", name: "Sandwich" };
-  }
-  if (normalizedName.includes("tacos")) return { id: "family-tacos", name: "Tacos" };
-  if (normalizedName.includes("salade")) return { id: "family-salades", name: "Salades" };
-  if (normalizedName.includes("assiette")) return { id: "family-assiettes", name: "Assiettes" };
-  if (normalizedName.includes("pate")) return { id: "family-pates", name: "Pates" };
-  if (normalizedName.includes("plat")) return { id: "family-plats", name: "Plats" };
-  if (normalizedName.includes("menu") || normalizedName.includes("formule")) {
-    return { id: "family-menus", name: "Menus et formules" };
-  }
-  if (normalizedName.includes("boisson") || normalizedName.includes("soda") || normalizedName.includes("eau")) {
-    return { id: "family-boissons", name: "Boissons" };
-  }
-  if (normalizedName.includes("dessert") || normalizedName.includes("glace")) {
-    return { id: "family-desserts", name: "Desserts" };
-  }
-  if (context.shouldGroupPizzaSections && hasAnyKeyword(normalizedName, PIZZA_SECTION_KEYWORDS)) {
-    return { id: "family-pizza", name: "Pizza" };
-  }
-
-  return {
-    id: `family-${normalizedName || "autres"}`,
-    name: categoryName || "Autres",
-  };
+  void context;
+  return getTraditionalMenuFamily(categoryName);
 }
 
 function isCustomerOrderable(product: Product) {
@@ -181,10 +116,37 @@ function getCategoryIcon(categoryId: string) {
   return categoryIcons[categoryId] ?? Sparkles;
 }
 
-function getVisibleCategories(products: CustomerMenuProduct[]) {
+function getTranslatedName(entity: Pick<Category | Product, "name" | "translations">, language: MenuLanguage) {
+  if (language === "fr") return entity.name;
+
+  return entity.translations?.[language]?.name?.trim() || entity.name;
+}
+
+function getTranslatedProduct(product: Product, language: MenuLanguage): Product {
+  if (language === "fr") return product;
+
+  return {
+    ...product,
+    name: product.translations?.[language]?.name?.trim() || product.name,
+    description: product.translations?.[language]?.description?.trim() || product.description,
+  };
+}
+
+function hasEnglishTranslations(categories: Category[], products: Product[]) {
+  return (
+    categories.some((category) => Boolean(category.translations?.en?.name?.trim())) ||
+    products.some((product) => Boolean(product.translations?.en?.name?.trim() || product.translations?.en?.description?.trim()))
+  );
+}
+
+function getFamilyDisplayName(familyId: string, fallback: string, language: MenuLanguage) {
+  return familyNameTranslations[familyId]?.[language] ?? fallback;
+}
+
+function getVisibleCategories(products: CustomerMenuProduct[], language: MenuLanguage) {
   const allCategory = {
     id: "all",
-    name: "Toutes",
+    name: language === "en" ? "All" : "Toutes",
     icon: "sparkles",
   };
   const familyById = new Map<string, Category>();
@@ -202,13 +164,17 @@ function getVisibleCategories(products: CustomerMenuProduct[]) {
   const sortedCategories = [...familyById.values()].sort((first, second) => {
     const firstIndex = preferredCategoryOrder.indexOf(first.id);
     const secondIndex = preferredCategoryOrder.indexOf(second.id);
+    const firstOrder = getTraditionalMenuFamilyOrder(first.id);
+    const secondOrder = getTraditionalMenuFamilyOrder(second.id);
 
-    if (firstIndex === -1 && secondIndex === -1) {
+    if (firstIndex === -1 && secondIndex === -1 && firstOrder === secondOrder) {
       return first.name.localeCompare(second.name, "fr-FR");
     }
 
-    if (firstIndex === -1) return 1;
-    if (secondIndex === -1) return -1;
+    if (firstIndex === -1 && firstOrder !== secondOrder) return firstOrder - secondOrder;
+    if (secondIndex === -1 && firstOrder !== secondOrder) return firstOrder - secondOrder;
+    if (firstIndex === -1) return firstOrder;
+    if (secondIndex === -1) return -secondOrder;
 
     return firstIndex - secondIndex;
   });
@@ -425,6 +391,7 @@ export function CustomerMenuContent({
   const [confirmedOrderTotal, setConfirmedOrderTotal] = useState<number | null>(null);
   const [trackedOrder, setTrackedOrder] = useState<Order | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<MenuLanguage>("fr");
 
   const table = initialTable;
   const tableName = table?.name ?? "";
@@ -432,6 +399,10 @@ export function CustomerMenuContent({
   const restaurantName = publicMenu.restaurantName;
   const subtitle = table ? (tableArea ? `${tableName} • ${tableArea}` : tableName) : "QR de table";
   const categoryById = useMemo(() => new Map(publicMenu.categories.map((category) => [category.id, category])), [publicMenu.categories]);
+  const englishAvailable = useMemo(
+    () => hasEnglishTranslations(publicMenu.categories, publicMenu.products),
+    [publicMenu.categories, publicMenu.products],
+  );
   const menuFamilyContext = useMemo(
     () => createMenuFamilyContext(publicMenu.categories.map((category) => category.name)),
     [publicMenu.categories],
@@ -439,19 +410,25 @@ export function CustomerMenuContent({
   const orderableProducts = useMemo<CustomerMenuProduct[]>(
     () =>
       publicMenu.products.filter(isCustomerOrderable).map((product) => {
-        const categoryName = categoryById.get(product.categoryId)?.name ?? "Autres";
+        const category = categoryById.get(product.categoryId);
+        const categoryName = category?.name ?? "Autres";
+        const translatedCategoryName = category ? getTranslatedName(category, selectedLanguage) : categoryName;
         const family = getMenuFamily(categoryName, menuFamilyContext);
+        const translatedProduct = getTranslatedProduct(product, selectedLanguage);
 
         return {
-          ...product,
-          categoryName,
+          ...translatedProduct,
+          categoryName: translatedCategoryName,
           categoryFamilyId: family.id,
-          categoryFamilyName: family.name,
+          categoryFamilyName: getFamilyDisplayName(family.id, family.name, selectedLanguage),
         };
       }),
-    [categoryById, menuFamilyContext, publicMenu.products],
+    [categoryById, menuFamilyContext, publicMenu.products, selectedLanguage],
   );
-  const visibleCategories = useMemo(() => getVisibleCategories(orderableProducts), [orderableProducts]);
+  const visibleCategories = useMemo(
+    () => getVisibleCategories(orderableProducts, selectedLanguage),
+    [orderableProducts, selectedLanguage],
+  );
   const trackingStorageKey = useMemo(() => getTrackingStorageKey(restaurantSlug, tableSlug), [restaurantSlug, tableSlug]);
 
   const visibleProducts =
@@ -875,10 +852,35 @@ export function CustomerMenuContent({
             {publicMenu.restaurantCity ? (
               <p className="text-base font-semibold text-slate-600">{publicMenu.restaurantCity}</p>
             ) : null}
-            <p className="mt-2 text-xl font-black tracking-tight text-emerald-900">Commandez à votre rythme</p>
+            <p className="mt-2 text-xl font-black tracking-tight text-emerald-900">
+              {ordersEnabled ? "Commandez a votre rythme" : "Consultez la carte"}
+            </p>
           </div>
         </div>
       </section>
+
+      {englishAvailable ? (
+        <div className="mb-5 inline-flex rounded-full border border-slate-200 bg-white p-1 shadow-card" aria-label="Langue du menu">
+          {(["fr", "en"] as MenuLanguage[]).map((language) => {
+            const active = selectedLanguage === language;
+
+            return (
+              <button
+                key={language}
+                type="button"
+                onClick={() => setSelectedLanguage(language)}
+                className={
+                  (active ? "bg-emerald-700 text-white" : "text-slate-700") +
+                  " min-h-10 rounded-full px-4 text-sm font-black transition"
+                }
+                aria-pressed={active}
+              >
+                {language === "fr" ? "FR" : "EN"}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       <div
         className="mb-6 flex gap-3 overflow-x-auto pb-1 scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
@@ -928,7 +930,13 @@ export function CustomerMenuContent({
 
               <div className="grid gap-4">
                 {section.products.map((product) => (
-                  <CustomerProductCard key={product.id} product={product} onAdd={addToBasket} />
+                  <CustomerProductCard
+                    key={product.id}
+                    product={product}
+                    onAdd={addToBasket}
+                    ordersEnabled={ordersEnabled}
+                    language={selectedLanguage}
+                  />
                 ))}
               </div>
             </section>
@@ -1042,27 +1050,29 @@ export function CustomerMenuContent({
         </div>
       ) : null}
 
-      <CustomerCartBar
-        itemCount={itemCount}
-        total={basketTotal}
-        lines={basket}
-        note={note}
-        customerName={customerName}
-        customerPhone={customerPhone}
-        validationMessage={validationMessage}
-        ordersEnabled={ordersEnabled}
-        isSubmitting={isSubmitting}
-        isOpen={basketOpen}
-        onOpen={() => setBasketOpen(true)}
-        onClose={() => setBasketOpen(false)}
-        onIncrease={increaseQuantity}
-        onDecrease={decreaseQuantity}
-        onRemove={removeItem}
-        onNoteChange={setNote}
-        onCustomerNameChange={setCustomerName}
-        onCustomerPhoneChange={setCustomerPhone}
-        onConfirm={confirmOrder}
-      />
+      {ordersEnabled ? (
+        <CustomerCartBar
+          itemCount={itemCount}
+          total={basketTotal}
+          lines={basket}
+          note={note}
+          customerName={customerName}
+          customerPhone={customerPhone}
+          validationMessage={validationMessage}
+          ordersEnabled={ordersEnabled}
+          isSubmitting={isSubmitting}
+          isOpen={basketOpen}
+          onOpen={() => setBasketOpen(true)}
+          onClose={() => setBasketOpen(false)}
+          onIncrease={increaseQuantity}
+          onDecrease={decreaseQuantity}
+          onRemove={removeItem}
+          onNoteChange={setNote}
+          onCustomerNameChange={setCustomerName}
+          onCustomerPhoneChange={setCustomerPhone}
+          onConfirm={confirmOrder}
+        />
+      ) : null}
     </AppShell>
   );
 }
