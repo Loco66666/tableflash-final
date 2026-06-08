@@ -4,7 +4,7 @@ import {
   CheckCircle2,
   ClipboardList,
   CreditCard,
-  Download,
+  Eye,
   FileWarning,
   PackageOpen,
   Plus,
@@ -183,23 +183,6 @@ function getServiceStatus(settings: DashboardClientData["settings"], tasks: Dash
   };
 }
 
-function getRestaurantStatusLabel(status: string) {
-  return {
-    trial: "Essai",
-    active: "Actif",
-    suspended: "Suspendu",
-    archived: "Archivé",
-  }[status] ?? status;
-}
-
-function getPlanLabel(plan: string) {
-  return {
-    trial: "Essai",
-    standard: "Standard",
-    premium: "Premium",
-  }[plan] ?? plan;
-}
-
 function pluralize(value: number, singular: string, plural: string) {
   return value > 1 ? plural : singular;
 }
@@ -208,10 +191,10 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
   const serviceStatus = getServiceStatus(data.settings, data.tasks);
   const urgentOrdersCount = data.tasks.ordersToAccept + data.tasks.ordersToCollect;
   const beforeServiceIssuesCount = getPendingTasksCount(data.tasks);
-  const readinessTitle =
-    beforeServiceIssuesCount > 0
-      ? `${beforeServiceIssuesCount} point${beforeServiceIssuesCount > 1 ? "s" : ""} a corriger avant service`
-      : "Votre service est pret";
+  const hasIssues = beforeServiceIssuesCount > 0;
+  const readinessTitle = hasIssues
+    ? `${beforeServiceIssuesCount} vérification${beforeServiceIssuesCount > 1 ? "s" : ""} avant le service`
+    : "Tout est prêt pour le service";
   const cockpitItems = [
     {
       icon: Bell,
@@ -225,8 +208,12 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
       label: "Menu",
       value:
         data.today.productsCount > 0
-          ? `${data.today.productsCount - data.tasks.unavailableProducts}/${data.today.productsCount} produits actifs`
-          : "Aucun produit",
+          ? `${data.today.productsCount - data.tasks.unavailableProducts} plat${
+              data.today.productsCount - data.tasks.unavailableProducts > 1 ? "s" : ""
+            } visible${data.today.productsCount - data.tasks.unavailableProducts > 1 ? "s" : ""} sur ${
+              data.today.productsCount
+            }`
+          : "Aucun plat",
       ready: data.today.productsCount > 0 && data.tasks.unavailableProducts === 0 && data.tasks.productsWithoutPrice === 0,
       href: "/dashboard/menu",
     },
@@ -245,46 +232,64 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
       href: "/dashboard/reviews",
     },
   ];
-  const healthItems = [
+  
+  const todoItems = [
     {
-      label: "Commandes",
-      ready: data.settings.ordersEnabled && urgentOrdersCount === 0,
-      value: data.settings.ordersEnabled ? (urgentOrdersCount > 0 ? `${urgentOrdersCount} en attente` : "OK") : "Desactivees",
+      href: "/dashboard/orders?filter=a-traiter",
+      icon: ShoppingBasket,
+      count: data.tasks.ordersToAccept,
+      title: pluralize(data.tasks.ordersToAccept, "commande à accepter", "commandes à accepter"),
+      tone: "orange" as const,
     },
     {
-      label: "Menu",
-      ready: data.today.productsCount > 0 && data.tasks.productsWithoutPrice === 0 && data.tasks.unavailableProducts === 0,
-      value:
-        data.today.productsCount > 0
-          ? data.tasks.productsWithoutPrice > 0
-            ? `${data.tasks.productsWithoutPrice} prix a verifier`
-            : data.tasks.unavailableProducts > 0
-              ? `${data.tasks.unavailableProducts} indisponible(s)`
-            : "OK"
-          : "Aucun produit",
+      href: "/dashboard/orders?filter=a-traiter",
+      icon: WalletCards,
+      count: data.tasks.ordersToCollect,
+      title: pluralize(data.tasks.ordersToCollect, "commande à encaisser", "commandes à encaisser"),
     },
     {
-      label: "QR",
-      ready: data.settings.qrEnabled && data.today.activeTablesCount > 0 && data.tasks.inactiveTables === 0,
-      value: data.settings.qrEnabled
-        ? data.tasks.inactiveTables > 0
-          ? `${data.tasks.inactiveTables} inactive(s)`
-          : `${data.today.activeTablesCount} actifs`
-        : "Desactive",
+      href: "/dashboard/reviews",
+      icon: Star,
+      count: data.tasks.reviewsToHandle,
+      title: pluralize(data.tasks.reviewsToHandle, "avis à traiter", "avis à traiter"),
+      tone: "yellow" as const,
     },
     {
-      label: "Avis",
-      ready: data.settings.reviewsEnabled && data.tasks.reviewsToHandle === 0,
-      value: data.settings.reviewsEnabled ? (data.tasks.reviewsToHandle > 0 ? `${data.tasks.reviewsToHandle} a traiter` : "OK") : "Desactives",
+      href: "/dashboard/menu?filter=rupture",
+      icon: PackageOpen,
+      count: data.tasks.unavailableProducts,
+      title: pluralize(data.tasks.unavailableProducts, "produit indisponible", "produits indisponibles"),
+      tone: "red" as const,
+    },
+    {
+      href: "/dashboard/menu",
+      icon: FileWarning,
+      count: data.tasks.productsWithoutPrice,
+      title: pluralize(data.tasks.productsWithoutPrice, "produit sans prix", "produits sans prix"),
+      tone: "red" as const,
+    },
+    {
+      href: "/dashboard/qr",
+      icon: QrCode,
+      count: data.tasks.inactiveTables,
+      title: pluralize(data.tasks.inactiveTables, "table QR inactive", "tables QR inactives"),
+      tone: "orange" as const,
     },
   ];
+
+  const pendingTodos = todoItems.filter((item) => item.count > 0);
 
   return (
     <AppShell>
       <PageHeader title={data.restaurant.name} subtitle={data.restaurant.city ?? serviceStatus.title} />
 
       <SectionCard className="mb-7 flex items-center gap-5 border-emerald-200 bg-linear-to-br from-emerald-50 to-white p-5 shadow-[0_18px_34px_rgba(0,111,56,0.12)] min-[390px]:p-6">
-        <span className="grid size-20 shrink-0 place-items-center rounded-full bg-linear-to-br from-emerald-500 to-emerald-900 text-white shadow-green min-[390px]:size-24">
+        <span
+          className={
+            "grid size-20 shrink-0 place-items-center rounded-full shadow-green min-[390px]:size-24 " +
+            (hasIssues ? "bg-orange-50 text-orange-700" : "bg-linear-to-br from-emerald-500 to-emerald-900 text-white")
+          }
+        >
           <Check className="size-12 min-[390px]:size-14" />
         </span>
 
@@ -299,13 +304,6 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
           </p>
 
           <p className="mt-2 text-sm font-semibold text-slate-700">{serviceStatus.detail}</p>
-
-          <p className="mt-3 text-sm font-semibold text-slate-700">
-            Statut : {getRestaurantStatusLabel(data.restaurant.status)} · Offre : {getPlanLabel(data.restaurant.plan)}
-          </p>
-
-          {data.restaurant.email ? <p className="mt-1 text-sm text-slate-600">{data.restaurant.email}</p> : null}
-          {data.restaurant.phone ? <p className="mt-1 text-sm text-slate-600">{data.restaurant.phone}</p> : null}
 
           {data.settings.onSitePaymentEnabled ? (
             <p className="mt-3 flex items-center gap-3 text-base leading-tight text-slate-700 min-[390px]:text-lg">
@@ -353,74 +351,26 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
       </section>
 
       <section className="mb-7">
-        <h2 className="mb-4 text-2xl font-black tracking-tight">Sante pilote</h2>
-
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {healthItems.map((item) => (
-            <div key={item.label} className="rounded-[1.15rem] border border-slate-200 bg-white p-4 shadow-card">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-black uppercase tracking-wide text-slate-500">{item.label}</span>
-                <CheckCircle2 className={"size-5 " + (item.ready ? "text-emerald-700" : "text-orange-500")} />
-              </div>
-              <p className={"mt-3 text-lg font-black leading-tight " + (item.ready ? "text-emerald-800" : "text-orange-700")}>
-                {item.value}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mb-7">
         <h2 className="mb-4 text-2xl font-black tracking-tight">À faire maintenant</h2>
 
-        <div className="grid gap-3">
-          <ActionCard
-            href="/dashboard/orders?filter=a-traiter"
-            icon={ShoppingBasket}
-            count={String(data.tasks.ordersToAccept)}
-            title={`${pluralize(data.tasks.ordersToAccept, "commande à accepter", "commandes à accepter")}`}
-            tone="orange"
-          />
-
-          <ActionCard
-            href="/dashboard/orders?filter=a-traiter"
-            icon={WalletCards}
-            count={String(data.tasks.ordersToCollect)}
-            title={`${pluralize(data.tasks.ordersToCollect, "commande à encaisser", "commandes à encaisser")}`}
-          />
-
-          <ActionCard
-            href="/dashboard/reviews"
-            icon={Star}
-            count={String(data.tasks.reviewsToHandle)}
-            title={`${pluralize(data.tasks.reviewsToHandle, "avis à traiter", "avis à traiter")}`}
-            tone="yellow"
-          />
-
-          <ActionCard
-            href="/dashboard/menu?filter=rupture"
-            icon={PackageOpen}
-            count={String(data.tasks.unavailableProducts)}
-            title={`${pluralize(data.tasks.unavailableProducts, "produit indisponible", "produits indisponibles")}`}
-            tone="red"
-          />
-
-          <ActionCard
-            href="/dashboard/menu"
-            icon={FileWarning}
-            count={String(data.tasks.productsWithoutPrice)}
-            title={`${pluralize(data.tasks.productsWithoutPrice, "prix produit a verifier", "prix produits a verifier")}`}
-            tone="red"
-          />
-
-          <ActionCard
-            href="/dashboard/qr"
-            icon={QrCode}
-            count={String(data.tasks.inactiveTables)}
-            title={`${pluralize(data.tasks.inactiveTables, "table QR inactive", "tables QR inactives")}`}
-            tone="orange"
-          />
-        </div>
+        {pendingTodos.length > 0 ? (
+          <div className="grid gap-3">
+            {pendingTodos.map((item) => (
+              <ActionCard
+                key={item.title}
+                href={item.href}
+                icon={item.icon}
+                count={String(item.count)}
+                title={item.title}
+                tone={item.tone}
+              />
+            ))}
+          </div>
+        ) : (
+          <SectionCard className="p-4">
+            <p className="text-base font-semibold text-slate-700">Tout est prêt. Aucune action urgente pour le moment.</p>
+          </SectionCard>
+        )}
       </section>
 
       <section className="mb-6 md:mb-7">
@@ -450,7 +400,7 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
       </section>
 
       <section className="mb-7">
-        <h2 className="mb-4 text-2xl font-black tracking-tight">Derniere activite</h2>
+        <h2 className="mb-4 text-2xl font-black tracking-tight">Dernière activité</h2>
 
         <div className="grid gap-3 md:grid-cols-2">
           <SectionCard className="p-4">
@@ -459,7 +409,7 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
                 <ShoppingBasket className="size-6" />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-black uppercase tracking-wide text-slate-500">Derniere commande</p>
+                <p className="text-sm font-black uppercase tracking-wide text-slate-500">Dernière commande</p>
                 {data.latest.order ? (
                   <>
                     <p className="mt-1 truncate text-lg font-black text-slate-950">{data.latest.order.label}</p>
@@ -500,9 +450,9 @@ export default function DashboardClient({ data }: { data: DashboardClientData })
 
         <div className="grid grid-cols-2 gap-2 min-[390px]:gap-3 md:grid-cols-4">
           <ActionCard href="/dashboard/orders" icon={ClipboardList} title="Voir les commandes" variant="tile" />
-          <ActionCard href="/dashboard/menu?action=import-photo" icon={Plus} title="Importer menu photo" variant="tile" />
-          <ActionCard href="/dashboard/qr?action=print" icon={Printer} title="Gerer les QR" variant="tile" />
-          <ActionCard href="/dashboard/orders/export?period=today" icon={Download} title="Exporter CSV" variant="tile" />
+          <ActionCard href="/dashboard/menu?action=import-photo" icon={Plus} title="Importer ma carte" variant="tile" />
+          <ActionCard href="/dashboard/qr?action=print" icon={Printer} title="Gérer les QR" variant="tile" />
+          <ActionCard href="/r/l-olivier" icon={Eye} title="Voir le menu client" variant="tile" />
         </div>
       </section>
     </AppShell>
