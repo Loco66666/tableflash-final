@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, ChefHat, ClipboardList, Download, HandPlatter, RefreshCw, Volume2, VolumeX } from "lucide-react";
+import { Bell, ChefHat, ClipboardList, HandPlatter, RefreshCw, Volume2, VolumeX } from "lucide-react";
 import { OrderCard } from "@/components/ui-custom/OrderCard";
 import { updateDashboardOrderStatus } from "@/app/dashboard/orders/actions";
 import type { Order, OrderStatus } from "@/lib/types";
@@ -140,8 +140,6 @@ export function OrdersBoard({
   );
 
   const emptyLabel = orderFilters.find((filter) => filter.value === activeFilter)?.emptyLabel ?? "Aucune commande";
-  const exportHref = `/dashboard/orders/export?period=${exportPeriod}`;
-
   useEffect(() => {
     const refreshOrders = (force = false) => {
       if (!force && document.visibilityState !== "visible") return;
@@ -320,7 +318,6 @@ export function OrdersBoard({
       ) : null}
 
       <div className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-card min-[430px]:grid-cols-[1fr_auto] min-[430px]:items-center">
-        <div className="grid grid-cols-[1fr_auto] gap-2">
           <select
             value={exportPeriod}
             onChange={(event) => setExportPeriod(event.target.value)}
@@ -331,15 +328,6 @@ export function OrdersBoard({
             <option value="7d">7 jours</option>
             <option value="30d">30 jours</option>
           </select>
-
-          <a
-            href={exportHref}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 text-sm font-black text-white shadow-green transition active:scale-[0.99]"
-          >
-            <Download className="size-5" />
-            CSV
-          </a>
-        </div>
 
         <div className="flex items-center justify-between gap-3 min-[430px]:justify-end">
           <span className="min-w-0 text-xs font-semibold text-slate-500">
@@ -390,7 +378,7 @@ export function OrdersBoard({
             <p className="text-2xl font-black text-blue-900">{serviceStats.preparingOrders}</p>
             <ChefHat className="size-6 text-blue-700" />
           </div>
-          <p className="mt-1 text-xs font-black uppercase text-blue-800">En cuisine</p>
+          <p className="mt-1 text-xs font-black uppercase text-blue-800">En préparation</p>
         </div>
 
         <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
@@ -398,7 +386,7 @@ export function OrdersBoard({
             <p className="text-2xl font-black text-emerald-900">{serviceStats.readyOrders}</p>
             <HandPlatter className="size-6 text-emerald-800" />
           </div>
-          <p className="mt-1 text-xs font-black uppercase text-emerald-800">A servir</p>
+          <p className="mt-1 text-xs font-black uppercase text-emerald-800">Prêtes</p>
         </div>
 
         <div className={cn(

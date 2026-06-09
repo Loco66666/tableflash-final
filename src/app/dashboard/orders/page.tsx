@@ -52,7 +52,7 @@ function parseTableNumber(tableName: string, tableSlug: string) {
 
 function mapDbStatusToUiStatus(status: string, paymentStatus: string): OrderStatus {
   if (status === "pending") return "new";
-  if (status === "accepted") return paymentStatus === "paid" ? "paid" : "payment_pending";
+  if (status === "accepted") return paymentStatus === "paid" ? "paid" : "accepted";
   if (status === "preparing") return "preparing";
   if (status === "ready") return "ready";
   if (status === "served") return "served";

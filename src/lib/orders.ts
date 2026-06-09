@@ -14,8 +14,8 @@ export const orderFilters: { label: string; value: OrderFilter; emptyLabel: stri
 
 const statusLabels = {
   new: "Nouvelle",
-  accepted: "À payer",
-  payment_pending: "À payer",
+  accepted: "Acceptée",
+  payment_pending: "Paiement en attente",
   paid: "Payée",
   preparing: "En préparation",
   ready: "Prête",
@@ -86,7 +86,7 @@ export function normalizeOrderFilterSlug(value: string | string[] | undefined): 
 export function orderMatchesFilter(order: Order, filter: OrderFilter) {
   switch (filter) {
     case "a-traiter":
-      return ["new", "payment_pending", "paid"].includes(order.status);
+      return ["new", "accepted", "payment_pending", "paid"].includes(order.status);
     case "en-preparation":
       return order.status === "preparing";
     case "pretes":
@@ -149,7 +149,15 @@ export function applyOrderStatusTransition(order: Order, nextStatus: OrderStatus
         paymentMethod: "on_site",
       };
 
-    case "accepted":
+case "accepted":
+  return {
+    ...order,
+    status: "accepted",
+    paid: false,
+    paymentStatus: "on_site_pending",
+    paymentMethod: "on_site",
+  };
+
     case "payment_pending":
       return {
         ...order,
@@ -240,7 +248,17 @@ export function normalizeOrders(orders: Order[]) {
       };
     }
 
-    if (order.status === "accepted" || order.status === "payment_pending") {
+    if (order.status === "accepted") {
+      return {
+        ...order,
+        status: "accepted" as const,
+        paid: false,
+        paymentStatus: order.paymentStatus ?? "on_site_pending",
+        paymentMethod: order.paymentMethod ?? "on_site",
+      };
+    }
+
+    if (order.status === "payment_pending") {
       return {
         ...order,
         status: "payment_pending" as const,
