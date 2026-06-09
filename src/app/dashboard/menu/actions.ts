@@ -623,25 +623,28 @@ export async function deleteMenuProduct(input: { productId: string }) {
   }
 
   if ((count ?? 0) > 0) {
-    const { error: disableError } = await supabase
+    const { error: archiveError } = await supabase
       .from("menu_products")
       .update({
+        category_id: null,
         is_available: false,
+        is_featured: false,
         updated_at: new Date().toISOString(),
       })
       .eq("id", productId)
       .eq("restaurant_id", restaurant.id);
 
-    if (disableError) {
-      throw new Error("Produit déjà commandé. Désactivation impossible.");
+    if (archiveError) {
+      throw new Error(archiveError.message);
     }
 
     revalidateMenuPaths(restaurant.slug);
 
     return {
       ok: true,
-      mode: "disabled",
-      message: "Produit déjà commandé : il a été rendu indisponible plutôt que supprimé.",
+      mode: "archived",
+      message:
+        "Produit déjà utilisé dans des commandes : il est retiré du menu, mais conservé pour l’historique.",
     };
   }
 

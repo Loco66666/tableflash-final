@@ -1760,7 +1760,7 @@ export function MenuManager({
     if (productIds.length === 0) return;
 
     const confirmed = window.confirm(
-      `Supprimer ${productIds.length} produit(s) du menu ?\n\nIls seront retirés du menu et rendus indisponibles, mais l'historique des commandes sera conservé.`,
+      `Retirer ${productIds.length} produit(s) du menu ?\n\nLes produits déjà utilisés dans des commandes seront archivés pour conserver l’historique. Les autres seront supprimés définitivement.`,
     );
 
     if (!confirmed) return;
@@ -1847,7 +1847,7 @@ export function MenuManager({
 
   function deleteProduct(product: Product) {
     const confirmed = window.confirm(
-      `Supprimer "${product.name}" ?\n\nSi ce produit a déjà été commandé, il sera rendu indisponible au lieu d’être supprimé.`,
+      `Retirer "${product.name}" du menu ?\n\nS’il a déjà été utilisé dans une commande, il sera archivé pour conserver l’historique. Sinon, il sera supprimé définitivement.`,
     );
 
     if (!confirmed) return;
@@ -1924,7 +1924,7 @@ export function MenuManager({
           >
             <span className="inline-flex items-center gap-3">
               <ClipboardCheck className="size-7" />
-              Nettoyer menu
+              Vérifier le menu
               {menuCleanupIssueCount > 0 ? (
                 <span className="grid min-w-6 place-items-center rounded-full bg-emerald-700 px-2 py-0.5 text-xs text-white">
                   {menuCleanupIssueCount}
@@ -2097,7 +2097,7 @@ export function MenuManager({
                 disabled={isPending}
                 className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 disabled:opacity-60"
               >
-                Rendre indisponibles
+                Mettre en rupture
               </button>
 
               <button
@@ -2106,7 +2106,7 @@ export function MenuManager({
                 disabled={isPending}
                 className="min-h-11 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 disabled:opacity-60"
               >
-                Supprimer/retirer la sélection
+                Retirer la sélection du menu
               </button>
               </div>
             </div>
@@ -2153,7 +2153,7 @@ export function MenuManager({
                         >
                           {isSelected ? <Check className="size-3.5" /> : null}
                         </span>
-                        <span className="truncate">{isSelected ? "Prêt à supprimer" : "Cocher pour suppression"}</span>
+                        <span className="truncate">{isSelected ? "Prêt à supprimer" : "Sélectionner ce produit"}</span>
                       </span>
                       <span className="min-w-0 truncate text-xs font-black text-slate-400">{product.name}</span>
                     </button>
@@ -2167,7 +2167,7 @@ export function MenuManager({
                         onClick={() => toggleAvailability(product)}
                         className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-card disabled:opacity-60"
                       >
-                        {product.available ? "Rendre indisponible" : "Remettre disponible"}
+                        {product.available ? "Mettre en rupture" : "Remettre à la carte"}
                       </button>
 
                       <button
@@ -2177,7 +2177,7 @@ export function MenuManager({
                         className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 shadow-card disabled:opacity-60"
                       >
                         <Trash2 className="size-4" />
-                        Supprimer
+                        Retirer du menu
                       </button>
                     </div>
                   </div>
@@ -2561,14 +2561,14 @@ export function MenuManager({
       ) : null}
 
       {panelMode === "menu-cleanup" ? (
-        <Panel title="Nettoyer le menu" onClose={closePanel}>
+        <Panel title="Vérifier le menu" onClose={closePanel}>
           <div className="grid gap-4 safe-pb-form">
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
               <p className="text-base font-black text-emerald-900">
                 {menuCleanupIssueCount > 0 ? `${menuCleanupIssueCount} correction(s) prioritaire(s)` : "Menu opérationnel"}
               </p>
               <p className="mt-1 text-sm font-semibold leading-relaxed text-emerald-800/80">
-                Les doublons possibles restent des vérifications non bloquantes.
+                Aucune action n’est faite automatiquement. Vous gardez toujours le contrôle.
               </p>
             </div>
 
@@ -2646,7 +2646,7 @@ export function MenuManager({
                 <div>
                   <h3 className="text-lg font-black text-slate-950">Catégories vides</h3>
                   <p className="mt-1 text-sm font-semibold text-slate-500">
-                    Supprimez les catégories inutiles pour garder un menu plus lisible.
+                    Une catégorie vide peut être supprimée sans toucher aux produits.
                   </p>
                 </div>
 
