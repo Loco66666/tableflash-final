@@ -1920,7 +1920,7 @@ export function MenuManager({
           >
             <span className="inline-flex items-center gap-3">
               <ClipboardCheck className="size-7" />
-              Nettoyer menu
+              Vérifier le menu
               {menuCleanupIssueCount > 0 ? (
                 <span className="grid min-w-6 place-items-center rounded-full bg-emerald-700 px-2 py-0.5 text-xs text-white">
                   {menuCleanupIssueCount}
@@ -2557,15 +2557,15 @@ export function MenuManager({
       ) : null}
 
       {panelMode === "menu-cleanup" ? (
-        <Panel title="Nettoyer le menu" onClose={closePanel}>
+        <Panel title="Vérifier le menu" onClose={closePanel}>
           <div className="grid gap-4 safe-pb-form">
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-              <p className="text-base font-black text-emerald-900">
-                {menuCleanupIssueCount > 0 ? `${menuCleanupIssueCount} correction(s) prioritaire(s)` : "Menu opérationnel"}
-              </p>
-              <p className="mt-1 text-sm font-semibold leading-relaxed text-emerald-800/80">
-                Les doublons possibles restent des vérifications non bloquantes.
-              </p>
+        <p className="text-base font-black text-emerald-900">
+          {menuCleanupIssueCount > 0 ? `${menuCleanupIssueCount} élément(s) à vérifier` : "Menu opérationnel"}
+        </p>
+        <p className="mt-1 text-sm font-semibold leading-relaxed text-emerald-800/80">
+          Aucune action n’est faite automatiquement. Les catégories vides et les doublons restent de simples vérifications.
+        </p>
             </div>
 
             {menuCleanupIssueCount === 0 &&
@@ -2640,10 +2640,10 @@ export function MenuManager({
             {emptyCategories.length > 0 ? (
               <section className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
                 <div>
-                  <h3 className="text-lg font-black text-slate-950">Catégories vides</h3>
-                  <p className="mt-1 text-sm font-semibold text-slate-500">
-                    Supprimez les catégories inutiles pour garder un menu plus lisible.
-                  </p>
+                <h3 className="text-lg font-black text-slate-950">Catégories sans produit</h3>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  Ces catégories ne contiennent aucun produit pour le moment. Vous pouvez les garder, les remplir plus tard ou les supprimer si elles sont inutiles.
+                </p>
                 </div>
 
                 <div className="grid gap-2">
@@ -2656,7 +2656,7 @@ export function MenuManager({
                         disabled={isPending}
                         className="min-h-10 shrink-0 rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-black text-red-700 disabled:opacity-60"
                       >
-                        Supprimer
+                        Supprimer cette catégorie
                       </button>
                     </div>
                   ))}
