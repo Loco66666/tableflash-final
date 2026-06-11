@@ -870,22 +870,18 @@ export function MenuManager({
     [menuCategories],
   );
 
-  const filterCategories = useMemo(() => {
-    const familyById = new Map<string, { id: string; name: string; icon: string; isActive: boolean }>();
-
-    for (const category of activeCategories) {
-      const family = getMenuFamily(category.name, menuFamilyContext);
-      if (!familyById.has(family.id)) {
-        familyById.set(family.id, {
-          ...family,
-          icon: "sparkles",
-          isActive: true,
-        });
-      }
-    }
-
-    return [{ id: "all", name: "Tous", icon: "sparkles", isActive: true }, ...familyById.values()];
-  }, [activeCategories, menuFamilyContext]);
+  const filterCategories = useMemo(
+    () => [
+      { id: "all", name: "Tous", icon: "sparkles", isActive: true },
+      ...activeCategories.map((category) => ({
+        id: category.id,
+        name: category.name,
+        icon: category.icon ?? "sparkles",
+        isActive: category.isActive !== false,
+      })),
+    ],
+    [activeCategories],
+  );
 
   const products = useMemo(
     () =>
@@ -1039,11 +1035,11 @@ export function MenuManager({
       const isAvailable = typeof product.available === "boolean" ? product.available : true;
 
       const matchesCategory =
-        selectedCategoryId === "all"
-          ? isAvailable
-          : selectedCategoryId === "unavailable"
-            ? !isAvailable
-            : isAvailable && product.categoryFamilyId === selectedCategoryId;
+      selectedCategoryId === "all"
+        ? isAvailable
+        : selectedCategoryId === "unavailable"
+          ? !isAvailable
+          : isAvailable && product.categoryId === selectedCategoryId;
 
       return matchesSearch && matchesCategory;
     });
