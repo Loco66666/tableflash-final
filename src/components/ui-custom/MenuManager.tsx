@@ -615,7 +615,7 @@ function ProductOptionsEditor({
                     <label className="mt-2 flex items-center gap-2 text-xs font-bold text-slate-500">
                       <input
                         type="checkbox"
-                        checked={group.required}
+                        checked={group.required === true}
                         onChange={(event) => updateGroup(group.id, { ...group, required: event.target.checked })}
                         className="size-4 accent-emerald-700"
                       />
@@ -1131,14 +1131,24 @@ export function MenuManager({
     setPanelMode("add-product");
   }
 
-  function openEditProduct(product: Product) {
-    setEditingProductId(product.id);
-    setProductForm(getProductForm(product));
-    setProductErrors({});
-    setActionError("");
-    setActionMessage("");
-    setPanelMode("edit-product");
-  }
+function openEditProduct(product: Product) {
+  const nextForm = getProductForm(product);
+
+  setEditingProductId(product.id);
+  setProductForm(nextForm);
+  setProductErrors(
+    nextForm.categoryId
+      ? {}
+      : { categoryId: "Choisissez une catégorie pour enregistrer ce produit." },
+  );
+  setActionError(
+    nextForm.categoryId
+      ? ""
+      : "Ce produit n’a pas encore de catégorie. Choisissez une catégorie avant d’enregistrer les changements.",
+  );
+  setActionMessage("");
+  setPanelMode("edit-product");
+}
 
   function openAddCategory() {
     setCategoryForm(emptyCategoryForm);
@@ -1207,6 +1217,18 @@ export function MenuManager({
     }
 
     setProductErrors(nextErrors);
+    
+    if (Object.keys(nextErrors).length > 0) {
+      setActionError(
+        nextErrors.categoryId ??
+          nextErrors.name ??
+          nextErrors.price ??
+          nextErrors.promoPrice ??
+          "Corrigez les champs indiqués avant d’enregistrer.",
+      );
+    } else {
+      setActionError("");
+    }
 
     return {
       valid: Object.keys(nextErrors).length === 0,
