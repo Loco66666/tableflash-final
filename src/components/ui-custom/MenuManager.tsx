@@ -1755,9 +1755,9 @@ export function MenuManager({
 
     if (productIds.length === 0) return;
 
-    const confirmed = window.confirm(
-      `Supprimer ${productIds.length} produit(s) du menu ?\n\nIls seront retirés du menu et rendus indisponibles, mais l'historique des commandes sera conservé.`,
-    );
+  const confirmed = window.confirm(
+    `Retirer ${productIds.length} produit(s) du menu ?\n\nLes produits déjà utilisés dans des commandes seront archivés pour conserver l’historique. Les autres seront supprimés définitivement.`,
+  );
 
     if (!confirmed) return;
 
@@ -1773,7 +1773,7 @@ export function MenuManager({
 
           setSelectedProductIds(new Set());
           setActionMessage(
-            `${result.deletedProducts} produit(s) supprimé(s). ${result.archivedProducts} produit(s) conservé(s) pour l'historique et retiré(s) du menu.`,
+            `${result.deletedProducts} produit(s) supprimé(s) définitivement. ${result.archivedProducts} produit(s) archivé(s) pour conserver l’historique.`,
           );
         } catch (error) {
           setActionError(error instanceof Error ? error.message : "Archivage groupé impossible.");
@@ -1843,7 +1843,7 @@ export function MenuManager({
 
   function deleteProduct(product: Product) {
     const confirmed = window.confirm(
-      `Supprimer "${product.name}" ?\n\nSi ce produit a déjà été commandé, il sera rendu indisponible au lieu d’être supprimé.`,
+      `Retirer "${product.name}" du menu ?\n\nS’il a déjà été utilisé dans une commande, il sera archivé pour conserver l’historique. Sinon, il sera supprimé définitivement.`,
     );
 
     if (!confirmed) return;
@@ -2093,7 +2093,7 @@ export function MenuManager({
                 disabled={isPending}
                 className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 disabled:opacity-60"
               >
-                Rendre indisponibles
+                Mettre en rupture de stock
               </button>
 
               <button
@@ -2102,7 +2102,7 @@ export function MenuManager({
                 disabled={isPending}
                 className="min-h-11 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 disabled:opacity-60"
               >
-                Supprimer/retirer la sélection
+                Retirer la sélection du menu
               </button>
               </div>
             </div>
@@ -2149,7 +2149,7 @@ export function MenuManager({
                         >
                           {isSelected ? <Check className="size-3.5" /> : null}
                         </span>
-                        <span className="truncate">{isSelected ? "Prêt à supprimer" : "Cocher pour suppression"}</span>
+                        <span className="truncate">{isSelected ? "Sélectionné" : "Sélectionner ce produit"}</span>
                       </span>
                       <span className="min-w-0 truncate text-xs font-black text-slate-400">{product.name}</span>
                     </button>
@@ -2163,7 +2163,7 @@ export function MenuManager({
                         onClick={() => toggleAvailability(product)}
                         className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-card disabled:opacity-60"
                       >
-                        {product.available ? "Rendre indisponible" : "Remettre disponible"}
+                        {product.available ? "Mettre en rupture" : "Remettre à la carte"}
                       </button>
 
                       <button
@@ -2942,7 +2942,7 @@ export function MenuManager({
                       disabled={isPending}
                       className="min-h-11 rounded-xl border border-red-200 bg-red-50 px-3 text-sm font-black text-red-700 disabled:opacity-60"
                     >
-                      Supprimer
+                      Retirer du menu
                     </button>
                   </div>
                 </article>
